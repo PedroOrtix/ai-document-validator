@@ -41,19 +41,20 @@ needs locale metadata we deliberately do not guess.
 | POST | `/v1/extract` | document → extraction only |
 | GET  | `/health` | liveness |
 
-## Architecture (short)
+## Architecture
 
-```
-document (PDF/text) + config
-        │
-  POST /v1/validate (FastAPI)
-        │
-  Extractor (interface) ── OfflineExtractor (regex/heuristics, deterministic)  [default]
-                       └── LLMExtractor (OpenRouter, OpenAI-compatible)        [optional]
-        │
-  DocumentExtraction (Pydantic: value + confidence + evidence per field)
-        │
-  RulesEngine (registry of pluggable rules) → Verdict {PASS | FAIL | REVIEW}
+```mermaid
+flowchart TD
+    A["document (PDF bytes / text) + rule config"] --> B["POST /v1/validate · POST /v1/extract<br/>(FastAPI, structured JSON logs)"]
+    B --> C{extraction backend}
+    C -->|offline · default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
+    C -->|llm · optional| E["LLMExtractor<br/>OpenRouter, OpenAI-compatible"]
+    C -->|llm-recorded| F["RecordedLLMExtractor<br/>recorded responses for tests"]
+    D --> G["DocumentExtraction<br/>value + confidence + evidence per field"]
+    E --> G
+    F --> G
+    G --> H["RulesEngine<br/>pluggable rule registry"]
+    H --> I["Verdict: PASS / FAIL / REVIEW<br/>rule results + model metadata"]
 ```
 
 Key decisions (full rationale below in Trade-offs):
@@ -64,6 +65,24 @@ Key decisions (full rationale below in Trade-offs):
    rule with data present ⇒ `FAIL` (judged and rejected). Compliance verdicts need this nuance.
 3. **Confidence is evidence-strength, not model probability.** Documented per-field: labeled
    pattern > structural pattern > heuristic.
+
+### LLM extraction system prompt
+
+The offline heuristics were specified in [`docs/prompts/`](docs/prompts/) (the executor briefs).
+The LLM backend's system prompt — the single source of truth lives in
+`src/docvalidator/extraction/llm.py` — is:
+
+```text
+You extract supplier invoice fields. Return ONLY strict JSON with keys
+"supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id".
+Use null for absent fields, ISO dates (YYYY-MM-DD), float amounts, and ISO-4217 currency codes.
+Example: {"supplier_name":"ACME Ltd","invoice_number":"INV-1","invoice_date":"2026-01-31",
+"total_amount":123.45,"currency":"EUR","tax_id":"DE123456789"}
+```
+
+The response is parsed into the canonical Pydantic model with typed coercion
+(`date.fromisoformat`, `float`); anything else raises a typed `LLMParsingError` instead of
+silently producing a wrong verdict.
 
 ## Verdict contract
 
@@ -91,24 +110,24 @@ curl -s -X POST localhost:8000/v1/validate \
 {
   "status": "PASS",
   "rule_results": [
-    {"rule_id": "invoice_date_present_and_fresh", "passed": true, "message": "invoice date is present and fresh"},
-    {"rule_id": "total_amount_present_and_positive", "passed": true, "message": "total amount is present and positive"},
-    {"rule_id": "supplier_name_present", "passed": true, "message": "supplier name is present"},
-    {"rule_id": "currency_allowed", "passed": true, "message": "currency is allowed"}
+    {"rule_id": "invoice_date_present_and_fresh", "passed": true, "message": "invoice date is present and fresh", "inconclusive": false},
+    {"rule_id": "total_amount_present_and_positive", "passed": true, "message": "total amount is present and positive", "inconclusive": false},
+    {"rule_id": "supplier_name_present", "passed": true, "message": "supplier name is present", "inconclusive": false},
+    {"rule_id": "currency_allowed", "passed": true, "message": "currency is allowed", "inconclusive": false}
   ],
   "extraction": {
     "document_type": "SUPPLIER_INVOICE",
     "fields": {
-      "supplier_name":   {"value": "ACME Supply GmbH", "confidence": 0.8,  "evidence": "ACME Supply GmbH"},
-      "invoice_number":  {"value": "INV-2026-041",     "confidence": 0.95, "evidence": "Invoice No: INV-2026-041"},
-      "invoice_date":    {"value": "2026-09-01",       "confidence": 0.95, "evidence": "2026-09-01"},
-      "total_amount":    {"value": 1250.0,             "confidence": 0.95, "evidence": "Total: 1250.00"},
-      "currency":        {"value": "EUR",              "confidence": 0.95, "evidence": "Currency: EUR"},
-      "tax_id":          {"value": "DE123456789",      "confidence": 0.95, "evidence": "VAT: DE123456789"}
+      "supplier_name":  {"value": "ACME Supply GmbH", "confidence": 0.8,  "evidence": "ACME Supply GmbH",   "page_hint": null},
+      "invoice_number": {"value": "INV-2026-041",     "confidence": 0.95, "evidence": "Invoice No: INV-2026-041", "page_hint": null},
+      "invoice_date":   {"value": "2026-09-01",       "confidence": 0.95, "evidence": "2026-09-01",       "page_hint": null},
+      "total_amount":   {"value": 1250.0,             "confidence": 0.95, "evidence": "Total: 1250.00",   "page_hint": null},
+      "currency":       {"value": "EUR",              "confidence": 0.95, "evidence": "Currency: EUR",    "page_hint": null},
+      "tax_id":         {"value": "DE123456789",      "confidence": 0.95, "evidence": "VAT: DE123456789", "page_hint": null}
     },
-    "metadata": {"backend": "offline", "duration_ms": null, "model": null, "provider": null}
+    "metadata": {"backend": "offline", "duration_ms": 1.711, "model": null, "provider": null, "total_tokens": null}
   },
-  "request_id": "33f7bd4d-36a6-4f39-bcd7-8b3724cc0524"
+  "request_id": "a5cb8bb2-8f10-4b02-aa77-be3b8e07d49e"
 }
 ```
 

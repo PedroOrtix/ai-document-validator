@@ -2,13 +2,21 @@
 
 import json
 import logging
+import os
 import sys
 from datetime import UTC, datetime
 from typing import Any
 
 
-def configure_logging(level: int = logging.INFO) -> logging.Logger:
-    """Configure the API logger to emit one JSON object per record."""
+def configure_logging(level: int | None = None) -> logging.Logger:
+    """Configure the API logger to emit one JSON object per record.
+
+    ``level`` defaults to the ``LOG_LEVEL`` environment variable (INFO when
+    unset or unrecognized).
+    """
+    if level is None:
+        raw = os.environ.get("LOG_LEVEL", "INFO").upper()
+        level = getattr(logging, raw, logging.INFO)
     logger = logging.getLogger("docvalidator.api")
     logger.setLevel(level)
     logger.propagate = False

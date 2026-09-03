@@ -42,10 +42,10 @@ def test_parse_clean_json_maps_fields_confidence_evidence_and_usage() -> None:
 
     assert extraction.fields["supplier_name"].value == "ACME Ltd"
     assert extraction.fields["supplier_name"].confidence == 0.75
-    assert extraction.fields["supplier_name"].evidence == _RAW
+    assert extraction.fields["supplier_name"].evidence == "ACME Ltd"
     assert extraction.fields["invoice_number"].value == "INV-1"
     assert extraction.fields["invoice_number"].confidence == 0.75
-    assert extraction.fields["invoice_number"].evidence == _RAW
+    assert extraction.fields["invoice_number"].evidence == "INV-1"
     assert extraction.metadata.backend == "llm"
     assert extraction.metadata.model == "test-model"
     assert extraction.metadata.provider == "openrouter"
@@ -99,7 +99,7 @@ def test_extractor_maps_fields_from_mock_transport() -> None:
 
     assert extraction.fields["supplier_name"].value == "ACME Ltd"
     assert extraction.fields["supplier_name"].confidence == 0.75
-    assert extraction.fields["supplier_name"].evidence == _RAW
+    assert extraction.fields["supplier_name"].evidence == "ACME Ltd"
     assert extraction.metadata.backend == "llm"
     assert extraction.metadata.model == "test-model"
     assert extraction.metadata.total_tokens == 123

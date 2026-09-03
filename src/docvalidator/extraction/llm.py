@@ -92,7 +92,14 @@ def parse_llm_response(
             name: ExtractedField(
                 value=_coerce_field_value(name, fields_payload[name]),
                 confidence=_LLM_CONFIDENCE,
-                evidence=raw_content,
+                # Per-field evidence: the model's own value for that field.
+                # For absent fields the full raw answer is the only evidence
+                # that the field was (not) present in the response.
+                evidence=(
+                    str(fields_payload[name])
+                    if fields_payload[name] is not None
+                    else raw_content
+                ),
             )
             for name in _FIELD_NAMES
         }

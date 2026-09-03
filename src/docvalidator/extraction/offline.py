@@ -1,6 +1,7 @@
 """Deterministic offline extraction for supplier invoices."""
 
 import re
+import time
 from datetime import date, datetime
 from typing import ClassVar
 
@@ -33,6 +34,7 @@ class OfflineExtractor(Extractor):
     )
 
     def extract(self, document: DocumentInput) -> DocumentExtraction:
+        started_at = time.perf_counter()
         text = document.to_text()
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         methods = [
@@ -47,9 +49,10 @@ class OfflineExtractor(Extractor):
             method.__name__.removeprefix("_extract_"): method(text, lines)
             for method in methods
         }
+        duration_ms = (time.perf_counter() - started_at) * 1000
         return DocumentExtraction(
             fields=fields,
-            metadata=ExtractionMetadata(backend=self.backend),
+            metadata=ExtractionMetadata(backend=self.backend, duration_ms=round(duration_ms, 3)),
         )
 
     def _first_match(self, text: str, pattern: re.Pattern[str]) -> re.Match[str] | None:

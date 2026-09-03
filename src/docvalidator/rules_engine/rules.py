@@ -99,8 +99,9 @@ class SupplierNamePresent:
         if field is None or field.value is None:
             return RuleResult(
                 rule_id=self.rule_id,
-                passed=True,
-                message="supplier name not evaluated",
+                passed=False,
+                message="supplier name is missing — rule inconclusive",
+                inconclusive=True,
             )
         if not str(field.value).strip():
             return RuleResult(

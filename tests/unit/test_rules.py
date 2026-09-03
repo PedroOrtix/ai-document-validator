@@ -146,10 +146,11 @@ def test_engine_reviews_when_required_fields_are_missing() -> None:
     config = ValidationConfig()
     verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 2))
     assert verdict.status == "REVIEW"
-    assert any(
-        result.rule_id == "supplier_name_present" and result.passed
-        for result in verdict.rule_results
+    supplier_rule = next(
+        result for result in verdict.rule_results if result.rule_id == "supplier_name_present"
     )
+    assert supplier_rule.passed is False
+    assert supplier_rule.inconclusive is True
     assert any(
         result.rule_id == "required_field_present" and "supplier_name" in result.message
         for result in verdict.rule_results
