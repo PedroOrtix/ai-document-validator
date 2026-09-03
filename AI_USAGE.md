@@ -19,8 +19,6 @@ fixed directly rather than re-dispatched.
 
 ## Concrete examples of rejected AI suggestions
 
-_(final list at submission; examples captured during the run)_
-
 1. **Rejected: LLM-first extraction architecture.** Early drafts reached for an LLM call as
    the primary extraction path. Rejected because (a) the assessment explicitly rewards an
    offline path reviewers can run without credentials, (b) deterministic extraction is
@@ -30,6 +28,21 @@ _(final list at submission; examples captured during the run)_
    implementation read the system clock directly, which makes the age boundary untestable.
    Rejected in review; replaced with a `today: date` injection parameter (default preserves
    behavior, tests inject fixed dates).
+3. **Rejected (executor output, caught in review): silent FAIL on missing rule data.** The
+   first rules engine returned FAIL whenever a rule's input field was missing. Rejected:
+   it conflates "judged and rejected" with "cannot judge". Fixed with an `inconclusive`
+   flag on `RuleResult`; missing data now drives `REVIEW` through the required-field check.
+   Two aggregation tests lock the semantics, and one golden-fixture expectation was
+   corrected accordingly — the eval harness is what surfaced the disagreement.
+4. **Rejected (caught by a live API call): untyped LLM values.** The recorded-stub tests
+   used pre-typed values, so they never caught that a real LLM returns `invoice_date` as
+   an ISO *string* — which the freshness rule would classify as invalid. Found by running
+   the extractor against the real OpenRouter API during review; fixed with typed coercion
+   in the parser (`date.fromisoformat` / `float`, garbage raises a typed parsing error).
+
+Also caught in orchestrator review and fixed before merge: an amount regex that truncated
+4+ digit integers without thousands separators (`1250.00 → 125.0`), a duplicated request
+body parse in `/v1/extract`, and a duplicated Pydantic field declaration.
 
 ## How correctness was verified
 
@@ -47,4 +60,6 @@ The exact briefs given to the coding executor are committed verbatim in
 `docs/prompts/2026-09-03_phase123_core.md`; the LLM extraction system prompt lives in
 `src/docvalidator/extraction/llm.py` (single source of truth, also printed in the README).
 
-<!-- Final metrics: tests count, eval results — filled at submission -->
+Final state at submission: 77 tests green (`uv run pytest`), ruff clean, eval harness
+at field_accuracy=1.00 / verdict_agreement=1.00 over 6 golden fixtures, Docker image
+built and smoke-tested end-to-end, and one live OpenRouter call verified the LLM path.

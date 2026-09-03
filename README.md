@@ -143,11 +143,10 @@ why it ships as an opt-in adapter with a recorded stub for offline testing.
 
 - Offline path (measured, from the structured request logs): **~3.5 ms** end-to-end per document
   (extraction + rules), zero marginal cost.
-- LLM path (measured via OpenRouter, model `z-ai/glm-5.3-flash`): see `VALIDATOR_LLM_*` in
-  `.env.example`; per-document latency and token usage are returned in `extraction.metadata`
-  (`duration_ms`, `model`, `provider`) and logged per request. Rough order: ~1–3 s and
-  ~500–900 tokens per document at high reasoning effort → fractions of a cent per document on
-  an open-weight model.
+- LLM path (measured live, model `z-ai/glm-5.3-flash` via OpenRouter, single invoice): **~7.5 s,
+  ~300 total tokens** per document → well under a cent per document on an open-weight model.
+  Per-document latency and token usage are returned in `extraction.metadata` (`duration_ms`,
+  `model`, `provider`, `total_tokens`) and logged per request.
 - Eval harness: `uv run python -m eval.run` reports field exact-match, per-field precision/recall and
   verdict agreement over the golden set (currently 1.00 / 1.00 over 6 fixtures — small set, see below).
 
