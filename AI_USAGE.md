@@ -124,3 +124,23 @@ measurement (~30+s/doc on 24 CPU cores); the decision and rationale are in the R
 Codex implemented the multi-lane eval CLI, decision-table telemetry and cost
 model, fake-extractor tests, and docs; the owner will run the live
 `slm`/`vlm` comparison with the OpenRouter key.
+
+## F5: auto document-type routing + structured-output simplification
+
+Owner decision recorded before implementation: the LangChain
+`with_structured_output` object MUST work — one call, one format, no format
+cascade. The previous `json_schema → json_mode → raw` degradation chain and the
+API's silent offline fallback were removed: an LLM failure is now a typed error
+(503 configuration / 502 provider or parsing / 504 timeout), never a silently
+degraded result.
+
+The auto router was built in five dispatched Codex units (briefs under
+`docs/prompts/2026-09-03_phase14_auto_router_task*.md`), each independently
+re-verified by the owner before merge: T1 document-type classifier
+(markitdown probe + 150-char residual-layer threshold), T2 `AutoExtractor`
+(structural VLM→OCR / LLM→OCR fallback; configuration errors never masked),
+T3 structured-output simplification, T4 API `auto` backend as key-present
+default, T5 eval `auto` lane with per-route cost/latency rows. Wave merges ran
+the full suite at every step (365 passed / 3 skipped / 29 xfailed at wave-2)
+plus the offline eval gates. Live cost/latency measurement with the key is the
+owner's step, per the examiner-key discipline ($1 budget, out-of-band only).

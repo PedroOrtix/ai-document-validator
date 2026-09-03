@@ -119,15 +119,20 @@ contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
 
 ### Multi-lane decision table
 
-`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`, or
-`all`. The default is the available network-free set (`offline`, plus `ocr` when
-the optional RapidOCR dependency is installed). `--live` is required for `slm`
-and `vlm`; they are skipped with an explicit message when OpenRouter credentials
-are absent, never crashing the run.
+`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`,
+`auto`, or `all`. The default is the available network-free set (`offline`, plus
+`ocr` when the optional RapidOCR dependency is installed). `--live` is required for
+`slm`, `vlm`, and `auto`; they are skipped with an explicit message when OpenRouter
+credentials are absent, never crashing the run.
 
 Eligibility: `offline` runs txt + pdf (scanned remains a counted miss),
-`slm` runs txt + pdf via markitdown text, and both `vlm` and `ocr` run scanned +
-pdf. The decision table reports one row per lane x format x tier with field
+`slm` runs txt + pdf via markitdown text, both `vlm` and `ocr` run scanned +
+pdf, and `auto` runs the full matrix (txt + pdf + scanned) through the document-type
+router — its metadata sub-route (`llm` / `vlm` / `ocr`) is what the table slices
+into the `auto:llm`, `auto:vlm`, and `auto:ocr` rows, so the per-route cost and
+latency of the router's decisions are visible next to the forced lanes.
+
+The decision table reports one row per lane x format x tier with field
 accuracy, verdict agreement, average measured milliseconds, average provider
 total tokens for LLM lanes, and an estimated per-document cost for
 `z-ai/glm-5.3-flash` (USD $0.000000075/prompt token + $0.00000025/completion
