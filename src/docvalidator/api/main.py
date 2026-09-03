@@ -250,10 +250,15 @@ async def _parse_request(request: Request) -> ParsedRequest:
         is_upload = isinstance(upload, (UploadFile, StarletteUploadFile)) or hasattr(
             upload, "read"
         )
-        if not is_upload or not isinstance(config_value, str):
-            raise APIError("invalid_request", "file and config are required")
+        if not is_upload:
+            raise APIError("invalid_request", "file is required")
         document = _document_from_multipart(upload.filename or "", await upload.read())
-        config = ValidationConfig.model_validate_json(config_value)
+        if config_value is None:
+            config = ValidationConfig()
+        elif isinstance(config_value, str):
+            config = ValidationConfig.model_validate_json(config_value)
+        else:
+            raise APIError("invalid_request", "config must be a JSON string")
         return ParsedRequest(document, config, None)
 
     raise APIError("invalid_request", "unsupported content type")
