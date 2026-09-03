@@ -416,3 +416,31 @@ PDF_PLAN: list[dict] = [
 #   {"expected_fields": {6 fields, null when absent}, "expected_verdict_status": ...,
 #    "slices": {language, tier, amount_style, date_style, scenario, format, pages?}}
 MANIFEST_FRAGMENT_FILES = ("manifest_txt.json", "manifest_pdf.json")
+
+# ---------------------------------------------------------------------------
+# Degenerate / failure-mode fixtures (dataset v2.1)
+# ---------------------------------------------------------------------------
+# No business content: they probe failure modes (empty input, garbage text) and
+# the "when present" semantics of optional fields (tax_id absent -> PASS).
+# Truth contract: empty/garbage -> all 6 fields None, verdict REVIEW;
+# no_vat -> all business fields present, tax_id None, verdict PASS.
+DEGENERATE_TXT_PLAN: list[dict] = [
+    {"case_id": "x_txt_empty", "lang": "EN", "tier": 0, "scenario": {"kind": "empty"}},
+    {"case_id": "x_txt_garbage", "lang": "EN", "tier": 2, "scenario": {"kind": "garbage"}},
+    {"case_id": "x_txt_no_vat", "lang": "ES", "tier": 0,
+     "scenario": {"kind": "clean", "no_vat": True, "age_days": 12}, "currency": "EUR"},
+]
+DEGENERATE_PDF_PLAN: list[dict] = [
+    {"case_id": "x_pdf_empty", "lang": "EN", "tier": 0, "layout": "basic",
+     "scenario": {"kind": "empty"}},
+    {"case_id": "x_pdf_garbage", "lang": "ES", "tier": 2, "layout": "basic",
+     "scenario": {"kind": "garbage"}},
+    {"case_id": "x_pdf_no_vat", "lang": "EN", "tier": 1, "layout": "styled",
+     "scenario": {"kind": "clean", "no_vat": True, "age_days": 20}, "currency": "EUR"},
+]
+# Garbage corpus (noise lines WITHOUT any canonical label, currency marker, or
+# parseable date token; digits may appear but never next to money labels):
+GARBAGE_TOKENS = (
+    "zzx qvort", "@@@ ####", "n/a ---", "###", "lorem ipsum dolor", "%%%",
+    "ref 0042-aux", ".....", "blue red green", "??",
+)
