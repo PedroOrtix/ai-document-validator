@@ -312,11 +312,10 @@ currency codes.
 ```
 
 `LLMExtractor` builds a LangChain `ChatOpenAI` client against the configured OpenRouter base
-URL and binds a Pydantic `InvoiceExtraction` schema with `with_structured_output`. The adapter
-tries JSON-schema mode first, falls back to JSON mode if the provider rejects structured
-output, and finally uses defensive JSON parsing of the raw completion. Invalid or incomplete
-responses still raise `LLMParsingError`; timeouts, provider errors, and configuration failures
-retain the existing API mappings.
+URL and binds the Pydantic `InvoiceExtraction` schema directly with `with_structured_output(include_raw=True)`.
+Extraction failures surface cleanly through typed exceptions (`LLMParsingError`, `LLMTimeoutError`,
+`LLMRequestError`, `LLMConfigurationError`) mapped to explicit HTTP status codes (`422`, `502`, `503`, `504`),
+guaranteeing full observability without silent degradation.
 
 ### VisionExtractor (F1)
 
@@ -354,7 +353,6 @@ not a model probability**: regex over an explicit label scores 0.95, structural 
 the LLM is a black-box call, so its confidence reflects observable evidence, not self-reported
 certainty.
 
-<!-- Sample request/response: filled in the final phase -->
 
 ### Sample request/response
 
@@ -504,23 +502,11 @@ suppliers — that's why it ships as an opt-in adapter with a recorded stub for 
 
 ## What I would do next with another day
 
-Done since the first submission: golden set grown 6 → 78 fixtures (43 txt + 23 digital PDF +
-12 scanned image-only PDFs; subtotal traps, credit notes, US/JP formats, empty/garbage
-documents, degenerate failure modes), scanned fixture lane, and the eval wired into CI as
-a tiered regression gate.
+With another day of development, the priority extensions would focus on production scaling:
 
-PDF parsing now uses Microsoft `markitdown` instead of raw `pypdf`. Markitdown gives a
-higher-level, converter-based PDF-to-Markdown path and keeps PDF handling out of hand-written
-page-extraction code; the trade-off is a larger dependency footprint and less direct control over
-page-level parsing than pypdf. For this project, the typed empty-text and unreadable-PDF failures
-are unchanged, and the simpler adapter wins.
-
-1. **VisionExtractor hardening**: reuse the same `Extractor` interface while extending the
-   first-page implementation to multi-page policies, confidence calibration, and automatic
-   scanned-document cascade decisions.
-2. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
-   always reading `03/07/2026` day-first.
-3. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
-4. Page-level evidence spans and a debug endpoint returning per-field extractor traces.
-5. Second document type (`CERTIFICATE_OF_INCORPORATION`) to pressure-test the extensibility claim.
-6. Optional live LLM lane in the eval harness (real API, gated behind a key) next to the recorded one.
+1. **Multi-page invoice line-item extraction**: Extend `VisionExtractor` and `LLMExtractor` beyond single-page summaries to aggregate multi-page tabular items into structured line items (`List[LineItem]`).
+2. **Persistent tenant rule profiles**: Back `ValidationConfig` with a database / Redis cache, allowing tenant-specific business rules and currency blacklists instead of requiring full config injection per request.
+3. **Human-in-the-loop review queue webhook**: When an invoice evaluates to `status="REVIEW"`, dispatch an event-driven webhook to an asynchronous compliance queue (e.g. SQS / Celery) with pre-highlighted evidence spans.
+4. **Locale-aware date disambiguation**: Disambiguate ambiguous date formats (`03/07/2026`) dynamically using supplier VAT country prefix (e.g. `ES...` → day-first `2026-07-03`; `US...` → month-first `2026-03-07`).
+5. **Continuous active learning & drift detection**: Automatically sample production documents where minimum evidence confidence falls below `0.70` to feed human verification workflows and expand the regression golden set.
+6. **Second document type (`CERTIFICATE_OF_INCORPORATION`)**: Implement a second extractor and rule suite behind the existing `Extractor` and `RuleRegistry` interfaces to further prove architectural extensibility.
