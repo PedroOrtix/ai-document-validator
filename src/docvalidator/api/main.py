@@ -16,6 +16,14 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from docvalidator.api.logging_setup import configure_logging
 from docvalidator.domain.models import DocumentExtraction, ValidationConfig, Verdict
 from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
+from docvalidator.extraction.base import Extractor
+from docvalidator.extraction.llm import (
+    LLMConfigurationError,
+    LLMParsingError,
+    LLMRequestError,
+    LLMTimeoutError,
+)
+from docvalidator.extraction.llm_stub import RecordedLLMExtractor
 from docvalidator.rules_engine import RulesEngine
 
 logger = configure_logging()
@@ -36,7 +44,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["offline", "llm"] | None = None
+    extraction_backend: Literal["offline", "llm", "llm-recorded"] | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":
@@ -199,7 +207,19 @@ async def pydantic_validation_error_handler(
 async def extraction_error_handler(
     request: Request, exc: ExtractionError
 ) -> JSONResponse:
-    """Convert unreadable documents to a structured 422 response."""
+    """Convert extraction failures to backend-specific structured responses."""
+    if isinstance(exc, LLMConfigurationError):
+        return _error_response(
+            503,
+            "llm_configuration_error",
+            str(exc),
+            request.state.request_id,
+            {"hint": "configure OPENROUTER_API_KEY or use the offline backend"},
+        )
+    if isinstance(exc, (LLMParsingError, LLMRequestError)):
+        return _error_response(502, "llm_response_error", str(exc), request.state.request_id)
+    if isinstance(exc, LLMTimeoutError):
+        return _error_response(504, "llm_timeout", str(exc), request.state.request_id)
     return _validation_error(exc, request.state.request_id)
 
 
@@ -280,18 +300,31 @@ def _run_pipeline(
     config: ValidationConfig,
     backend: str,
 ) -> Verdict:
-    if backend == "llm":
-        raise APIError("unsupported_backend", "LLM extraction is not implemented yet")
-    extraction = OfflineExtractor().extract(document)
+    extraction = _build_extractor(backend).extract(document)
     verdict = RulesEngine().evaluate(extraction, config)
     return verdict
 
 
 def _select_backend(requested: str | None) -> str:
     backend = requested or _default_backend()
-    if backend not in {"offline", "llm"}:
+    if backend not in {"offline", "llm", "llm-recorded"}:
         raise APIError("unsupported_backend", f"unknown extraction backend: {backend}")
     return backend
+
+
+def _llm_api_key() -> str:
+    return os.environ.get("OPENROUTER_API_KEY", "")
+
+
+def _build_extractor(backend: str) -> Extractor:
+    if backend == "llm":
+        from docvalidator.extraction.llm import LLMExtractor
+        from docvalidator.settings import LLMSettings
+
+        return LLMExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
+    if backend == "llm-recorded":
+        return RecordedLLMExtractor()
+    return OfflineExtractor()
 
 
 @app.post(
@@ -302,10 +335,8 @@ async def extract(request: Request) -> DocumentExtraction:
     """Extract canonical fields from a document."""
     parsed = await _parse_request(request)
     backend = _select_backend(parsed.extraction_backend)
-    if backend == "llm":
-        raise APIError("unsupported_backend", "LLM extraction is not implemented yet")
     request.state.backend = backend
-    return OfflineExtractor().extract(parsed.document)
+    return _build_extractor(backend).extract(parsed.document)
 
 
 @app.post(
