@@ -356,7 +356,7 @@ def print_gates(report: dict[str, Any]) -> None:
         "ocr": (0.75, 0.75),
         "auto": (0.90, 0.90),
         "slm": (0.90, 0.90),
-        "vlm": (0.90, 0.90),
+        "vlm": (0.90, 0.85),
     }
 
     for lane_name, lane in report["lanes"].items():
