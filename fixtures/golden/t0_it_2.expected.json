@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Ottica Mazzini S.r.l.",
+    "invoice_number": "FAC-2026-0148",
+    "invoice_date": "2026-07-08",
+    "total_amount": 14702.87,
+    "currency": null,
+    "tax_id": "IT28114350"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "IT",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

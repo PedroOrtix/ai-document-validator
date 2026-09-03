@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Meccanica Garibaldi S.p.A.",
+    "invoice_number": "2025/7221",
+    "invoice_date": "2026-06-28",
+    "total_amount": 1767.66,
+    "currency": "SEK",
+    "tax_id": "IT66543403"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "IT",
+    "tier": 2,
+    "amount_style": "grouped_en",
+    "date_style": "spelled",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

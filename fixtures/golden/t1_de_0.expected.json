@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Bahnhof Media GmbH & Co. KG",
+    "invoice_number": "2026/9152",
+    "invoice_date": "2026-06-16",
+    "total_amount": 13101.52,
+    "currency": "USD",
+    "tax_id": null
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "DE",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "dotted",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

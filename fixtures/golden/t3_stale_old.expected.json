@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Logística Bilbao S.L.",
+    "invoice_number": "2025/5251",
+    "invoice_date": "2026-01-06",
+    "total_amount": 19466.2,
+    "currency": "USD",
+    "tax_id": "ES32995802"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 3,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "stale_old",
+    "format": "txt"
+  }
+}

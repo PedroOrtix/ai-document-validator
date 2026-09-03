@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Kraft & Söhne Maschinenbau GmbH",
+    "invoice_number": "2025/9399",
+    "invoice_date": "2025-11-29",
+    "total_amount": 19256.75,
+    "currency": null,
+    "tax_id": "DE19341121"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "DE",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "dotted",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

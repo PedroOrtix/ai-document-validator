@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Textile Hugo SARL",
+    "invoice_number": "RE-2026-8477",
+    "invoice_date": "2026-08-24",
+    "total_amount": 0.0,
+    "currency": "EUR",
+    "tax_id": null
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "FR",
+    "tier": 3,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "zero_amount",
+    "format": "txt"
+  }
+}

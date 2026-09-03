@@ -1,0 +1,11 @@
+Northwind Supplies Ltd
+74 Market Street
+Dublin, United Kingdom
+
+Reference: AC2587
+Invoice Date: 17 June 2026
+Vendor: Northwind Supplies Ltd
+TAX: GB9695820712
+
+Software license
+Grand Total    19275.30

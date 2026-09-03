@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Harbor Analytics Inc",
+    "invoice_number": "FT4674",
+    "invoice_date": "2026-06-18",
+    "total_amount": 15055.32,
+    "currency": null,
+    "tax_id": "GB3531463334"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "dmy",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

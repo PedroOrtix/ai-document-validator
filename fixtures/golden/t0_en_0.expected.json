@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Harbor Analytics Inc",
+    "invoice_number": "RE-2026-8088",
+    "invoice_date": "2026-08-03",
+    "total_amount": 3758.6,
+    "currency": null,
+    "tax_id": null
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

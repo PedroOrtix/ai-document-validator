@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Market Optics GmbH",
+    "invoice_number": "FAC-2026-7554",
+    "invoice_date": "2026-08-15",
+    "total_amount": 16944.06,
+    "currency": "EUR",
+    "tax_id": "GB3097739744"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "space_fr",
+    "date_style": "spelled",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

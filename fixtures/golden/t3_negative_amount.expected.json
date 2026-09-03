@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Cartografia Dante S.r.l.",
+    "invoice_number": "FT2996",
+    "invoice_date": "2026-08-24",
+    "total_amount": -350.0,
+    "currency": "EUR",
+    "tax_id": "IT13613176"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "IT",
+    "tier": 3,
+    "amount_style": "grouped_en",
+    "date_style": "iso",
+    "scenario": "negative_amount",
+    "format": "txt"
+  }
+}

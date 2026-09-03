@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Cerámica Alfonso S.L.",
+    "invoice_number": "FAC1278",
+    "invoice_date": "2026-06-20",
+    "total_amount": 18633.23,
+    "currency": "GBP",
+    "tax_id": "ES34652667"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "comma_decimal",
+    "date_style": "abbrev",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

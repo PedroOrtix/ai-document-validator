@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Berg Data Service GmbH",
+    "invoice_number": "AC-2025-9693",
+    "invoice_date": "2026-08-24",
+    "total_amount": null,
+    "currency": "EUR",
+    "tax_id": "DE23809351"
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "DE",
+    "tier": 3,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "missing_total",
+    "format": "txt"
+  }
+}

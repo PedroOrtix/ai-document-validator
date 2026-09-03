@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Bahnhof Media GmbH & Co. KG",
+    "invoice_number": "FT-2024-3782",
+    "invoice_date": "2026-06-21",
+    "total_amount": 12415.86,
+    "currency": "EUR",
+    "tax_id": "DE96817251"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "DE",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "dotted",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

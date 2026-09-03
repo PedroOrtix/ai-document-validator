@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Boulangerie Lafayette SARL",
+    "invoice_number": "RE2332",
+    "invoice_date": "2026-06-30",
+    "total_amount": 16609.74,
+    "currency": "EUR",
+    "tax_id": "FR66955149"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "FR",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

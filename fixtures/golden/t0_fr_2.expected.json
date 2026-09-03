@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Marché du Nord SARL",
+    "invoice_number": "2026/0158",
+    "invoice_date": "2026-06-29",
+    "total_amount": 13918.77,
+    "currency": null,
+    "tax_id": null
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "FR",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Constructions Victor SAS",
+    "invoice_number": "FAC-2026-4066",
+    "invoice_date": "2026-06-16",
+    "total_amount": 651.42,
+    "currency": null,
+    "tax_id": null
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "FR",
+    "tier": 0,
+    "amount_style": "grouped_eu",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

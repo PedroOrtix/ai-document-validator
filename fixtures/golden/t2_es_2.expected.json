@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Textiles Industria S.A.",
+    "invoice_number": "AC-2026-6484",
+    "invoice_date": "2026-06-27",
+    "total_amount": 11469.21,
+    "currency": "GBP",
+    "tax_id": "ES45951152"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "abbrev",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

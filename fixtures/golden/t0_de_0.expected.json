@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Bahnhof Media GmbH & Co. KG",
+    "invoice_number": "FATT-2026-2498",
+    "invoice_date": "2026-07-21",
+    "total_amount": 9187.35,
+    "currency": null,
+    "tax_id": "DE57441697"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "DE",
+    "tier": 0,
+    "amount_style": "grouped_eu",
+    "date_style": "iso",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

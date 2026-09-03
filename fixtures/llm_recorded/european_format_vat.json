@@ -1,7 +1,0 @@
-{
-  "matches": ["Calle Mayor 8"],
-  "model": "z-ai/glm-5.3-flash",
-  "provider": "openrouter",
-  "usage": {"total_tokens": 184},
-  "raw_response": "{\"supplier_name\":\"Proveedor Ibérica S.L.\",\"invoice_number\":\"F2026-123\",\"invoice_date\":\"2026-07-31\",\"total_amount\":1234.56,\"currency\":\"EUR\",\"tax_id\":\"ESB12345678\"}"
-}

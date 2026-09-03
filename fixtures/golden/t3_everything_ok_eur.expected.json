@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Rhein Logistik AG",
+    "invoice_number": "2025/1719",
+    "invoice_date": "2026-08-04",
+    "total_amount": 9632.45,
+    "currency": "EUR",
+    "tax_id": "DE75904457"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "DE",
+    "tier": 3,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "everything_ok_eur",
+    "format": "txt"
+  }
+}

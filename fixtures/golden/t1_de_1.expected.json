@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Bahnhof Media GmbH & Co. KG",
+    "invoice_number": "INV7853",
+    "invoice_date": "2026-07-13",
+    "total_amount": 10874.37,
+    "currency": "CHF",
+    "tax_id": "DE73143772"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "DE",
+    "tier": 1,
+    "amount_style": "grouped_eu",
+    "date_style": "spelled",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Optique Jean Jaurès SAS",
+    "invoice_number": "FATT-2025-2897",
+    "invoice_date": "2026-03-10",
+    "total_amount": 19964.47,
+    "currency": "GBP",
+    "tax_id": "FR62136151"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "FR",
+    "tier": 2,
+    "amount_style": "grouped_en",
+    "date_style": "dmy",
+    "scenario": "random",
+    "format": "txt"
+  }
+}

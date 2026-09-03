@@ -1,0 +1,799 @@
+{
+  "generator": "fixtures.generator v1",
+  "as_of": "2026-09-03",
+  "max_age_days": 90,
+  "allowed_currencies": [
+    "EUR",
+    "GBP"
+  ],
+  "counts": {
+    "txt": 58,
+    "pdf": 12
+  },
+  "txt_cases": [
+    {
+      "case_id": "t0_en_0",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "43a4225110f2330ed5a035a7ebd362cfb0d9c111e4e901079d2d43b8ec1d765f",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_en_1",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "4befc240e24a26a85eb6dd379a15bf4b9eba0d3cf5412e0a755589db5dff34a9",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_en_2",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "1ff00effa329d8ddbd8d5700bee564fb9af881eb6d5f585fd432abf8c78ea11e",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_es_0",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "f77881f456dff3c887a085b34a2fc15517747d012599a0933f9dae3b28eb851d",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_es_1",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "7381e7d94a6aac57e003ec5693f2c79719a27bf70b29da7e64179b59692f199e",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_es_2",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "f8f37a54a0872fcc42cbe3227046c68798473da47d63279403f4ea5d2c1f7594",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_de_0",
+      "language": "DE",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "51655c4a47833aa305f73a86011bcc5070b831ef2f7710faea322bb43dd8191f",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_de_1",
+      "language": "DE",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "aec4f1588cbad66688fae926bf80e2f14a8985a5f82b978c9d84008c4d22f6d3",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_de_2",
+      "language": "DE",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "c9de852559e91b0124be6617b5ece73407be3c3fc434efc8be21ca0c114e8598",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_fr_0",
+      "language": "FR",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "2a6de7fecbbaf6a155c4fecaa601cbcf89f7aace7a88d123aa562f56fa4589c2",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_fr_1",
+      "language": "FR",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "aa2f3dfe1f496deb82b4e89bff2fca07c08e1f7dd1a7374a69d4cd953b34c842",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_fr_2",
+      "language": "FR",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "50687458c4e7256011cef5354c01a5af85c5e11f7a59af6196f799641a36d91c",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_it_0",
+      "language": "IT",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "c0e4dee261a56eb3ed6d0e274358f6bd48f36979fdb89018c5b737d1b4dfb4b9",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_it_1",
+      "language": "IT",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "f62ad2e026391ef31515d79eebc3e96d6d06b1e8c0183e93f197e044fc3ecec7",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t0_it_2",
+      "language": "IT",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "aa5e123aa25902c7fd4f7038d814de016d158047153c23fb7cc28a549576769d",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_en_0",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "6b549b9b3f1dc61ea260b5455651050111e49f74a91686d1f9c294b437d21637",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_en_1",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "2ff04715e88e1960f1506ae8f14b14d5e1ee1f162a2ccc056775062e50777410",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_en_2",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "fb11893cdf31bb9be21afbe25f6441f03d842ecb9a93df05dc036bc81423299a",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_es_0",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "17d9fd88b40f335eb4fcce1057bc759c8d9774f433c80c5bd887933ab995debd",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_es_1",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "e2a573915e1ab83799f0035b487305c1f79a23ab7c7cff13f834112d38671018",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_es_2",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "63d00c843cc94204e2de8bb10b4639d0a6d359513bd926e147caa6825f92f3bf",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_de_0",
+      "language": "DE",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "372a2dbc29186e05eb71ca1542cd37d4a5ad25206a072b74d1d75d1761f6e335",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_de_1",
+      "language": "DE",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "486a02eaddedeedaaae3cb5495b48d385d481b28e1e026cd47d9552554c44694",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_de_2",
+      "language": "DE",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "07e39d3423f504208eda33dd2d164a8010e0dba475b24096184b8b12a8e77fa5",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_fr_0",
+      "language": "FR",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "0960d5513f9baac745748745993a1421ccb7d3d9073d252ebea1910a62ba7e18",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_fr_1",
+      "language": "FR",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "4ccca536633869146a60e7e30340cc028e4111fdf84afb0eca0d5ef7a6e3fe51",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_fr_2",
+      "language": "FR",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "2c68dfa552315cbb037ac2fd88605f20a8e5ab41423d52589cfb114a74b1c0ed",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_it_0",
+      "language": "IT",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "45a3bc14ed7ee7d54b4e4f72d95cb4973b5056d6cce394e279279af35ef2b2c9",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_it_1",
+      "language": "IT",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "e41ee577c8aaec6b7bdbb0e20ebf74f3fae87d67b09836068effbf14d9a784ea",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t1_it_2",
+      "language": "IT",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "724f016691ed29a8b4091ce1ed95f6acb3793cf55cf4f80b439fb4bcd34901f9",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_en_0",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "cb71d699608d2ee33e049db8af612080affbc22c60d590d61fc1bd4447036e18",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_en_1",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "d0bf30cf8d6655b2d508dfa580887faf881b97da9f5d5f97c8d7924aea7b2bb6",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_en_2",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "8987d2efcaddb5f80602394aa5a476830d14f9bbf3c6d1e65dea9ecb7849907b",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_es_0",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "8d91116c55901b2749dd3cbcd0a7933a2fdf3f55f4134ae7d55b39167a2a5273",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_es_1",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "ab631a4412882826060ccbe63f95f24f3535602a239f32c79a3b553f55004d35",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_es_2",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "955fee0596479e6c1fa6d2a63a6c0a6120bc9b17d7e55b5a356b748f15549205",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_de_0",
+      "language": "DE",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "4a93a0a48e35f5428c1d7cd55eed873ad551e0c0b876f6b80e0f920068ee3475",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_de_1",
+      "language": "DE",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "25e3b3733c1eecd7a35ebe088eff51304c096d27d6dbb4557263066b6b3dfc48",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_de_2",
+      "language": "DE",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "c1f960ce60773ca9821b2b60043d7128d70f6656ff47dcff076fc56b054e9247",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_fr_0",
+      "language": "FR",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "a5c19c23e2aa3d0fdb35dc2fd8602c0deb9484058d433a58c348d4eea656d2e9",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_fr_1",
+      "language": "FR",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "c1d24a965e883c5d49bb44a84f2a200980f5b7d3c591edb536d875aee514c211",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_fr_2",
+      "language": "FR",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "txt_sha256": "258b51af08bce1bb69c35d4d4cfeba034c5ec53f7bdd41be4ee8ee6dd039adac",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_it_0",
+      "language": "IT",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "8400fc401a2019b8f898d045b82c3ae427728528be55202b5594110efe702f0b",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_it_1",
+      "language": "IT",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "3a7afbeab003d1e2c27be7a60e96988b21837a80c5ed9616a7085c9b7590dd09",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t2_it_2",
+      "language": "IT",
+      "tier": 2,
+      "scenario": "random",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "f59b18a67e7ea6d6c7605a122f466ea2408f8d6522a8a8f6d1acf918e08d156d",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_stale_just_over",
+      "language": "EN",
+      "tier": 3,
+      "scenario": "stale_just_over",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "7b32993ab6d67927711497b87acb8a973c32736c2579b289ebff85928b1cc576",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_stale_old",
+      "language": "ES",
+      "tier": 3,
+      "scenario": "stale_old",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "2357cc3bff6b7559e72b122e6a1cafe65f53e0d551b0677c892801727766dda1",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_future_date",
+      "language": "DE",
+      "tier": 3,
+      "scenario": "future_date",
+      "expected_verdict": "PASS",
+      "txt_sha256": "32ddeb9187ffa7828250263170a7cd53a1157b49d7d0efd490a26b83bc4bba61",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_zero_amount",
+      "language": "FR",
+      "tier": 3,
+      "scenario": "zero_amount",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "208ccf8ee34cda1755b12f1985e0ece7dbfc12809aeec8f8bea8bc7dce863a0d",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_negative_amount",
+      "language": "IT",
+      "tier": 3,
+      "scenario": "negative_amount",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "de4761c509f38be657cdbc00d550842d0a067166c2f3f4011f99f795aa301a12",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_missing_number",
+      "language": "EN",
+      "tier": 3,
+      "scenario": "missing_number",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "f98a36dbf6fc0b910120729ae5f96af0442326c1065f4eed887ad7c4f2eea617",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_missing_date",
+      "language": "ES",
+      "tier": 3,
+      "scenario": "missing_date",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "5d5d38f33a2cfe2426fc67ca9370bc81c7752c14f3a6b841791d43dc09afcd9e",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_missing_total",
+      "language": "DE",
+      "tier": 3,
+      "scenario": "missing_total",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "7c22f00b7ffe82a82028c0b2e3ec7a8587f021551b499fccb45d04c5854c1d5a",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_missing_vat_optional",
+      "language": "FR",
+      "tier": 3,
+      "scenario": "missing_vat_optional",
+      "expected_verdict": "PASS",
+      "txt_sha256": "405d0441762919293224d79747390be4f8bf4c5585f078a347d7e8cb7ecdf92a",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_disallowed_currency",
+      "language": "IT",
+      "tier": 3,
+      "scenario": "disallowed_currency",
+      "expected_verdict": "FAIL",
+      "txt_sha256": "049fde797920f4ece8adc56ab447a840932cafe70c09c5da5df38d4b7e3833e1",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_unlabeled_currency",
+      "language": "EN",
+      "tier": 3,
+      "scenario": "unlabeled_currency",
+      "expected_verdict": "PASS",
+      "txt_sha256": "ecfa664c2a9b7ce178afd3746a7b2978bc799e3069ff05e2c51b2c00fef54ed3",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_all_present_pass",
+      "language": "ES",
+      "tier": 3,
+      "scenario": "all_present_pass",
+      "expected_verdict": "PASS",
+      "txt_sha256": "6d181a63c062b2c8342ffd1f765204b3e5fe7e4fc94b17e92936a97e305f3219",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "t3_everything_ok_eur",
+      "language": "DE",
+      "tier": 3,
+      "scenario": "everything_ok_eur",
+      "expected_verdict": "PASS",
+      "txt_sha256": "46a1f2a645982067dcd87e60db4d077fc2bf70b8adfd4cde801e26628ae7a70b",
+      "formats": [
+        "txt"
+      ]
+    }
+  ],
+  "pdf_cases": [
+    {
+      "case_id": "pdf_en_basic",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "a5faae4e63b26d958163b2007a79783a748a219ba5046ff4e8482cbb9efafd16",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_basic",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "687fd158452373e738c7772de25c616416b295a1a75bc3d8c2583bc281f6580e",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_de_basic",
+      "language": "DE",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "29b3acf603e560dbbc0bef21add298e82b0cf1aa975013910a191702b57217a0",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_fr_basic",
+      "language": "FR",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "12eb19adb9f79cd134baa000f14aa83bde276dc48fc01e90d57d4b786a9ab42f",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_it_basic",
+      "language": "IT",
+      "tier": 0,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "5b23335cabb3041dff6af4a83fcd20655e9b1a436b257037857d5e04dbd59fdf",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_styled",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "7d23ffd8ff2d53e44ab72603b0683f44a156b1f2b0a433a52d5463fd3c8b4f39",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_styled",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "f3500047b91e3adf3b5209c52f848f9a5997400d6a1d7164cb74cea592f5254c",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_de_styled",
+      "language": "DE",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "b262aae989fd681ef218c77c9651a50c4e472606157287e5360e9451811cd6af",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_fr_styled",
+      "language": "FR",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "46bc9eb80917a595ce05982fcd974df81a6ba77f7051001873c54336f5ff0e07",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_it_styled",
+      "language": "IT",
+      "tier": 1,
+      "scenario": "random",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "b862a01bf3226ac9cc95198f91784e5df1ec86a645260faf0e40075430cf8304",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_multipage_a",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "multipage",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "b095bda360c71d27e461f577d37168a7240d94772cf35a249fbc6bc667ee1291",
+      "pages": 2,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_multipage_b",
+      "language": "DE",
+      "tier": 1,
+      "scenario": "multipage",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "356dbff04412b100c209a9f3f4d83ee57e802fd17d78d03498a5a078e87145f8",
+      "pages": 2,
+      "formats": [
+        "pdf"
+      ]
+    }
+  ]
+}

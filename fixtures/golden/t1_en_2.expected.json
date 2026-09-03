@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Victoria Timber Ltd",
+    "invoice_number": "INV2729",
+    "invoice_date": "2026-06-23",
+    "total_amount": 2800.98,
+    "currency": "EUR",
+    "tax_id": "GB3214013153"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "abbrev",
+    "scenario": "random",
+    "format": "txt"
+  }
+}
