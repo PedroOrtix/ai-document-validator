@@ -4,7 +4,7 @@ import json
 import re
 import time
 from datetime import date
-from typing import Any
+from typing import Any, NoReturn
 
 import openai
 from langchain_core.exceptions import OutputParserException
@@ -38,6 +38,17 @@ SYSTEM_PROMPT = (
     "(YYYY-MM-DD), float amounts, and ISO-4217 currency codes."
 )
 
+VISION_INSTRUCTION = (
+    "Read the scanned invoice image and extract exactly these six fields: "
+    '"supplier_name", "invoice_number", "invoice_date", "total_amount", '
+    '"currency", "tax_id". Use null for fields that are not visible. '
+    "invoice_date must be ISO YYYY-MM-DD. total_amount must be the grand "
+    "total (never subtotal or tax), as a plain number without currency "
+    "symbols or thousand separators. currency must be the ISO 4217 code "
+    "(EUR, GBP...), null if only symbols are visible and ambiguous. "
+    "tax_id is the VAT/registration identifier, null if absent."
+)
+
 _FIELD_NAMES = {
     "supplier_name",
     "invoice_number",
@@ -48,7 +59,7 @@ _FIELD_NAMES = {
 }
 _LLM_CONFIDENCE = 0.75
 _FENCE_PATTERN = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
-_StructuredResponse = dict[str, Any] | InvoiceExtraction | AIMessage
+_StructuredResponse = dict[str, Any] | InvoiceExtraction | AIMessage | DocumentExtraction
 _StructuredModel = Runnable[Any, _StructuredResponse]
 
 
@@ -199,49 +210,50 @@ class LLMExtractor(Extractor):
 
     def extract(self, document: DocumentInput) -> DocumentExtraction:
         if not self.settings.openrouter_api_key:
-            raise LLMConfigurationError(
-                "OPENROUTER_API_KEY is not configured; "
-                "configure OPENROUTER_API_KEY or use the offline backend"
-            )
+            self._raise_configuration_error()
 
         started_at = time.perf_counter()
         extraction = self._invoke(document.to_text())
         duration_ms = (time.perf_counter() - started_at) * 1000
         return extraction.model_copy(
-            update={
-                "metadata": extraction.metadata.model_copy(
-                    update={"duration_ms": duration_ms}
-                )
-            }
+            update={"metadata": extraction.metadata.model_copy(update={"duration_ms": duration_ms})}
         )
 
     def _build_model(self) -> BaseChatModel:
         if self._model is not None:
             return self._model
 
-        from langchain_openai.chat_models import base as langchain_openai_base
-
-        return langchain_openai_base.ChatOpenAI(
+        return _build_chat_model(
             api_key=self.settings.openrouter_api_key,
             base_url=self.settings.openrouter_base_url,
             model=self.settings.validator_llm_model,
             temperature=0,
             timeout=self.settings.validator_llm_timeout_seconds,
             max_retries=0,
-            **(
-                {
-                    "extra_body": {
-                        "reasoning": {"effort": self.settings.validator_llm_reasoning_effort}
-                    }
-                }
-            if self.settings.validator_llm_reasoning_effort
-            else {}
-        ),
+            reasoning_effort=self.settings.validator_llm_reasoning_effort,
+        )
+
+    @staticmethod
+    def _raise_configuration_error() -> NoReturn:
+        raise LLMConfigurationError(
+            "OPENROUTER_API_KEY is not configured; "
+            "configure OPENROUTER_API_KEY or use the offline backend"
         )
 
     def _invoke(self, text: str) -> DocumentExtraction:
-        messages = [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=text)]
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=text),
+        ]
         model = self._build_model()
+        output = self._invoke_structured_output(model, messages)
+        return self._parse_structured_output(output)
+
+    def _invoke_structured_output(
+        self,
+        model: BaseChatModel,
+        messages: list[BaseMessage],
+    ) -> _StructuredResponse:
         try:
             output = self._invoke_structured(model, messages)
         except _UnsupportedResponseFormat:
@@ -254,7 +266,15 @@ class LLMExtractor(Extractor):
             except _UnsupportedResponseFormat:
                 self._method = "raw"
                 return self._extract_raw(model, messages)
+        return output
 
+    def _parse_structured_output(
+        self,
+        output: _StructuredResponse,
+    ) -> DocumentExtraction:
+        if isinstance(output, DocumentExtraction):
+            # raw-cascade step already produced the canonical extraction
+            return output
         if isinstance(output, AIMessage):
             return parse_llm_response(
                 _message_text(output),
@@ -300,6 +320,7 @@ class LLMExtractor(Extractor):
         model: BaseChatModel,
         messages: list[BaseMessage],
     ) -> DocumentExtraction:
+        """Last cascade step: plain invoke + defensive JSON parsing."""
         try:
             response = model.invoke(messages)
         except Exception as exc:
@@ -327,9 +348,7 @@ class LLMExtractor(Extractor):
             raise error from exc
         if isinstance(exc, APIStatusError):
             if exc.status_code in {401, 403}:
-                error = LLMConfigurationError(
-                    "LLM provider rejected the configured API key"
-                )
+                error = LLMConfigurationError("LLM provider rejected the configured API key")
                 raise error from exc
             if self._uses_response_format(exc):
                 return _UnsupportedResponseFormat()
@@ -339,16 +358,43 @@ class LLMExtractor(Extractor):
             error = LLMTimeoutError("LLM extraction timed out")
             raise error from exc
         if isinstance(exc, OutputParserException | ValidationError):
+            # A fenced/markdown-wrapped answer that fails schema validation means
+            # the model is not honouring the structured format (common with
+            # multimodal prompts on some providers) — degrade to raw parsing
+            # instead of failing the request.
+            if "json_invalid" in str(exc) or "Invalid JSON" in str(exc):
+                return _UnsupportedResponseFormat()
             raise LLMParsingError("LLM response has invalid field values") from exc
         if isinstance(exc, openai.APIConnectionError | ConnectionError):
             raise LLMRequestError("unable to reach the LLM provider") from exc
         if self._uses_response_format(exc):
             return _UnsupportedResponseFormat()
         if isinstance(exc, ValueError | TypeError | KeyError | IndexError):
-            raise LLMParsingError(
-                "LLM provider returned an invalid completion response"
-            ) from exc
+            raise LLMParsingError("LLM provider returned an invalid completion response") from exc
         raise LLMRequestError("LLM extraction failed") from exc
+
+
+def _build_chat_model(
+    *,
+    api_key: str,
+    base_url: str,
+    model: str,
+    temperature: float,
+    timeout: float,
+    reasoning_effort: str,
+    max_retries: int,
+) -> BaseChatModel:
+    from langchain_openai.chat_models import base as langchain_openai_base
+
+    return langchain_openai_base.ChatOpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        temperature=0,
+        timeout=timeout,
+        max_retries=0,
+        **({"extra_body": {"reasoning": {"effort": reasoning_effort}}} if reasoning_effort else {}),
+    )
 
     @staticmethod
     def _uses_response_format(exc: Exception) -> bool:

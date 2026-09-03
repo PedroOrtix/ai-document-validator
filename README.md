@@ -29,7 +29,7 @@ the submission date) is delivered out-of-band with the submission — paste it i
 | `OPENROUTER_API_KEY` present | `llm` (LangChain → OpenRouter, `z-ai/glm-5.3-flash` @ reasoning effort `low`) |
 | No key (or key expired) | `offline` (regex/heuristics, deterministic, ~ms) |
 
-- Every request can still override this with `extraction_backend: "offline" | "llm"`.
+- Every request can still override this with `extraction_backend: "offline" | "llm" | "vlm"`.
 - **Runtime fallback:** if the LLM lane fails mid-request (timeout, provider error, unparseable
   response), the same document is retried once with the offline extractor. The result carries
   `metadata.backend = "offline-fallback"` and `metadata.fallback_reason`
@@ -137,7 +137,7 @@ contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
   - `content_b64` — base64-encoded document bytes (PDF by default; decoded as text when
     `filename` ends in `.txt`) — plus optional `filename`;
   - optional `config` (defaults apply when omitted);
-  - optional `extraction_backend`: `offline` | `llm` (default: `llm` with a key, else `offline`).
+  - optional `extraction_backend`: `offline` | `llm` | `vlm` (default: `llm` with a key, else `offline`).
 
 Responses: `200` with the verdict (see the sample below), `422` with a structured
 `{"error": {"code", "message", "details"}, "request_id"}` body for invalid input or
@@ -152,7 +152,8 @@ unreadable documents, `5xx` only for upstream LLM failures. Every response echoe
 flowchart TD
     A["document (PDF bytes / text) + rule config"] --> B["POST /v1/validate · POST /v1/extract<br/>(FastAPI, structured JSON logs)"]
     B --> C{extraction backend}
-    C -->|llm · primary with key| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
+  C -->|llm · primary with key| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
+  C -->|vlm · explicit scanned lane| E2["VisionExtractor<br/>PDF page image → OpenRouter<br/>z-ai/glm-5.3-flash, reasoning=low"]
     C -->|offline · no-key default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
     E -->|on LLM failure| D2["offline-fallback<br/>retry once + fallback_reason"]
     C -->|llm-recorded| F["RecordedLLMExtractor<br/>recorded responses for tests"]
@@ -193,6 +194,26 @@ tries JSON-schema mode first, falls back to JSON mode if the provider rejects st
 output, and finally uses defensive JSON parsing of the raw completion. Invalid or incomplete
 responses still raise `LLMParsingError`; timeouts, provider errors, and configuration failures
 retain the existing API mappings.
+
+### VisionExtractor (F1)
+
+`VisionExtractor` is an explicit `extraction_backend: "vlm"` lane for image-only scanned
+invoices. It rasterizes every PDF page to PNG at about 150 DPI using the pure-wheel
+`pypdfium2` renderer, then sends the **first page image** (plus the same six-field structured
+schema) through LangChain to OpenRouter. Multi-page scanning beyond page 1 is deferred; no
+automatic text-to-VLM switching is added in this phase.
+
+| Setting | Default |
+|---|---|
+| `VALIDATOR_VLM_MODEL` | `z-ai/glm-5.3-flash` |
+| `VALIDATOR_VLM_REASONING_EFFORT` | `low` |
+| `VALIDATOR_VLM_TIMEOUT_SECONDS` | `60` |
+
+The same API key is reused. OpenRouter lists this model's input modalities as
+`["text", "image", "video"]` and its prompt price at `$0.000000075/token`; expect image calls to
+be slower than the text LLM lane and budget for image-token overhead. The 12 scanned
+`fixtures/golden/scan_*.pdf` cases are the intended measurement surface (eval integration is
+phase F3).
 
 ## Verdict contract
 
@@ -320,11 +341,9 @@ page-extraction code; the trade-off is a larger dependency footprint and less di
 page-level parsing than pypdf. For this project, the typed empty-text and unreadable-PDF failures
 are unchanged, and the simpler adapter wins.
 
-1. **VisionExtractor**: same `Extractor` interface, but sends the PDF **page images** to a
-   vision-capable LLM (e.g. GLM-5.3-Flash's vision variant at reasoning effort `low`) instead of
-   markitdown text — native layout understanding without a text layer, and the natural upgrade
-   path for scanned documents. The current LangChain lane already carries the reasoning-effort
-   plumbing this adapter would reuse.
+1. **VisionExtractor hardening**: reuse the same `Extractor` interface while extending the
+   first-page implementation to multi-page policies, confidence calibration, and automatic
+   scanned-document cascade decisions.
 2. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
    always reading `03/07/2026` day-first.
 3. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
