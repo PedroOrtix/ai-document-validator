@@ -104,6 +104,12 @@ wall-clock time. Known extractor misses at tier 1-2 (see the measured table
 above): spelled-out dates, GB-format VAT ids, and rare label variants — the
 dataset isolates them; closing the gap is the LLM backend's job.
 
+The v2.2 dataset also contains 12 deterministic image-only scanned PDFs
+(4 per tier, 2 per language) with the same truth as their PDF twins. The offline
+lane deliberately cannot read them; `--include-scanned` (default on) reports
+them as a separate `scanned` lane for future VLM/OCR measurements and does not
+contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
+
 ## API
 
 | Method | Path | Purpose |

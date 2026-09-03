@@ -8,7 +8,8 @@
   ],
   "counts": {
     "txt": 43,
-    "pdf": 23
+    "pdf": 23,
+    "scanned": 12
   },
   "txt_cases": [
     {
@@ -760,6 +761,152 @@
       "pages": 1,
       "formats": [
         "pdf"
+      ]
+    }
+  ],
+  "scanned_cases": [
+    {
+      "case_id": "scan_pdf_en_t0_0",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "35a8c6edf3fa5b5b9874d614f8b4855fd29108d931af9e7225259d6698a22853",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_en_t0_1",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "f82eef2e8ffc9e02e4b2ad2cf5c833ac1e708cb3d2737fbfdff0bdd1a8712ac7",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_en_t1_0",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "8b8ac1f8771b0a431fbeac90847399ca4d616a6bd2d45b74920ddbb90d91c7b2",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_en_t1_3",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "missing_date",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "e72f63f1c6056c324c202776b52c2593a390d590a3c292a96e6b054a843e9dc0",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_en_t2_0",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "4e19850d04cb38d2ff8b185bdfa5094725a999b4fb095369ddedd1a5ef67e103",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_en_t2_1",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "4ea4ded960e328a35b8bf15f9b552a13090ea86d95f7f93761a2bc3405d9fa98",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t0_0",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "838362c17274fea19a3898adc7f65414c3f1eba3cc4c4dcbd6d0ae99349531e7",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t0_1",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "c8bb7f3416b0f34946b21d946af3b39c23cab9a91d21fe0442e90608b1872607",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t1_0",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "a99a7c18818dfac285bf2b46578cf53128175f13bf6934ff4c1905cf882ce953",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t1_3",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "missing_date",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "85a82243b9c5938698579a7774a8824028eade6cb5cc6f47c882dac62d4d6542",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t2_0",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "1f1a77a4f42ef0e8a71a68a23088e5f959f938cf70ea5c0f2c7971f7c1fa7559",
+      "pages": 1,
+      "formats": [
+        "scanned"
+      ]
+    },
+    {
+      "case_id": "scan_pdf_es_t2_1",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "03510d8ff06d0515886f937f79f7ef60e6b937c656a3b1fd01b395a8afba24c8",
+      "pages": 1,
+      "formats": [
+        "scanned"
       ]
     }
   ]

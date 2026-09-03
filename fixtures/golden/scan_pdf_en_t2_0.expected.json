@@ -1,0 +1,21 @@
+{
+  "expected_fields": {
+    "supplier_name": "Station Foods B.V.",
+    "invoice_number": "2024/6967",
+    "invoice_date": "2026-08-04",
+    "total_amount": 269280.0,
+    "currency": "EUR",
+    "tax_id": "GB2234551528"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "dot_decimal",
+    "date_style": "dmy",
+    "scenario": "clean",
+    "format": "scanned",
+    "pages": 1,
+    "degradation": "scan_v1"
+  }
+}

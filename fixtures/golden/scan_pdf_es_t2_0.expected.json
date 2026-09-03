@@ -1,0 +1,21 @@
+{
+  "expected_fields": {
+    "supplier_name": "Distribuciones Sol S.A.",
+    "invoice_number": "AB-2026-9249",
+    "invoice_date": "2026-08-16",
+    "total_amount": 340191.5,
+    "currency": "EUR",
+    "tax_id": "ES15699025"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "dotted",
+    "scenario": "clean",
+    "format": "scanned",
+    "pages": 1,
+    "degradation": "scan_v1"
+  }
+}

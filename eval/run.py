@@ -204,6 +204,21 @@ def _expected_for(entry: dict[str, Any]) -> dict[str, Any]:
     return expected
 
 
+def prepare_scanned_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    """Prepare the scanned lane separately so offline txt/pdf gates are unchanged."""
+    return [
+        {
+            "case_id": entry["case_id"],
+            "document": DocumentInput(
+                pdf_bytes=(GOLDEN_DIR / f"{entry['case_id']}.pdf").read_bytes(),
+                filename=f"{entry['case_id']}.pdf",
+            ),
+            "expected": _expected_for(entry),
+        }
+        for entry in manifest["scanned_cases"]
+    ]
+
+
 def lane_field_accuracy(report: dict[str, Any]) -> float:
     total_cells = report["case_count"] * len(FIELD_NAMES)
     matches = sum(report["fields"][name]["matches"] for name in FIELD_NAMES)
@@ -290,8 +305,10 @@ def format_value(value: Any) -> str:
 
 def print_report(report: dict[str, Any]) -> None:
     print(f"EVALUATION (as-of {report['as_of']})")
-    for lane_name in ("txt", "pdf"):
-        lane = report["lanes"][lane_name]
+    for lane_name in ("txt", "pdf", "scanned"):
+        lane = report["lanes"].get(lane_name)
+        if lane is None:
+            continue
         print(f"\nLANE {lane_name}: {lane['case_count']} cases")
         print(
             f"{'field':<18} {'exact':>8} {'precision':>10} {'recall':>8}"
@@ -309,8 +326,10 @@ def print_report(report: dict[str, Any]) -> None:
         )
 
     print("\nSLICES (field_accuracy / verdict_agreement / cases)")
-    for lane_name in ("txt", "pdf"):
-        lane = report["lanes"][lane_name]
+    for lane_name in ("txt", "pdf", "scanned"):
+        lane = report["lanes"].get(lane_name)
+        if lane is None:
+            continue
         for key, values in lane["slices"].items():
             print(
                 f"  [{lane_name}] {key:<24} {values['field_accuracy']:>7.2%}  "
@@ -319,8 +338,8 @@ def print_report(report: dict[str, Any]) -> None:
 
     print("\nFAILURES")
     any_failures = False
-    for lane_name in ("txt", "pdf"):
-        for result in report["lanes"][lane_name]["results"]:
+    for lane_name in ("txt", "pdf", "scanned"):
+        for result in report["lanes"].get(lane_name, {}).get("results", []):
             for field_name in FIELD_NAMES:
                 predicted = result["predicted_fields"][field_name]
                 if predicted != result["expected_fields"].get(field_name):
@@ -341,8 +360,10 @@ def print_report(report: dict[str, Any]) -> None:
         print("none")
 
     print("\nOVERALL")
-    for lane_name in ("txt", "pdf"):
-        lane = report["lanes"][lane_name]
+    for lane_name in ("txt", "pdf", "scanned"):
+        lane = report["lanes"].get(lane_name)
+        if lane is None:
+            continue
         print(
             f"{lane_name:<10} field_accuracy={lane_field_accuracy(lane):.4f} "
             f"verdict_agreement={lane['verdict']['agreement_rate']:.4f}"
@@ -354,6 +375,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--as-of", type=str, default=DEFAULT_AS_OF.isoformat())
     parser.add_argument("--txt-only", action="store_true")
     parser.add_argument("--pdf-only", action="store_true")
+    parser.add_argument(
+        "--include-scanned",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="report scanned results as a separate lane; default only affects reports",
+    )
     parser.add_argument("--json", type=Path, help="write the full report dictionary here")
     parser.add_argument("--gates", dest="gates", action="store_true", default=True)
     parser.add_argument("--no-gates", dest="gates", action="store_false")
@@ -372,9 +399,12 @@ def main() -> None:
     manifest = load_manifest()
     txt_cases = prepare_cases(manifest, txt_only=True)
     pdf_cases = prepare_cases(manifest, pdf_only=True)
+    scanned_cases = prepare_scanned_cases(manifest)
     lanes = {"txt": run_lane(txt_cases, today=today)}
     if not args.txt_only:
         lanes["pdf"] = run_lane(pdf_cases, today=today)
+    if args.include_scanned and not args.txt_only and not args.pdf_only:
+        lanes["scanned"] = run_lane(scanned_cases, today=today)
 
     report = {"as_of": today.isoformat(), "lanes": lanes}
     print_report(report)

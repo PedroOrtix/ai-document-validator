@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from docvalidator.domain.models import ValidationConfig
-from docvalidator.extraction import DocumentInput, OfflineExtractor
+from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
 from docvalidator.rules_engine import RulesEngine
 
 ROOT = Path(__file__).parents[2]
@@ -16,13 +16,14 @@ GOLDEN = ROOT / "fixtures" / "golden"
 MANIFEST = json.loads((GOLDEN / "manifest.json").read_text(encoding="utf-8"))
 TXT_MANIFEST = json.loads((GOLDEN / "manifest_txt.json").read_text(encoding="utf-8"))
 PDF_MANIFEST = json.loads((GOLDEN / "manifest_pdf.json").read_text(encoding="utf-8"))
+SCANNED_MANIFEST = json.loads((GOLDEN / "manifest_scanned.json").read_text(encoding="utf-8"))
 AS_OF = date.fromisoformat(MANIFEST["as_of"])
 CONFIG = ValidationConfig(
     max_age_days=MANIFEST["max_age_days"],
     allowed_currencies=MANIFEST["allowed_currencies"],
 )
 
-EXPECTED_COUNTS = {"txt": 43, "pdf": 23}
+EXPECTED_COUNTS = {"txt": 43, "pdf": 23, "scanned": 12}
 EXPECTED_TIERS = {
     "txt": {0: 14, 1: 16, 2: 13},
     "pdf": {0: 7, 1: 9, 2: 7},
@@ -38,12 +39,13 @@ def _expected_file(case_id: str) -> dict:
 
 
 def _all_cases() -> list[dict]:
-    return MANIFEST["txt_cases"] + MANIFEST["pdf_cases"]
+    return MANIFEST["txt_cases"] + MANIFEST["pdf_cases"] + MANIFEST["scanned_cases"]
 
 
 def test_lane_fragments_match_merged_manifest() -> None:
     assert TXT_MANIFEST["cases"] == MANIFEST["txt_cases"]
     assert PDF_MANIFEST["cases"] == MANIFEST["pdf_cases"]
+    assert SCANNED_MANIFEST["cases"] == MANIFEST["scanned_cases"]
 
 
 def test_manifest_v2_header_and_counts() -> None:
@@ -54,6 +56,7 @@ def test_manifest_v2_header_and_counts() -> None:
     assert MANIFEST["counts"] == EXPECTED_COUNTS
     assert len(MANIFEST["txt_cases"]) == 43
     assert len(MANIFEST["pdf_cases"]) == 23
+    assert len(MANIFEST["scanned_cases"]) == 12
 
 
 @pytest.mark.parametrize("lane", ["txt", "pdf"])
@@ -116,17 +119,24 @@ def test_expected_schema_and_independently_recomputed_verdict(case: dict) -> Non
 
 @pytest.mark.parametrize("case", _all_cases(), ids=lambda case: case["case_id"])
 def test_manifest_hash_matches_disk(case: dict) -> None:
-    suffix = case["formats"][0]
-    artifact = GOLDEN / f"{case['case_id']}.{suffix}"
+    artifact_suffix = "pdf" if case["formats"][0] == "scanned" else case["formats"][0]
+    artifact = GOLDEN / f"{case['case_id']}.{artifact_suffix}"
     digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
-    assert digest == case[f"{suffix}_sha256"]
+    assert digest == case[f"{artifact_suffix}_sha256"]
 
 
 def test_no_orphan_golden_files() -> None:
-    expected_names = {"manifest.json", "manifest_txt.json", "manifest_pdf.json"}
+    expected_names = {
+        "manifest.json",
+        "manifest_txt.json",
+        "manifest_pdf.json",
+        "manifest_scanned.json",
+    }
     for case in _all_cases():
-        suffix = case["formats"][0]
-        expected_names.update({f"{case['case_id']}.{suffix}", f"{case['case_id']}.expected.json"})
+        artifact_suffix = "pdf" if case["formats"][0] == "scanned" else case["formats"][0]
+        expected_names.update(
+            {f"{case['case_id']}.{artifact_suffix}", f"{case['case_id']}.expected.json"}
+        )
     assert {path.name for path in GOLDEN.iterdir()} == expected_names
 
 
@@ -177,3 +187,52 @@ def test_txt_no_vat_extracts_optional_tax_id_as_absent() -> None:
     assert extraction.fields["tax_id"].value is None
     assert expected["expected_fields"]["tax_id"] is None
     assert expected["expected_verdict_status"] == "PASS"
+
+
+def test_scanned_lane_fragment_matches_merged_manifest() -> None:
+    assert SCANNED_MANIFEST["lane"] == "scanned"
+    assert SCANNED_MANIFEST["cases"] == MANIFEST["scanned_cases"]
+
+
+def test_scanned_manifest_counts_and_distributions() -> None:
+    cases = MANIFEST["scanned_cases"]
+    assert MANIFEST["counts"]["scanned"] == 12
+    assert len(cases) == 12
+    assert {tier: sum(case["tier"] == tier for case in cases) for tier in (0, 1, 2)} == {
+        0: 4,
+        1: 4,
+        2: 4,
+    }
+    language_counts = {
+        language: sum(case["language"] == language for case in cases)
+        for language in ("EN", "ES")
+    }
+    assert language_counts == {"EN": 6, "ES": 6}
+    assert all(case["formats"] == ["scanned"] for case in cases)
+    assert all(case["pages"] == 1 for case in cases)
+    assert all(case["case_id"].startswith("scan_") for case in cases)
+
+
+def test_scanned_truth_matches_pdf_twins_and_slices() -> None:
+    for case in MANIFEST["scanned_cases"]:
+        underlying_id = case["case_id"].removeprefix("scan_")
+        twin = _expected_file(underlying_id)
+        expected = _expected_file(case["case_id"])
+        assert expected["expected_fields"] == twin["expected_fields"]
+        assert expected["expected_verdict_status"] == twin["expected_verdict_status"]
+        normalized_twin = twin["slices"] | {"format": "scanned", "degradation": "scan_v1"}
+        assert expected["slices"] == normalized_twin
+        assert expected["slices"]["degradation"] == "scan_v1"
+
+
+@pytest.mark.parametrize("case", MANIFEST["scanned_cases"], ids=lambda case: case["case_id"])
+def test_scanned_pdf_is_image_only(case: dict) -> None:
+    pdf_bytes = (GOLDEN / f"{case['case_id']}.pdf").read_bytes()
+    with pytest.raises(ExtractionError, match="no extractable text layer"):
+        DocumentInput(pdf_bytes=pdf_bytes).to_text()
+
+
+@pytest.mark.parametrize("case", MANIFEST["scanned_cases"], ids=lambda case: case["case_id"])
+def test_scanned_manifest_hash_matches_disk(case: dict) -> None:
+    digest = hashlib.sha256((GOLDEN / f"{case['case_id']}.pdf").read_bytes()).hexdigest()
+    assert digest == case["pdf_sha256"]

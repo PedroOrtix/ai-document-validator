@@ -1,0 +1,21 @@
+{
+  "expected_fields": {
+    "supplier_name": "Union Print Works Ltd",
+    "invoice_number": "2026/3301",
+    "invoice_date": "2026-08-09",
+    "total_amount": 479160.0,
+    "currency": null,
+    "tax_id": "GB7159855416"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "space_fr",
+    "date_style": "spelled",
+    "scenario": "clean",
+    "format": "scanned",
+    "pages": 1,
+    "degradation": "scan_v1"
+  }
+}

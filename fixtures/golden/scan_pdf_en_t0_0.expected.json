@@ -1,0 +1,21 @@
+{
+  "expected_fields": {
+    "supplier_name": "Station Foods B.V.",
+    "invoice_number": "CR5301",
+    "invoice_date": "2026-08-19",
+    "total_amount": 79200.0,
+    "currency": "EUR",
+    "tax_id": "GB8864945763"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "grouped_eu",
+    "date_style": "dmy",
+    "scenario": "clean",
+    "format": "scanned",
+    "pages": 1,
+    "degradation": "scan_v1"
+  }
+}
