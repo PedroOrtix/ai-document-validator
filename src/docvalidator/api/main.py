@@ -304,7 +304,6 @@ async def extract(request: Request) -> DocumentExtraction:
     backend = _select_backend(parsed.extraction_backend)
     if backend == "llm":
         raise APIError("unsupported_backend", "LLM extraction is not implemented yet")
-    parsed = await _parse_request(request)
     request.state.backend = backend
     return OfflineExtractor().extract(parsed.document)
 
