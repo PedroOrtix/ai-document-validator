@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Cerámica Alfonso S.L.",
+    "invoice_number": "RE-2025-6505",
+    "invoice_date": "2026-08-14",
+    "total_amount": 680867.0,
+    "currency": "EUR",
+    "tax_id": "ES22054760"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 1,
+    "amount_style": "space_fr",
+    "date_style": "abbrev",
+    "scenario": "clean",
+    "format": "pdf",
+    "pages": 1
+  }
+}

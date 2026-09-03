@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Beacon Manufacturing Inc",
+    "invoice_number": "CR-2024-7525",
+    "invoice_date": null,
+    "total_amount": 595200.0,
+    "currency": "EUR",
+    "tax_id": "GB8965836878"
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "missing_date",
+    "format": "pdf",
+    "pages": 1
+  }
+}

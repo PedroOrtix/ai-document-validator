@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Logística Bilbao S.L.",
+    "invoice_number": "FAC-2025-1299",
+    "invoice_date": "2026-07-10",
+    "total_amount": 31278.5,
+    "currency": "GBP",
+    "tax_id": "ES13669968"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "dmy",
+    "scenario": "clean",
+    "format": "pdf",
+    "pages": 1
+  }
+}
