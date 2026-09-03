@@ -12,9 +12,55 @@ from typing import ClassVar
 
 from docvalidator.domain.models import ExtractedField
 
+_SPANISH_MONTHS: dict[str, int] = {
+    "ene": 1,
+    "enero": 1,
+    "feb": 2,
+    "febrero": 2,
+    "mar": 3,
+    "marzo": 3,
+    "abr": 4,
+    "abril": 4,
+    "may": 5,
+    "mayo": 5,
+    "jun": 6,
+    "junio": 6,
+    "jul": 7,
+    "julio": 7,
+    "ago": 8,
+    "agosto": 8,
+    "sep": 9,
+    "set": 9,
+    "sept": 9,
+    "septiembre": 9,
+    "setiembre": 9,
+    "oct": 10,
+    "octubre": 10,
+    "nov": 11,
+    "noviembre": 11,
+    "dic": 12,
+    "diciembre": 12,
+}
+
+_SPANISH_DATE_PATTERN = re.compile(
+    r"\b(\d{1,2})\s+(?:de\s+)?([A-Za-z]{3,10})\.?\s+(?:de\s+)?(\d{4})\b",
+    re.IGNORECASE,
+)
+
 
 def _parse_date_candidate(candidate: str, formats: list[str]) -> date | None:
-    """Parse one date string against the supported formats, or return None."""
+    """Parse one date string against supported formats and locale-independent Spanish dates."""
+    spanish_match = _SPANISH_DATE_PATTERN.search(candidate)
+    if spanish_match:
+        month_key = spanish_match.group(2).lower()
+        if month_key in _SPANISH_MONTHS:
+            try:
+                day = int(spanish_match.group(1))
+                year = int(spanish_match.group(3))
+                return date(year, _SPANISH_MONTHS[month_key], day)
+            except ValueError:
+                pass
+
     for date_format in formats:
         try:
             return datetime.strptime(candidate, date_format).date()
@@ -55,7 +101,7 @@ class RegexFieldParser:
 
     def _extract_supplier_name(self, text: str, lines: list[str]) -> ExtractedField:
         labeled = re.compile(
-            r"(?:From|Supplier|Issued by)\s*[:#]\s*([^\n]+)",
+            r"(?:From|Supplier|Issued\s*by|Proveedor|Emisor|Emitido\s*por)\s*[:#]\s*([^\n]+)",
             re.IGNORECASE,
         )
         match = labeled.search(text)
@@ -63,21 +109,59 @@ class RegexFieldParser:
             return self._field(match.group(1).strip(), 0.95, match.group(0).strip())
         if not lines:
             return self._field(None, 0.0, None)
-        first = lines[0]
-        # A first line with no letters at all ("@@@@ ####") is not a company name.
-        if len(first) > 100 or not re.search(r"[A-Za-z]", first):
+
+        candidate_idx = 0
+        header_pat = re.compile(
+            r"^(?:Factura|Invoice|Tax\s*Invoice|Rechnung|Recibo)\b",
+            re.IGNORECASE,
+        )
+        if (
+            candidate_idx < len(lines)
+            and header_pat.search(lines[candidate_idx])
+            and len(lines) > 1
+        ):
+            candidate_idx = 1
+        first = lines[candidate_idx]
+        meta_split = re.compile(
+            r"\b(?:Invoice|Factura|N[úu]mero|Numero|Reference|Referencia|N[ºo°9\.]+|NumerodeFactura|Fecha|Date)\b",
+            re.IGNORECASE,
+        )
+        first_clean = meta_split.split(first)[0].strip(" -:,|")
+        if first_clean and re.search(r"[A-Za-z]", first_clean) and len(first_clean) <= 100:
+            first = first_clean
+        elif len(first) > 100 or not re.search(r"[A-Za-z]", first):
             return self._field(None, 0.0, None)
         return self._field(first, 0.8, first)
 
     def _extract_invoice_number(self, text: str, lines: list[str]) -> ExtractedField:
-        del lines
-        labeled = re.compile(
-            r"(?:Invoice\s*(?:No\.?|Number|#)|Factura\s*N[ºo°]|Rechnungsnummer)\s*[:#]?\s*([A-Z0-9][A-Z0-9-/]{1,30})",
-            re.IGNORECASE,
-        )
-        match = labeled.search(text)
-        if match:
-            return self._field(match.group(1).strip(), 0.95, match.group(0).strip())
+        labeled_line_patterns = [
+            re.compile(
+                r"(?:Invoice\s*(?:No\.?|Number|#)|InvoiceNo|"
+                r"(?:N[ºo°9\.]+|N[úu]mero|Num\.)\s*(?:de\s*)?Factura|NumerodeFactura|"
+                r"Factura\s*N[ºo°9\.]+|FacturaN9|"
+                r"Factura\s*(?:N[úu]mero|Num\.)|"
+                r"Factura|"
+                r"Rechnungsnummer)"
+                r"\s*[:#]?\s*(.*)$",
+                re.IGNORECASE,
+            )
+        ]
+        id_token_pattern = re.compile(r"^[A-Z0-9][A-Z0-9-/]{1,30}$", re.IGNORECASE)
+        for i, line in enumerate(lines):
+            for pat in labeled_line_patterns:
+                m = pat.search(line)
+                if not m:
+                    continue
+                rest = m.group(1).strip(" :#,")
+                if rest:
+                    token_match = re.search(r"\b([A-Z0-9][A-Z0-9-/]{1,30})\b", rest)
+                    if token_match:
+                        return self._field(token_match.group(1).strip(), 0.95, line)
+                    return self._field(None, 0.0, None)
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip(" :#,")
+                    if id_token_pattern.match(next_line):
+                        return self._field(next_line, 0.95, f"{line}\n{lines[i + 1]}")
 
         fallback = re.compile(r"\bINV-\d{4}-\d{3,8}\b", re.IGNORECASE)
         match = fallback.search(text)
@@ -87,12 +171,6 @@ class RegexFieldParser:
         return self._field(None, 0.0, None)
 
     def _extract_invoice_date(self, text: str, lines: list[str]) -> ExtractedField:
-        del lines
-        labeled_patterns = [
-            (re.compile(r"\bInvoice\s*Date\s*[:#]?\s*([^\n]+)", re.IGNORECASE), 0.95),
-            (re.compile(r"\bFecha\s*[:#]?\s*([^\n]+)", re.IGNORECASE), 0.95),
-            (re.compile(r"\bDate\s*[:#]?\s*([^\n]+)", re.IGNORECASE), 0.9),
-        ]
         formats = [
             "%Y-%m-%d",
             "%d/%m/%Y",
@@ -102,22 +180,32 @@ class RegexFieldParser:
             "%d.%m.%Y",
             "%b %d, %Y",
         ]
-        for pattern, confidence in labeled_patterns:
-            match = pattern.search(text)
-            if not match:
-                continue
-            candidate = match.group(1).strip(" ,;|\t")
-            value = _parse_date_candidate(candidate, formats)
-            if value is not None:
-                return self._field(value, confidence, candidate)
-            # The label matched but its value was unparsable: trust the label
-            # over a later unlabeled date token and report the miss honestly.
-            return self._field(None, 0.0, None)
+        labeled_line_patterns = [
+            re.compile(
+                r"\b(?:Invoice\s*Date|Date|Fecha\s*(?:de\s*)?(?:factura|emisi[oó]n|expedici[oó]n)?|Fecha)"
+                r"\s*[:#]?\s*(.*)$",
+                re.IGNORECASE,
+            )
+        ]
+        for i, line in enumerate(lines):
+            for pat in labeled_line_patterns:
+                m = pat.search(line)
+                if not m:
+                    continue
+                rest = m.group(1).strip(" ,;|\t")
+                if rest:
+                    val = _parse_date_candidate(rest, formats)
+                    if val is not None:
+                        return self._field(val, 0.95, line)
+                    # Label matched with unparsable text on the same line:
+                    # trust the label over subsequent lines or tokens.
+                    return self._field(None, 0.0, None)
+                if i + 1 < len(lines):
+                    next_val = _parse_date_candidate(lines[i + 1].strip(" ,;|\t"), formats)
+                    if next_val is not None:
+                        return self._field(next_val, 0.95, f"{line}\n{lines[i + 1]}")
 
-        # No labeled date: scan every date-looking token in order and accept
-        # the first one that parses (D/M/Y before M/D/Y, matching our formats
-        # list order). Previously re.search re-returned the same first token
-        # for every format, silently discarding later valid dates.
+        # Scan full text tokens if no labeled date matched
         for token_match in re.finditer(r"\d{1,4}[./-]\d{1,2}[./-]\d{2,4}", text):
             value = _parse_date_candidate(token_match.group(0), formats)
             if value is not None:
@@ -125,21 +213,41 @@ class RegexFieldParser:
         return self._field(None, 0.0, None)
 
     def _extract_total_amount(self, text: str, lines: list[str]) -> ExtractedField:
-        del lines
+        labeled_prefixes = [
+            re.compile(
+                r"^(?:Grand\s*Total|Amount\s*Due|Total\s*Due|Total\s*Amount|Importe\s*Total|Gesamtbetrag|Total)"
+                r"\s*[:#]?\s*(.*)$",
+                re.IGNORECASE,
+            ),
+        ]
+        for i in range(len(lines) - 1, -1, -1):
+            line = lines[i]
+            for pat in labeled_prefixes:
+                m = pat.search(line)
+                if not m:
+                    continue
+                rest = m.group(1).strip()
+                if rest:
+                    parsed = self._parse_amount(rest)
+                    if parsed is not None:
+                        return self._field(parsed, 0.95, line)
+                elif i + 1 < len(lines):
+                    parsed_next = self._parse_amount(lines[i + 1])
+                    if parsed_next is not None:
+                        return self._field(parsed_next, 0.95, f"{line}\n{lines[i + 1]}")
+
         labeled_patterns = [
             re.compile(r"\bGrand\s*Total\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bAmount\s*Due\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*Due\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*Amount\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
+            re.compile(r"\bImporte\s*Total\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bGesamtbetrag\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
         ]
-        # Prefer strong labels; among equal-strength labels (multiple "Total"
-        # rows: line items, subtotals, grand total) the LAST match wins — the
-        # grand total is conventionally the bottom-most total on the page.
+        amount = None
+        evidence = None
         for pattern in labeled_patterns:
-            amount = None
-            evidence = None
             for match in pattern.finditer(text):
                 parsed = self._parse_amount(match.group(1))
                 if parsed is not None:
@@ -192,14 +300,24 @@ class RegexFieldParser:
     def _parse_amount(self, candidate: str) -> float | None:
         candidate = candidate.strip()
         # Optional leading sign so credit notes ("-350.00") parse as negatives.
+        # Support European thousand separators with spaces: e.g. "680 867,00"
         match = re.search(
-            r"[-+]?\s*(?:[$€£]|EUR|USD|GBP)?\s*\d+(?:[.,]\d{3})*(?:[.,]\d{2})?", candidate
+            r"[-+]?\s*(?:[$€£]|EUR|USD|GBP)?\s*"
+            r"(?:\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{2})?|\d+(?:[.,]\d{2})?)",
+            candidate,
         )
         if not match:
             return None
         raw = match.group(0)
         negative = "-" in raw
-        raw = raw.strip("+- $€£").replace("EUR", "").replace("USD", "").replace("GBP", "").strip()
+        raw = (
+            raw.strip("+- $€£")
+            .replace("EUR", "")
+            .replace("USD", "")
+            .replace("GBP", "")
+            .replace(" ", "")
+            .strip()
+        )
         last_comma = raw.rfind(",")
         last_dot = raw.rfind(".")
         if last_comma > last_dot:

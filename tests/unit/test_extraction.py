@@ -292,3 +292,56 @@ def test_amounts_without_thousands_separator_are_not_truncated(
     """Regression: 4+ digit integers with no grouping must parse in full."""
     extraction = extractor.extract(DocumentInput(text=f"ACME Ltd\n{line}"))
     assert extraction.fields["total_amount"].value == expected_amount
+
+
+def test_european_space_separated_amounts_parse_correctly(extractor: OcrExtractor) -> None:
+    """SI / European standard: space as thousand separator e.g. 680 867,00."""
+    text = "Proveedor: Cerámica Alfonso S.L.\nTotal: 680 867,00 €"
+    extraction = extractor.extract(DocumentInput(text=text))
+    assert extraction.fields["total_amount"].value == 680867.0
+
+
+def test_spanish_written_dates_parse_locale_independently(extractor: OcrExtractor) -> None:
+    from datetime import date
+
+    text = "Fecha de Factura: 14 ago 2026\nTotal: 100.00"
+    extraction = extractor.extract(DocumentInput(text=text))
+    assert extraction.fields["invoice_date"].value == date(2026, 8, 14)
+
+
+def test_spanish_invoice_number_variants(extractor: OcrExtractor) -> None:
+    cases = [
+        ("Numero de Factura: RE-2025-6505", "RE-2025-6505"),
+        ("Factura Nº: FAC-2024-7726", "FAC-2024-7726"),
+        ("FacturaN9: FAC3703", "FAC3703"),
+        ("NumerodeFactura: 2025/9526", "2025/9526"),
+    ]
+    for line, expected_num in cases:
+        extraction = extractor.extract(DocumentInput(text=f"Empresa S.L.\n{line}"))
+        assert extraction.fields["invoice_number"].value == expected_num
+
+
+def test_vertical_multiline_pairing(extractor: OcrExtractor) -> None:
+    from datetime import date
+
+    text = "Proveedor:\nNorthwind Traders\nFecha de Factura:\n2026-08-14\nTotal:\n1250.00"
+    extraction = extractor.extract(DocumentInput(text=text))
+    assert extraction.fields["invoice_date"].value == date(2026, 8, 14)
+    assert extraction.fields["total_amount"].value == 1250.0
+
+
+def test_spatial_box_reading_order_sorting() -> None:
+    from docvalidator.extraction.ocr import _sort_boxes_reading_order
+
+    # Synthetic RapidOCR output where boxes are out of reading order:
+    # Row 2 (y ~ 100): "Total:" (left), "1250.00" (right)
+    # Row 1 (y ~ 50):  "Date:" (left),  "2026-08-01" (right)
+    raw_result = [
+        [[[200, 100], [300, 100], [300, 120], [200, 120]], "1250.00", 0.99],
+        [[[50, 50], [150, 50], [150, 70], [50, 70]], "Date:", 0.98],
+        [[[200, 50], [320, 50], [320, 70], [200, 70]], "2026-08-01", 0.99],
+        [[[50, 100], [120, 100], [120, 120], [50, 120]], "Total:", 0.97],
+    ]
+    sorted_text = _sort_boxes_reading_order(raw_result)
+    expected_lines = ["Date: 2026-08-01", "Total: 1250.00"]
+    assert sorted_text.splitlines() == expected_lines

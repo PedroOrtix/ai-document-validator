@@ -69,6 +69,57 @@ def _load_runtime() -> Any:
     return engine
 
 
+def _sort_boxes_reading_order(result: list[Any]) -> str:
+    """Group RapidOCR boxes into horizontal lines and sort in reading order."""
+    if not result:
+        return ""
+    items: list[dict[str, Any]] = []
+    for item in result:
+        if len(item) < 2 or not item[1]:
+            continue
+        box = item[0]
+        try:
+            xs = [float(p[0]) for p in box]
+            ys = [float(p[1]) for p in box]
+        except (ValueError, TypeError, IndexError):
+            continue
+        y_min, y_max = min(ys), max(ys)
+        x_min, x_max = min(xs), max(xs)
+        items.append({
+            "text": str(item[1]).strip(),
+            "x_min": x_min,
+            "x_max": x_max,
+            "y_min": y_min,
+            "y_max": y_max,
+            "y_center": (y_min + y_max) / 2.0,
+            "height": max(y_max - y_min, 1.0),
+        })
+    if not items:
+        return ""
+
+    items.sort(key=lambda it: it["y_center"])
+    lines: list[list[dict[str, Any]]] = []
+    for it in items:
+        matched_line: list[dict[str, Any]] | None = None
+        for line in lines:
+            line_y = sum(b["y_center"] for b in line) / len(line)
+            line_h = sum(b["height"] for b in line) / len(line)
+            if abs(it["y_center"] - line_y) < max(it["height"], line_h) * 0.5:
+                matched_line = line
+                break
+        if matched_line is not None:
+            matched_line.append(it)
+        else:
+            lines.append([it])
+
+    lines.sort(key=lambda line: sum(b["y_center"] for b in line) / len(line))
+    text_lines: list[str] = []
+    for line in lines:
+        line.sort(key=lambda b: b["x_min"])
+        text_lines.append(" ".join(b["text"] for b in line))
+    return "\n".join(text_lines)
+
+
 def _rapidocr_fn(pages: list[RenderedPage]) -> str:
     """Run RapidOCR (PP-OCRv5 detection+recognition, ONNX Runtime) over pages."""
     import numpy as np
@@ -76,16 +127,15 @@ def _rapidocr_fn(pages: list[RenderedPage]) -> str:
     if not pages:
         return ""
     engine = _load_runtime()
-    lines: list[str] = []
+    page_texts: list[str] = []
     for page in pages:
         image = np.asarray(page)
         result, _ = engine(image)
         if result:
-            for item in result:
-                # RapidOCR rows are [box, text, confidence]
-                if len(item) >= 2 and item[1]:
-                    lines.append(str(item[1]))
-    return "\n".join(lines)
+            page_text = _sort_boxes_reading_order(result)
+            if page_text:
+                page_texts.append(page_text)
+    return "\n".join(page_texts)
 
 
 class OcrExtractor(Extractor):
