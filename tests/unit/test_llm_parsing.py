@@ -130,3 +130,40 @@ def test_extractor_maps_provider_timeouts() -> None:
         extractor.extract(DocumentInput(text="hello"))
 
     assert isinstance(exc_info.value, LLMTimeoutError)
+
+
+def test_extractor_requests_structured_output_schema() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        captured["response_format"] = body.get("response_format")
+        return httpx.Response(200, json=_PAYLOAD)
+
+    extractor = LLMExtractor(_SETTINGS, transport=httpx.MockTransport(handler))
+    extraction = extractor.extract(DocumentInput(text="hello"))
+
+    response_format = captured["response_format"]
+    assert isinstance(response_format, dict)
+    assert response_format["type"] == "json_schema"
+    schema = response_format["json_schema"]["schema"]
+    assert set(schema["required"]) == _FIELD_NAMES
+    assert extraction.fields["supplier_name"].value == "ACME Ltd"
+
+
+def test_extractor_retries_without_response_format_on_unsupported_provider() -> None:
+    seen_response_formats: list[object] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        seen_response_formats.append(body.get("response_format"))
+        if body.get("response_format") is not None:
+            return httpx.Response(400, json={"error": {"message": "response_format unsupported"}})
+        return httpx.Response(200, json=_PAYLOAD)
+
+    extractor = LLMExtractor(_SETTINGS, transport=httpx.MockTransport(handler))
+    extraction = extractor.extract(DocumentInput(text="hello"))
+
+    assert seen_response_formats[0] is not None
+    assert seen_response_formats[1] is None
+    assert extraction.fields["supplier_name"].value == "ACME Ltd"

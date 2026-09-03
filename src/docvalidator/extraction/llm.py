@@ -51,6 +51,41 @@ class LLMTimeoutError(ExtractionError):
     """Raised when the LLM backend does not respond before the timeout."""
 
 
+_JSON_SCHEMA_RESPONSE_FORMAT: dict[str, Any] = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "invoice_extraction",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "supplier_name": {"type": ["string", "null"]},
+                "invoice_number": {"type": ["string", "null"]},
+                "invoice_date": {
+                    "type": ["string", "null"],
+                    "description": "ISO date YYYY-MM-DD",
+                },
+                "total_amount": {"type": ["number", "null"]},
+                "currency": {
+                    "type": ["string", "null"],
+                    "description": "ISO 4217 currency code",
+                },
+                "tax_id": {"type": ["string", "null"]},
+            },
+            "required": [
+                "supplier_name",
+                "invoice_number",
+                "invoice_date",
+                "total_amount",
+                "currency",
+                "tax_id",
+            ],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
 def _strip_markdown_fences(content: str) -> str:
     stripped = content.strip()
     if not stripped.startswith("```"):
@@ -153,32 +188,43 @@ class LLMExtractor(Extractor):
         )
 
     def _request_llm(self, text: str) -> dict[str, Any]:
-        headers = {"Authorization": f"Bearer {self.settings.openrouter_api_key}"}
         payload = {
             "model": self.settings.validator_llm_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text},
             ],
+            "response_format": _JSON_SCHEMA_RESPONSE_FORMAT,
         }
+        response = self._post(payload)
+        if response.status_code == 400 and "response_format" in response.text:
+            # Provider does not support structured outputs: retry once with the
+            # plain prompt. Parsing stays defensive either way.
+            payload.pop("response_format")
+            response = self._post(payload)
+        return self._response_payload(response)
+
+    def _post(self, payload: dict[str, Any]) -> httpx.Response:
+        headers = {"Authorization": f"Bearer {self.settings.openrouter_api_key}"}
         try:
             with httpx.Client(
                 base_url=self.settings.openrouter_base_url,
                 timeout=self.settings.validator_llm_timeout_seconds,
                 transport=self._transport,
             ) as client:
-                response = client.post("/chat/completions", json=payload, headers=headers)
+                return client.post("/chat/completions", json=payload, headers=headers)
         except httpx.TimeoutException as exc:
             raise LLMTimeoutError("LLM extraction timed out") from exc
         except httpx.HTTPError as exc:
             raise LLMRequestError("unable to reach the LLM provider") from exc
 
+    @staticmethod
+    def _response_payload(response: httpx.Response) -> dict[str, Any]:
         if response.status_code in {401, 403}:
             raise LLMConfigurationError("LLM provider rejected the configured API key")
         if response.status_code >= 400:
             raise LLMRequestError(f"LLM provider returned HTTP {response.status_code}")
         try:
-            payload = response.json()
-            return payload
+            return response.json()
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise LLMParsingError("LLM provider returned an invalid completion response") from exc
