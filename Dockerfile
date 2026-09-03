@@ -15,29 +15,27 @@ RUN uv sync --frozen --no-dev || uv sync --no-dev
 FROM python:3.12-slim-bookworm
 
 ENV PIP_NO_CACHE_DIR=1 \
-    HF_HOME=/models/huggingface \
-    TRANSFORMERS_OFFLINE=1
+    PYTHONUNBUFFERED=1
 
-RUN mkdir -p /models/huggingface && \
-    python -m pip install --no-cache-dir \
-      "pypdfium2>=4.30" \
-      "pillow>=10.0" \
-      "rapidocr-onnxruntime>=1.4" \
-      "numpy>=1.26"
-
-# Pre-download RapidOCR (PP-OCRv5) ONNX weights at build time so runtime needs no network.
-RUN python -c "from rapidocr_onnxruntime import RapidOCR; RapidOCR()"
+# Install system runtime libraries required by OpenCV and ONNX Runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy the virtual environment from the builder (self-contained, uv binary not needed at runtime)
+# Copy the virtual environment from the builder
 COPY --from=builder /app/.venv /app/.venv
 COPY src ./src
 COPY fixtures ./fixtures
 COPY eval ./eval
 
-ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Pre-download RapidOCR (PP-OCRv5) ONNX weights at build time into /root/.rapidocr so runtime needs no network
+RUN python -c "from rapidocr_onnxruntime import RapidOCR; RapidOCR()"
 
 EXPOSE 8000
 
