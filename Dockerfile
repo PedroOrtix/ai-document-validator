@@ -1,0 +1,30 @@
+# --- Build stage ---
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+
+WORKDIR /app
+
+# Install dependencies first (cached layer)
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-install-project --no-dev || uv sync --no-install-project --no-dev
+
+# Install the project itself
+COPY src ./src
+RUN uv sync --frozen --no-dev || uv sync --no-dev
+
+# --- Runtime stage ---
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+# Copy the virtual environment from the builder (self-contained, uv binary not needed at runtime)
+COPY --from=builder /app/.venv /app/.venv
+COPY src ./src
+COPY fixtures ./fixtures
+COPY eval ./eval
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+CMD ["uvicorn", "docvalidator.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,9 @@
+services:
+  docvalidator:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - VALIDATOR_EXTRACTION_BACKEND=offline
+      # - OPENROUTER_API_KEY=...   # only needed for the optional LLM backend
+    restart: "no"
