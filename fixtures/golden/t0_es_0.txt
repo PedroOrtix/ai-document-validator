@@ -1,10 +1,14 @@
-Talleres Vega S.L.
-Calle Mayor 17
+Ferretería Montes S.L.
+Calle Alfonso 40
 Valladolid, España
++34 9692 159 226
+billing@ferreteríamontessl.example.com
 
-Factura Nº: RE-2026-4222
-Fecha: 07/08/2026
-NIF: ES61253831
+Factura Nº: 2026/1041
+Fecha: 04/07/2026
+Moneda: EUR
+NIF: ES79764714
 
-Formación
-Total    14064.29
+Inspección técnica    6937.48
+
+Total    6937.48

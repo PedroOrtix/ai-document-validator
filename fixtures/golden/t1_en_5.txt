@@ -1,0 +1,26 @@
+Northwind Supplies Ltd
+85 Victoria Street
+Leeds, United Kingdom
++44 20 5162 8125
+billing@northwindsuppliesltd.example.com
+
+Invoice Number: FT-2026-6265
+Date: 2026-08-24
+Tax ID: GB4992742659
+
+Training session    0.00
+Installation fee    0.00
+Software license    0.00
+Data platform subscription    0.00
+Maintenance contract    0.00
+Freight and handling    0.00
+
+Total Due    € 0.00
+VAT    0.00
+Rounding    0.00
+
+Bank: Barclays
+IBAN: 33BU KG17 6714 8126 7013
+BIC: BUKGB22
+
+Late payments accrue interest at 2% per month.

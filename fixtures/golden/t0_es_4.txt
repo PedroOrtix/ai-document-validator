@@ -1,0 +1,14 @@
+Ferretería Montes S.L.
+Calle Alfonso 76
+Valladolid, España
++34 9950 105 275
+billing@ferreteríamontessl.example.com
+
+Factura Nº: AB-2024-5501
+Fecha: 2026-06-17
+Moneda: EUR
+NIF: ES43670196
+
+Suministros    10.747,81
+
+Total    10.747,81

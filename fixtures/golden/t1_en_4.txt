@@ -1,0 +1,25 @@
+Northwind Supplies Ltd
+54 Park Street
+Dublin, United Kingdom
++44 20 9314 9265
+billing@northwindsuppliesltd.example.com
+
+Invoice Number: INV-2024-1915
+Date: 12 Jul 2026
+Tax ID: GB7977060898
+
+Office supplies    326.04
+Data platform subscription    326.03
+Hardware maintenance    326.03
+Inspection report    326.04
+Installation fee    326.04
+
+Total Due    € 1 630,18
+VAT    0.00
+Rounding    0.00
+
+Bank: Revolut
+IBAN: 69BU KG99 3665 5668 5617
+BIC: REVOGB21
+
+Bank transfers only; state the invoice number as reference.

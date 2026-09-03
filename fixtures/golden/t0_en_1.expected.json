@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Market Optics GmbH",
-    "invoice_number": "AC-2026-5470",
-    "invoice_date": "2026-08-14",
-    "total_amount": 8493.59,
-    "currency": null,
-    "tax_id": "GB3797678216"
+    "supplier_name": "Northwind Supplies Ltd",
+    "invoice_number": "FT4668",
+    "invoice_date": "2026-07-03",
+    "total_amount": 12796.59,
+    "currency": "EUR",
+    "tax_id": "GB1269294763"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "EN",
     "tier": 0,
-    "amount_style": "dot_decimal",
+    "amount_style": "grouped_eu",
     "date_style": "dmy",
-    "scenario": "random",
+    "scenario": "clean",
     "format": "txt"
   }
 }

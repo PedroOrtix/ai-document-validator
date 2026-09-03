@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Victoria Timber Ltd",
-    "invoice_number": "INV2729",
-    "invoice_date": "2026-06-23",
-    "total_amount": 2800.98,
+    "supplier_name": "Station Foods B.V.",
+    "invoice_number": "2024/8670",
+    "invoice_date": "2026-06-30",
+    "total_amount": 18009.7,
     "currency": "EUR",
-    "tax_id": "GB3214013153"
+    "tax_id": "GB5321140862"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "EN",
     "tier": 1,
-    "amount_style": "dot_decimal",
-    "date_style": "abbrev",
-    "scenario": "random",
+    "amount_style": "grouped_eu",
+    "date_style": "dotted",
+    "scenario": "clean",
     "format": "txt"
   }
 }

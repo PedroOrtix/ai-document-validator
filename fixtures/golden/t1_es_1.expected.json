@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Cerámica Alfonso S.L.",
-    "invoice_number": "AC-2026-6880",
-    "invoice_date": "2026-06-27",
-    "total_amount": 16562.79,
+    "supplier_name": "Distribuciones Sol S.A.",
+    "invoice_number": "AB-2025-2610",
+    "invoice_date": "2026-07-15",
+    "total_amount": 21501.47,
     "currency": "GBP",
-    "tax_id": "ES60935811"
+    "tax_id": "ES27646003"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "ES",
     "tier": 1,
-    "amount_style": "grouped_en",
-    "date_style": "iso",
-    "scenario": "random",
+    "amount_style": "comma_decimal",
+    "date_style": "dmy",
+    "scenario": "clean",
     "format": "txt"
   }
 }

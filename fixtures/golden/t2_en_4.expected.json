@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Oakbridge Logistics Ltd",
+    "invoice_number": "FT5099",
+    "invoice_date": "2026-01-06",
+    "total_amount": 31697.91,
+    "currency": "EUR",
+    "tax_id": "GB2128541393"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "abbrev",
+    "scenario": "stale_old",
+    "format": "txt"
+  }
+}

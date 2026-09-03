@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Textiles Industria S.A.",
-    "invoice_number": "AC-2026-6484",
-    "invoice_date": "2026-06-27",
-    "total_amount": 11469.21,
+    "supplier_name": "Logística Bilbao S.L.",
+    "invoice_number": "2024/7497",
+    "invoice_date": "2026-07-27",
+    "total_amount": 24676.84,
     "currency": "GBP",
-    "tax_id": "ES45951152"
+    "tax_id": "ES17857764"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "ES",
     "tier": 2,
-    "amount_style": "grouped_eu",
-    "date_style": "abbrev",
-    "scenario": "random",
+    "amount_style": "space_fr",
+    "date_style": "dotted",
+    "scenario": "clean",
     "format": "txt"
   }
 }

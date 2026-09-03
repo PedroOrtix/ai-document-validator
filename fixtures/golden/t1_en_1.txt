@@ -1,11 +1,25 @@
-Victoria Timber Ltd
-5 Oak Street
-Austin, United Kingdom
+Oakbridge Logistics Ltd
+54 Oak Street
+Leeds, United Kingdom
++44 20 7636 9709
+billing@oakbridgelogisticsltd.example.com
 
-Invoice Number: 2025/3644
-Invoice Date: 2026-06-15
-Currency Code: GBP
-Tax ID: GB3627923782
+Invoice Number: AC9386
+Date: 09/08/2026
+Tax ID: GB4335715900
 
-Office supplies
-Total    10.061,76
+Spare parts    4258.59
+Software license    4258.59
+Data platform subscription    4258.59
+Training session    4258.59
+Freight and handling    4258.59
+
+Total Due    £ 21292,95
+VAT    0.00
+Rounding    0.00
+
+Bank: NatWest
+IBAN: 20BU KG73 9954 8133 5128
+BIC: NWBKGB2L
+
+Bank transfers only; state the invoice number as reference.

@@ -1,0 +1,23 @@
+Harbor Analytics Inc
+81 Market Street
+Manchester, United Kingdom
++44 20 6934 4627
+billing@harboranalyticsinc.example.com
+
+Date: 2026-08-24
+Tax ID: GB9941546037
+
+Support package    4323.55
+Data platform subscription    4323.56
+Training session    4323.56
+Consulting services    4323.55
+
+Total Due    17294.22 EUR
+VAT    0.00
+Rounding    0.00
+
+Bank: HSBC
+IBAN: 14BU KG82 3982 9793 9014
+BIC: HBUKGB4B
+
+Bank transfers only; state the invoice number as reference.

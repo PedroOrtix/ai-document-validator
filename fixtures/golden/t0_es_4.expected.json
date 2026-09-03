@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Ferretería Montes S.L.",
+    "invoice_number": "AB-2024-5501",
+    "invoice_date": "2026-06-17",
+    "total_amount": 10747.81,
+    "currency": "EUR",
+    "tax_id": "ES43670196"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

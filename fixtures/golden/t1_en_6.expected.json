@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Oakbridge Logistics Ltd",
+    "invoice_number": "CR-2026-1322",
+    "invoice_date": "2026-06-04",
+    "total_amount": 3512.09,
+    "currency": "EUR",
+    "tax_id": "GB5284780990"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "stale_just_over",
+    "format": "txt"
+  }
+}

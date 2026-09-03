@@ -1,0 +1,26 @@
+Oakbridge Logistics Ltd
+59 Oak Street
+Leeds, United Kingdom
++44 20 4193 9670
+billing@oakbridgelogisticsltd.example.com
+
+Invoice Number: CR-2026-1322
+Date: 2026-06-04
+Tax ID: GB5284780990
+
+Data platform subscription    585.35
+Office supplies    585.35
+Freight and handling    585.35
+Training session    585.35
+Hardware maintenance    585.35
+Installation fee    585.34
+
+Total Due    € 3512.09
+VAT    0.00
+Rounding    0.00
+
+Bank: NatWest
+IBAN: 81BU KG15 3648 6127 0181
+BIC: NWBKGB2L
+
+Payment due within 30 days of the invoice date.

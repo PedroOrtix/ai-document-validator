@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Distribuciones Sol S.A.",
-    "invoice_number": "RE-2026-7313",
-    "invoice_date": "2026-08-01",
-    "total_amount": 8996.56,
-    "currency": null,
-    "tax_id": "ES10633896"
+    "supplier_name": "Textiles Industria S.A.",
+    "invoice_number": "RE6002",
+    "invoice_date": "2026-07-09",
+    "total_amount": 5443.14,
+    "currency": "EUR",
+    "tax_id": "ES97359679"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "ES",
     "tier": 0,
-    "amount_style": "grouped_eu",
-    "date_style": "dmy",
-    "scenario": "random",
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
     "format": "txt"
   }
 }

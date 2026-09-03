@@ -1,0 +1,25 @@
+Ferretería Montes S.L.
+Calle Norte 32
+Toledo, España
++34 9795 925 303
+billing@ferreteríamontessl.example.com
+
+Número de Factura: RE-2025-8764
+Fecha de Factura: 2026-08-24
+CIF: ES86735385
+
+Alquiler de maquinaria    0.00
+Suscripción de datos    0.00
+Mantenimiento    0.00
+Formación    0.00
+Servicios de consultoría    0.00
+
+Total Factura    0.00 EUR
+VAT    0.00
+Rounding    0.00
+
+Bank: Santander
+IBAN: ES76 4496 2709 8754 7618 0769
+BIC: SANTESMM
+
+Demora de pago: 2 % de interés mensual.

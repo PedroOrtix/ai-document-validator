@@ -1,0 +1,24 @@
+Ferretería Montes S.L.
+Calle Norte 97
+Toledo, España
++34 9364 676 168
+billing@ferreteríamontessl.example.com
+
+Número de Factura: RE-2024-3850
+Fecha de Factura: 2026-06-04
+CIF: ES50986884
+
+Alquiler de maquinaria    275.89
+Inspección técnica    275.89
+Piezas de repuesto    275.89
+Formación    275.89
+
+Total Factura    1103.56 EUR
+VAT    0.00
+Rounding    0.00
+
+Bank: BBVA
+IBAN: ES19 6856 3240 9047 7704 5081
+BIC: BBVAESMM
+
+Pago a 30 días desde la fecha de factura.

@@ -1,0 +1,22 @@
+Viveros Guadiana S.L.
+Calle Industria 4
+Murcia, España
++34 9241 379 780
+billing@viverosguadianasl.example.com
+
+Fecha de Factura: 2026-08-24
+CIF: ES61385190
+
+Piezas de repuesto    1644.07
+Reparación    1644.08
+Transporte    1644.08
+
+Total Factura    4932.23 EUR
+VAT    0.00
+Rounding    0.00
+
+Bank: CaixaBank
+IBAN: ES98 0638 2725 7397 8772 4993
+BIC: CAIXESBB
+
+Transferencia bancaria indicando el número de factura.

@@ -1,10 +1,15 @@
-Talleres Vega S.L.
-Calle Mayor 9
-Sevilla, España
+Ferretería Montes S.L.
+Calle Alfonso 68
+Toledo, España
++34 9101 699 864
+billing@ferreteríamontessl.example.com
 
-Factura Nº: 2025/9168
-Fecha: 2026-07-21
-NIF: ES81886909
+Factura Nº: 2025/3038
+Fecha: 2026-07-02
+Moneda: EUR
+NIF: ES90090622
 
-Transporte
-Total    10966.75
+Suministros    11141.58
+Transporte    6763.22
+
+Total    17904.80

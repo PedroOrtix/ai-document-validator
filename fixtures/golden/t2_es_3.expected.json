@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Distribuciones Sol S.A.",
+    "invoice_number": "FT-2026-9545",
+    "invoice_date": "2026-08-24",
+    "total_amount": 31598.68,
+    "currency": "USD",
+    "tax_id": "ES29665846"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "dot_decimal",
+    "date_style": "spelled",
+    "scenario": "disallowed_currency",
+    "format": "txt"
+  }
+}

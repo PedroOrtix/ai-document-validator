@@ -1,0 +1,25 @@
+Emisor
+Distribuciones Sol
+S.A.
+Calle Industria 65
+Logroño, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Bilbao
+España
+
+Referencia: FT-2026-9545
+Fecha Factura: 24 agosto 2026
+Order Ref: ORD-2024-6650
+Delivery Note: DN-4472
+
+Subtotal    25910.92
+IVA (21 %)    5687.76
+Total sin IVA    25910.92
+Importe Total    $ 31598.68
+
+VAT: ES29665846
++34 9221 545 272
+billing@distribucionessolsa.example.com

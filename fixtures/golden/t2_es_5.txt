@@ -1,0 +1,24 @@
+Emisor
+Estudio Jurídico
+Alcázar S.L.
+Calle Huerta 50
+Valladolid, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Toledo
+España
+
+Referencia: FT-2026-5175
+Fecha Factura: 2026-08-24
+Order Ref: ORD-2025-3154
+Delivery Note: DN-5095
+
+Subtotal    7673.40
+IVA (21 %)    1684.41
+Total sin IVA    7673.40
+
+VAT: ES19466969
++34 9374 693 405
+billing@estudiojurídicoalcázarsl.example.com

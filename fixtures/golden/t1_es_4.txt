@@ -1,0 +1,25 @@
+Distribuciones Sol S.A.
+Calle Alfonso 13
+Bilbao, España
++34 9267 141 167
+billing@distribucionessolsa.example.com
+
+Número de Factura: 2025/3833
+Fecha de Factura: 30 jul 2026
+Divisa: EUR
+CIF: ES79892383
+
+Licencias de software    2815.85
+Alquiler de maquinaria    2815.84
+Suscripción de datos    2815.84
+Instalación    2815.85
+
+Total Factura    11 263,38
+VAT    0.00
+Rounding    0.00
+
+Bank: Unicaja
+IBAN: ES88 1857 2209 3390 3977 4517
+BIC: UNESMM1A
+
+Transferencia bancaria indicando el número de factura.
