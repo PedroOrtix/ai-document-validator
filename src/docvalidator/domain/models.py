@@ -68,13 +68,20 @@ class DocumentExtraction(BaseModel):
 
 
 class RuleResult(BaseModel):
-    """Outcome of one validation rule."""
+    """Outcome of one validation rule.
+
+    ``inconclusive`` marks a rule that could not be evaluated because its
+    input data is missing. An inconclusive rule does not push the verdict to
+    ``FAIL`` by itself; missing required fields surface as ``REVIEW`` via the
+    engine's required-field check.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     rule_id: str
     passed: bool
     message: str
+    inconclusive: bool = False
 
 
 class Verdict(BaseModel):

@@ -79,7 +79,7 @@ def test_supplier_name_rule_pass_and_fail() -> None:
     [
         (["EUR", "GBP"], "EUR", True, "currency is allowed"),
         (["EUR", "GBP"], "USD", False, "currency is not allowed"),
-        (["EUR", "GBP"], None, False, "currency is missing"),
+        (["EUR", "GBP"], None, False, "currency is missing — rule inconclusive"),
         (None, None, True, "not configured"),
     ],
 )
@@ -112,6 +112,28 @@ def test_engine_passes_valid_document() -> None:
     verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 15))
     print(verdict.rule_results)
     assert verdict.status == "PASS"
+
+
+def test_missing_data_is_inconclusive_not_failed() -> None:
+    """Rules without their input data are inconclusive; missing required
+    fields drive the verdict to REVIEW, never to FAIL on their own."""
+    verdict = RulesEngine().evaluate(make_extraction(), ValidationConfig(), today=date(2026, 1, 15))
+    assert verdict.status == "REVIEW"
+    failed = [r for r in verdict.rule_results if not r.passed]
+    assert failed, "required-field synthetic results must be present"
+    assert all(r.rule_id == "required_field_present" or r.inconclusive for r in failed)
+
+
+def test_present_data_violation_is_fail_even_with_other_missing_fields() -> None:
+    """A judged-and-rejected rule (data present) forces FAIL regardless."""
+    extraction = make_extraction(
+        total_amount=make_field(-5.0),
+        invoice_date=make_field(date(2026, 1, 1)),
+        supplier_name=make_field("Acme"),
+        invoice_number=make_field("INV-2026-0001"),
+    )
+    verdict = RulesEngine().evaluate(extraction, ValidationConfig(), today=date(2026, 1, 15))
+    assert verdict.status == "FAIL"
 
 
 def test_engine_reviews_when_required_fields_are_missing() -> None:

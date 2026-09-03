@@ -7,5 +7,5 @@
     "currency": "EUR",
     "tax_id": "GB123456789"
   },
-  "expected_verdict_status": "FAIL"
+  "expected_verdict_status": "REVIEW"
 }

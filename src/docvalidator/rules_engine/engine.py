@@ -51,7 +51,7 @@ class RulesEngine:
             rule_results.append(rule.evaluate(extraction, config, today=today))
 
         all_results = synthetic_results + rule_results
-        if any(not result.passed for result in rule_results):
+        if any(not result.passed and not result.inconclusive for result in rule_results):
             status = "FAIL"
         elif missing_required:
             status = "REVIEW"

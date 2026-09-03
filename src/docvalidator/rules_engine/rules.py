@@ -7,7 +7,10 @@ from docvalidator.rules_engine.base import RuleRegistry
 
 
 class InvoiceDatePresentAndFresh:
-    """Require an invoice date and reject stale invoices."""
+    """Require an invoice date and reject stale invoices.
+
+    Missing data makes the rule inconclusive (cannot judge), not failed.
+    """
 
     rule_id = "invoice_date_present_and_fresh"
 
@@ -22,7 +25,12 @@ class InvoiceDatePresentAndFresh:
             today = date.today()
         field = extraction.fields.get("invoice_date")
         if field is None or field.value is None:
-            return RuleResult(rule_id=self.rule_id, passed=False, message="invoice date is missing")
+            return RuleResult(
+                rule_id=self.rule_id,
+                passed=False,
+                message="invoice date is missing — rule inconclusive",
+                inconclusive=True,
+            )
         invoice_date = field.value
         if not isinstance(invoice_date, date):
             return RuleResult(rule_id=self.rule_id, passed=False, message="invoice date is invalid")
@@ -55,7 +63,12 @@ class TotalAmountPresentAndPositive:
         del config, today
         field = extraction.fields.get("total_amount")
         if field is None or field.value is None:
-            return RuleResult(rule_id=self.rule_id, passed=False, message="total amount is missing")
+            return RuleResult(
+                rule_id=self.rule_id,
+                passed=False,
+                message="total amount is missing — rule inconclusive",
+                inconclusive=True,
+            )
         if not isinstance(field.value, float) or field.value <= 0:
             return RuleResult(
                 rule_id=self.rule_id,
@@ -119,7 +132,12 @@ class CurrencyAllowed:
             return RuleResult(rule_id=self.rule_id, passed=True, message="not configured")
         field = extraction.fields.get("currency")
         if field is None or field.value is None:
-            return RuleResult(rule_id=self.rule_id, passed=False, message="currency is missing")
+            return RuleResult(
+                rule_id=self.rule_id,
+                passed=False,
+                message="currency is missing — rule inconclusive",
+                inconclusive=True,
+            )
         if field.value not in config.allowed_currencies:
             return RuleResult(rule_id=self.rule_id, passed=False, message="currency is not allowed")
         return RuleResult(rule_id=self.rule_id, passed=True, message="currency is allowed")
