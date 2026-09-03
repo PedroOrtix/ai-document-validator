@@ -13,16 +13,15 @@ from docvalidator.extraction.offline import OfflineExtractor
 # Published z-ai/glm-5.3-flash OpenRouter prices, USD per token.
 GLM_FLASH_PROMPT_PRICE_PER_TOKEN = 0.000000075
 GLM_FLASH_COMPLETION_PRICE_PER_TOKEN = 0.00000025
-GLM_FLASH_PRICE_PER_TOKEN = (
-    GLM_FLASH_PROMPT_PRICE_PER_TOKEN + GLM_FLASH_COMPLETION_PRICE_PER_TOKEN
-)
+GLM_FLASH_PRICE_PER_TOKEN = GLM_FLASH_PROMPT_PRICE_PER_TOKEN + GLM_FLASH_COMPLETION_PRICE_PER_TOKEN
 
-LANE_NAMES = ("offline", "slm", "vlm", "ocr")
+LANE_NAMES = ("offline", "slm", "vlm", "ocr", "auto")
 LANE_FORMATS: dict[str, tuple[str, ...]] = {
     "offline": ("txt", "pdf", "scanned"),
     "slm": ("txt", "pdf"),
     "vlm": ("scanned", "pdf"),
     "ocr": ("scanned", "pdf"),
+    "auto": ("txt", "pdf", "scanned"),
 }
 
 
@@ -56,11 +55,9 @@ def resolve_lane_plans(
     for name in LANE_NAMES:
         if name not in requested:
             continue
-        if name in {"slm", "vlm"}:
+        if name in {"slm", "vlm", "auto"}:
             if not live:
-                plans.append(
-                    LanePlan(name, LANE_FORMATS[name], False, "requires --live")
-                )
+                plans.append(LanePlan(name, LANE_FORMATS[name], False, "requires --live"))
             elif not has_api_key:
                 plans.append(
                     LanePlan(
@@ -93,7 +90,7 @@ def estimate_cost_usd(total_tokens: float, *, lane: str) -> float:
     prompt-plus-completion price. This is conservative for completion-heavy
     documents and avoids assuming an undocumented prompt/completion split.
     """
-    if lane not in {"slm", "vlm"}:
+    if lane not in {"slm", "vlm", "auto"}:
         return 0.0
     return total_tokens * GLM_FLASH_PRICE_PER_TOKEN
 
@@ -139,13 +136,47 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                         "avg_ms": (sum(durations) / len(durations)) if durations else None,
                         "avg_tokens": (sum(tokens) / len(tokens)) if tokens else None,
                         "est_cost_per_doc": (
-                            (sum(tokens) / len(tokens))
-                            * GLM_FLASH_PRICE_PER_TOKEN
+                            (sum(tokens) / len(tokens)) * GLM_FLASH_PRICE_PER_TOKEN
                             if tokens
                             else 0.0
                         ),
                     }
                 )
+                if engine_lane["lane"] == "auto":
+                    for sub_route in ("llm", "vlm", "ocr"):
+                        route_results = [
+                            result
+                            for result in engine_lane["results"]
+                            if result["slices"].get("format") == format_name
+                            and result["slices"].get("tier") == tier
+                            and result.get("sub_route") == sub_route
+                        ]
+                        tokens = [
+                            result["total_tokens"]
+                            for result in route_results
+                            if result["total_tokens"] is not None
+                        ]
+                        durations = [
+                            result["duration_ms"]
+                            for result in route_results
+                            if result["duration_ms"] is not None
+                        ]
+                        rows.append(
+                            {
+                                "lane": f"auto:{sub_route}",
+                                "format": format_name,
+                                "tier": tier,
+                                "field_accuracy": metrics["field_accuracy"],
+                                "verdict_agreement": metrics["verdict_agreement"],
+                                "avg_ms": (sum(durations) / len(durations)) if durations else None,
+                                "avg_tokens": (sum(tokens) / len(tokens)) if tokens else None,
+                                "est_cost_per_doc": (
+                                    (sum(tokens) / len(tokens)) * GLM_FLASH_PRICE_PER_TOKEN
+                                    if tokens
+                                    else 0.0
+                                ),
+                            }
+                        )
     return rows
 
 
@@ -179,3 +210,10 @@ def print_decision_table(report: dict[str, Any]) -> None:
 def make_offline_extractor() -> Extractor:
     """Production factory for the network-free offline lane."""
     return OfflineExtractor()
+
+
+def make_auto_extractor() -> Extractor:
+    """Production factory for the multi-route auto lane."""
+    from docvalidator.extraction.routing import AutoExtractor
+
+    return AutoExtractor()
