@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Victoria Timber Ltd",
+    "invoice_number": "FT9711",
+    "invoice_date": "2026-08-14",
+    "total_amount": 876000.0,
+    "currency": "EUR",
+    "tax_id": null
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "space_fr",
+    "date_style": "abbrev",
+    "scenario": "clean",
+    "format": "pdf",
+    "pages": 1
+  }
+}

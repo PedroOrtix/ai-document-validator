@@ -320,6 +320,16 @@ def _complex_layout(case: RenderCase, pdf: FPDF, font: FontPlan) -> None:
     _footer(pdf, footnote)
 
 
+def _degenerate_layout(case: RenderCase, pdf: FPDF) -> None:
+    """Render a truly empty A4 page for the degenerate failure-mode lane."""
+    if case.layout == "basic":
+        y = MARGIN + 2
+        for line in case.supplier.splitlines():
+            pdf.set_xy(MARGIN, y)
+            pdf.cell(0, 4.5, line)
+            y += 4.5
+
+
 def _styled_layout(case: RenderCase, pdf: FPDF, font: FontPlan) -> None:
     _header_block(case, pdf, extended=False)
     _dashed_line(pdf, 72)
@@ -336,6 +346,9 @@ def render_case_pdf(case: RenderCase) -> bytes:
     pdf.set_margins(MARGIN, MARGIN, MARGIN)
     pdf.add_page()
     font = resolve_font(pdf)
+    if case.total_amount is None and not case.items and case.invoice_number is None:
+        _degenerate_layout(case, pdf)
+        return bytes(pdf.output())
     if case.layout == "basic":
         _basic_layout(case, pdf, font)
     elif case.layout == "styled":

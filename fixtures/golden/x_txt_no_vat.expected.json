@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Transportes Ribera S.A.",
+    "invoice_number": "FAC-2024-1870",
+    "invoice_date": "2026-08-22",
+    "total_amount": 631.61,
+    "currency": "EUR",
+    "tax_id": null
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 0,
+    "amount_style": "none",
+    "date_style": "none",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}
