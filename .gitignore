@@ -20,3 +20,7 @@ Thumbs.db
 
 # Assessment source material (not part of the deliverable)
 ai-engineer-technical-assessment.pdf
+
+# Agent / workspace metadata
+.hermes/
+.omh/

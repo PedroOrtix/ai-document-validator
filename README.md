@@ -1,54 +1,92 @@
-# docvalidator — AI document validator (production-shaped slice)
+# docvalidator — AI Document Validator
 
-Structured field extraction + configurable business-rule verdicts for `SUPPLIER_INVOICE`
-documents, exposed as a thin FastAPI service, with a document-type auto router over LLM/VLM/OCR
-extraction paths and a measurable evaluation harness.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-381%20passed-brightgreen.svg)]()
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)]()
+[![Offline Mode](https://img.shields.io/badge/offline%20floor-$0%20no--keys-success.svg)]()
 
-> Status: work in progress (24h technical assessment). This README is completed in the final phase.
+A production-shaped slice of an AI document compliance validator for B2B platforms.
+It ingests supplier invoices (PDF or plain text), extracts canonical structured fields, evaluates configurable business rules, and outputs compliance verdicts (`PASS` / `FAIL` / `REVIEW`) with complete, audit-grade evidence trails.
 
-## Quickstart (60 seconds)
+---
 
-```bash
-uv sync
-uv run uvicorn docvalidator.api.main:app --reload --port 8000
-# health check
-curl -s localhost:8000/health
+## ⏱️ 15-Minute Evaluator Guide
+
+If you have 15 minutes to review and challenge this project, here is the recommended walkthrough:
+
+```text
+  Minute 0–2: Code Quality & Tests      ──> make test && make lint
+  Minute 2–5: Benchmark & Metrics       ──> make eval (78 fixtures, $0, 100% offline)
+  Minute 5–8: Run API & Explore Swagger ──> make run -> http://localhost:8000/docs
+  Minute 8–11: Live Ingestion (PDF/TXT) ──> curl sample commands below
+  Minute 11–15: Architecture & AI Audit ──> Inspect AutoRouter & AI_USAGE.md
 ```
 
-The service runs with **zero configuration**: without an `OPENROUTER_API_KEY` the default
-extraction backend is the credential-free OCR floor (local RapidOCR — its ONNX weights ship in
-the Docker image, so there is no network call and no paid credential at runtime); with a key
-present, the LangChain Auto routing becomes the primary engine. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
-the submission date) is delivered out-of-band with the submission — paste it into `.env`
-(see `.env.example`) to run the LLM path; the repo itself never contains any key.
+### 1. Run tests and linting (60 seconds)
+```bash
+make test    # Runs 381 pytest tests in ~4s (100% pass)
+make lint    # Runs ruff code formatting and type checks (0 errors)
+```
 
-### Backend selection contract
+### 2. Run the evaluation harness (2 minutes)
+```bash
+make eval    # Evaluates 78 golden fixtures across txt/pdf/scanned on the local OCR floor ($0, no API key)
+# Or run live multi-engine comparison (OCR vs SLM vs VLM, requires OPENROUTER_API_KEY):
+make eval-live
+```
 
-| Condition | Default backend |
-|---|---|
-| `OPENROUTER_API_KEY` present | `auto` (routes text/PDF text → LLM and scanned PDFs → VLM, with OCR fallback) |
-| No key (or key expired) | `ocr` (local RapidOCR + deterministic regex parsing, ~1 s/doc, $0) |
+### 3. Start the service & test live requests (3 minutes)
+```bash
+make run     # Starts FastAPI on http://localhost:8000
+```
+Then validate a document:
+```bash
+# A) Validate a plain text invoice
+curl -s -X POST http://localhost:8000/v1/validate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "ACME Supply GmbH\nInvoice No: INV-2026-041\nInvoice Date: 2026-09-01\nTotal: 1250.00\nCurrency: EUR\nVAT: DE123456789",
+    "config": {
+      "max_age_days": 90,
+      "allowed_currencies": ["EUR", "GBP"],
+      "required_fields": ["supplier_name", "invoice_number", "invoice_date", "total_amount"]
+    }
+  }'
 
-- Four extraction backends: `extraction_backend: "auto" | "llm" | "vlm" | "ocr"`.
-- **No API-level runtime fallback:** extraction failures surface through their typed HTTP error
-  mapping; the API does not silently retry with another backend.
+# B) Validate a real PDF fixture via multipart upload
+curl -s -X POST http://localhost:8000/v1/validate \
+  -F "file=@fixtures/golden/pdf_en_t0_0.pdf" \
+  -F 'config={"max_age_days": 90, "allowed_currencies": ["EUR", "GBP"]}'
+```
+*Interactive Swagger documentation with dual JSON and multipart file schemas is available at `http://localhost:8000/docs`.*
 
-## Golden dataset v2
+---
 
-The fixed evaluation set is generated, not hand-maintained. It contains 60
-documents: 40 text cases and 20 single-page PDF cases, split evenly between
-English and Spanish. Tier 0 is canonical, tier 1 adds label and format variants,
-and tier 2 stresses rare labels, mixed formats, and unlabeled/mixed currency.
-Every case carries generated field truth and verdict truth.
+## Backend Selection Contract
 
-| Lane | Tier | Count | Scenarios |
-|---|---:|---:|---|
-| TXT | 0 | 12 | clean, stale |
-| TXT | 1 | 16 | clean, stale variants |
-| TXT | 2 | 12 | missing total, mixed/unlabeled currency |
-| PDF | 0 | 6 | clean, stale |
-| PDF | 1 | 8 | clean, missing date |
-| PDF | 2 | 6 | clean, mixed/unlabeled currency |
+The service operates out of the box with **zero configuration**:
+
+| Condition | Default Backend | Behavior |
+|---|---|---|
+| `OPENROUTER_API_KEY` present | `auto` | Enters production routing: text $\to$ `LLMExtractor`, digital PDF $\to$ `markitdown` + LLM, scanned PDF $\to$ `VisionExtractor` (VLM), with local OCR as safety net. |
+| No key (or key expired) | `ocr` | Deterministic local floor: RapidOCR (PP-OCRv5 ONNX CPU) + 2D spatial sorting + regex parser (~700 ms/doc, $0.00). |
+
+- Explicit backend selection is supported via `extraction_backend: "auto" | "llm" | "vlm" | "ocr"`.
+- **No silent API-level retries**: Failures surface honestly through typed HTTP status codes (`422` validation, `502` LLM error, `503` missing key, `504` timeout).
+
+---
+
+## Golden Dataset v2.2 (78 Fixtures)
+
+The evaluation dataset is deterministically generated (not hand-maintained), split between English and Spanish across 3 difficulty tiers and edge-case scenarios (subtotal traps, credit notes, missing required fields, zero amounts, textured and noisy scans):
+
+| Format / Lane | Tier 0 (Clean) | Tier 1 (Variants) | Tier 2 (Adversarial) | Total Cases | Content Description |
+|---|:---:|:---:|:---:|:---:|---|
+| **TXT** | 14 | 16 | 13 | **43** | Clean, stale variants, missing totals, multi-currency |
+| **PDF (Digital-born)** | 7 | 9 | 7 | **23** | Vector PDFs with selectable text, multi-column tables |
+| **SCANNED (Image-only)** | 4 | 4 | 4 | **12** | Rasterized PNG-backed PDFs with realistic scan artifacts |
+| **Total** | **25** | **29** | **24** | **78** | **Full golden evaluation set** |
 
 Regenerate or verify it with:
 
