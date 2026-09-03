@@ -3,6 +3,7 @@
 import json
 import re
 import time
+from datetime import date
 from typing import Any
 
 import httpx
@@ -57,6 +58,17 @@ def _strip_markdown_fences(content: str) -> str:
     return _FENCE_PATTERN.sub("", stripped).strip()
 
 
+def _coerce_field_value(name: str, raw: Any) -> Any:
+    """Coerce LLM JSON values to the types the domain model and rules expect."""
+    if raw is None:
+        return None
+    if name == "invoice_date":
+        return date.fromisoformat(str(raw))  # raises ValueError on garbage
+    if name == "total_amount":
+        return float(raw)
+    return str(raw)
+
+
 def parse_llm_response(
     raw_content: str,
     response_payload: dict[str, Any],
@@ -75,14 +87,17 @@ def parse_llm_response(
         raise LLMParsingError("LLM response must contain exactly the six required fields")
 
     total_tokens = response_payload.get("usage", {}).get("total_tokens")
-    fields = {
-        name: ExtractedField(
-            value=fields_payload[name],
-            confidence=_LLM_CONFIDENCE,
-            evidence=raw_content,
-        )
-        for name in _FIELD_NAMES
-    }
+    try:
+        fields = {
+            name: ExtractedField(
+                value=_coerce_field_value(name, fields_payload[name]),
+                confidence=_LLM_CONFIDENCE,
+                evidence=raw_content,
+            )
+            for name in _FIELD_NAMES
+        }
+    except (ValueError, TypeError) as exc:
+        raise LLMParsingError(f"LLM response has invalid field values: {exc}") from exc
     metadata = ExtractionMetadata(
         backend="llm",
         model=model,
