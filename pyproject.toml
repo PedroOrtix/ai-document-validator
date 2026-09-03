@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ocr = [
+    "pypdfium2>=4.30",
+    "pillow>=10.0",
+    "rapidocr-onnxruntime>=1.4",
+    "numpy>=1.26",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
@@ -42,6 +48,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["slow: requires the optional local OCR model and RUN_REAL_OCR=1"]
 
 [dependency-groups]
 dev = [

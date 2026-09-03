@@ -16,3 +16,11 @@ class LLMSettings(BaseSettings):
     validator_vlm_model: str = "z-ai/glm-5.3-flash"
     validator_vlm_reasoning_effort: str = "low"
     validator_vlm_timeout_seconds: float = 60.0
+
+
+class ValidatorOcrSettings(BaseSettings):
+    """Configuration for the local RapidOCR extractor."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    validator_ocr_dpi: int = 200

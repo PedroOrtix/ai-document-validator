@@ -29,7 +29,7 @@ the submission date) is delivered out-of-band with the submission — paste it i
 | `OPENROUTER_API_KEY` present | `llm` (LangChain → OpenRouter, `z-ai/glm-5.3-flash` @ reasoning effort `low`) |
 | No key (or key expired) | `offline` (regex/heuristics, deterministic, ~ms) |
 
-- Every request can still override this with `extraction_backend: "offline" | "llm" | "vlm"`.
+- Every request can still override this with `extraction_backend: "offline" | "llm" | "vlm" | "ocr"`.
 - **Runtime fallback:** if the LLM lane fails mid-request (timeout, provider error, unparseable
   response), the same document is retried once with the offline extractor. The result carries
   `metadata.backend = "offline-fallback"` and `metadata.fallback_reason`
@@ -289,6 +289,39 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
    extractor + rules, not a rewrite.
 
 ## Cost, latency, and risk notes
+
+### OcrExtractor (F2)
+
+`OcrExtractor` is the local OCR path for image-only PDFs. It rasterizes pages with
+`pypdfium2` at `VALIDATOR_OCR_DPI` (default **200**), runs **RapidOCR**
+(PP-OCRv5 detection + recognition models, ONNX Runtime, ~15MB wheel, no torch) locally
+on CPU, joins page text in reading order, and delegates the resulting plain text to the
+existing deterministic `OfflineExtractor`. Plain-text requests skip rasterization/OCR
+but retain `metadata.backend="ocr"`. Model/provider metadata are `pp-ocrv5-onnx` and
+`rapidocr-local`; OCR failures and unreadable renders raise the typed extraction errors.
+
+**Engine selection, measured.** We first implemented PaddleOCR-VL-1.6
+(`PaddlePaddle/PaddleOCR-VL-1.6`, the OmniDocBench-lineage 0.9B document-parse VLM) via
+transformers on CPU and rejected it after a live measurement: **~30+ s per single-page
+scanned invoice on a 24-core host** (VLM autoregressive generation dominates), plus a
+~2GB torch-based image. The niche for the local engine is credential-free,
+network-free extraction — for that, seconds matter more than SOTA parsing: RapidOCR
+delivers PP-OCRv5-grade line OCR at ONNX-CPU speed with a tiny dependency footprint,
+and the downstream regex extractor handles the field mapping. The rejected alternative
+is documented here deliberately — the decision is latency-measured, not guessed. For
+highest-quality scanned extraction the VLM lane (OpenRouter, ~2s, 6/6 fields measured)
+remains the primary path.
+
+The default dependency group stays credential-free and testable without the model. The
+OCR stack is in the `ocr` extra (`pypdfium2`, Pillow, `rapidocr-onnxruntime`, numpy) and
+Docker installs it and pre-downloads the ONNX weights during the image build, so
+`docker compose up` has no network or API-key dependency at runtime.
+
+Test the real engine explicitly (the default suite remains network-free and model-free):
+
+```bash
+RUN_REAL_OCR=1 uv run pytest -m slow -q
+```
 
 **When would you *not* use an LLM here?**
 
