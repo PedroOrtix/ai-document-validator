@@ -1,0 +1,15 @@
+Atlantic Software Inc.
+100 Market Street
+San Francisco, CA 94103
+USA
+
+Invoice # INV-2026-0044
+Invoice Date: 2026-08-10
+Currency: USD
+
+Supplier: Atlantic Software Inc.
+TAX: US123456789
+
+Software license                         1,500.00
+Implementation                             300.00
+Total Amount                             1,944.00

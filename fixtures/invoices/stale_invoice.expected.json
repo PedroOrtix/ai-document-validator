@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Old Line Logistics AB",
+    "invoice_number": "INV-2025-0098",
+    "invoice_date": "2025-06-30",
+    "total_amount": 2140.0,
+    "currency": "EUR",
+    "tax_id": "SE556789123401"
+  },
+  "expected_verdict_status": "FAIL"
+}

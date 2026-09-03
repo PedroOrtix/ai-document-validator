@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "@@@@ ####",
+    "invoice_number": null,
+    "invoice_date": null,
+    "total_amount": null,
+    "currency": null,
+    "tax_id": null
+  },
+  "expected_verdict_status": "REVIEW"
+}
