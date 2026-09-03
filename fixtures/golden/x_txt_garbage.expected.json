@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": null,
+    "invoice_number": null,
+    "invoice_date": null,
+    "total_amount": null,
+    "currency": null,
+    "tax_id": null
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "none",
+    "date_style": "none",
+    "scenario": "garbage",
+    "format": "txt"
+  }
+}

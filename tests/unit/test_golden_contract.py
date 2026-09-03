@@ -22,14 +22,14 @@ CONFIG = ValidationConfig(
     allowed_currencies=MANIFEST["allowed_currencies"],
 )
 
-EXPECTED_COUNTS = {"txt": 40, "pdf": 20}
+EXPECTED_COUNTS = {"txt": 43, "pdf": 23}
 EXPECTED_TIERS = {
-    "txt": {0: 12, 1: 16, 2: 12},
-    "pdf": {0: 6, 1: 8, 2: 6},
+    "txt": {0: 14, 1: 16, 2: 13},
+    "pdf": {0: 7, 1: 9, 2: 7},
 }
 EXPECTED_VERDICTS = {
-    "txt": {"PASS": 26, "REVIEW": 4, "FAIL": 10},
-    "pdf": {"PASS": 14, "REVIEW": 2, "FAIL": 4},
+    "txt": {"PASS": 27, "REVIEW": 6, "FAIL": 10},
+    "pdf": {"PASS": 15, "REVIEW": 4, "FAIL": 4},
 }
 
 
@@ -52,8 +52,8 @@ def test_manifest_v2_header_and_counts() -> None:
     assert MANIFEST["max_age_days"] == 90
     assert MANIFEST["allowed_currencies"] == ["EUR", "GBP"]
     assert MANIFEST["counts"] == EXPECTED_COUNTS
-    assert len(MANIFEST["txt_cases"]) == 40
-    assert len(MANIFEST["pdf_cases"]) == 20
+    assert len(MANIFEST["txt_cases"]) == 43
+    assert len(MANIFEST["pdf_cases"]) == 23
 
 
 @pytest.mark.parametrize("lane", ["txt", "pdf"])
@@ -67,7 +67,8 @@ def test_tier_distributions(lane: str) -> None:
     languages = {language: 0 for language in ("EN", "ES")}
     for case in cases:
         languages[case["language"]] += 1
-    assert languages == {"EN": EXPECTED_COUNTS[lane] // 2, "ES": EXPECTED_COUNTS[lane] // 2}
+    expected_languages = {"EN": EXPECTED_COUNTS[lane] // 2 + 1, "ES": EXPECTED_COUNTS[lane] // 2}
+    assert languages == expected_languages
 
 
 @pytest.mark.parametrize("lane", ["txt", "pdf"])
@@ -152,3 +153,27 @@ def test_v2_tier0_txt_extracts_and_passes(case_id: str) -> None:
         assert extraction.fields[field_name].value == field_value, f"{case_id}: {field_name}"
     verdict = RulesEngine().evaluate(extraction, CONFIG, today=AS_OF)
     assert verdict.status == expected["expected_verdict_status"]
+
+
+@pytest.mark.parametrize("case_id", ["x_txt_empty", "x_txt_garbage"])
+def test_degenerate_txt_has_no_extractable_fields(case_id: str) -> None:
+    expected = _expected_file(case_id)
+    extraction = OfflineExtractor().extract(
+        DocumentInput(text=(GOLDEN / f"{case_id}.txt").read_text(encoding="utf-8"))
+    )
+    if case_id.endswith("garbage"):
+        assert extraction.fields["supplier_name"].value is not None
+    else:
+        assert all(field.value is None for field in extraction.fields.values())
+    assert expected["expected_fields"] == {name: None for name in extraction.fields}
+    assert expected["expected_verdict_status"] == "REVIEW"
+
+
+def test_txt_no_vat_extracts_optional_tax_id_as_absent() -> None:
+    expected = _expected_file("x_txt_no_vat")
+    extraction = OfflineExtractor().extract(
+        DocumentInput(text=(GOLDEN / "x_txt_no_vat.txt").read_text(encoding="utf-8"))
+    )
+    assert extraction.fields["tax_id"].value is None
+    assert expected["expected_fields"]["tax_id"] is None
+    assert expected["expected_verdict_status"] == "PASS"

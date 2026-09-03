@@ -75,7 +75,7 @@ uv run python -m eval.run --as-of 2026-09-03   # both lanes over the v2 golden s
 uv run python -m eval.run --no-gates           # report only
 ```
 
-Two lanes run over the v2 golden set (40 txt + 20 single-page pdf fixtures across
+Two lanes run over the v2.1 golden set (43 txt + 23 single-page pdf fixtures across
 tiers 0-2: label/format variants, unlabeled currency, distractor totals, textured
 PDF layouts): the deterministic offline extractor (LLM and recorded-LLM
 backends plug into the same interface), so the comparison is reproducible

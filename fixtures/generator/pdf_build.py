@@ -22,6 +22,8 @@ from fixtures.generator.pdf_render import (
 )
 from fixtures.generator.spec_v2 import (
     AS_OF,
+    DEGENERATE_PDF_PLAN,
+    GARBAGE_TOKENS,
     PDF_PLAN,
     POOLS,
     case_rng,
@@ -41,8 +43,136 @@ AMOUNT_STYLES_T0 = ("dot_decimal", "grouped_eu")
 AMOUNT_STYLES_FULL = ("dot_decimal", "comma_decimal", "grouped_eu", "grouped_en", "space_fr")
 
 
+def _empty_case(plan_row: dict[str, Any]) -> tuple[RenderCase, dict[str, Any]]:
+    case_id = plan_row["case_id"]
+    expected = {
+        "expected_fields": {
+            "supplier_name": None,
+            "invoice_number": None,
+            "invoice_date": None,
+            "total_amount": None,
+            "currency": None,
+            "tax_id": None,
+        },
+        "expected_verdict_status": "REVIEW",
+        "slices": {
+            "language": plan_row["lang"],
+            "tier": plan_row["tier"],
+            "amount_style": "none",
+            "date_style": "none",
+            "scenario": "empty",
+            "format": "pdf",
+            "pages": 1,
+        },
+    }
+    render_case = RenderCase(
+        case_id=case_id,
+        language=plan_row["lang"],
+        layout=plan_row["layout"],
+        supplier="",
+        street="",
+        city_line="",
+        contact_phone="",
+        contact_email="",
+        iban="",
+        bic="",
+        number_label="",
+        invoice_number=None,
+        date_label="",
+        invoice_date=None,
+        currency_label="",
+        currency=None,
+        currency_markers=None,
+        tax_label="",
+        tax_id=None,
+        items=(),
+        subtotal=0.0,
+        vat_rate=0.0,
+        vat_amount=0.0,
+        total_label="",
+        total_amount=None,
+        amount_style="none",
+        terms="",
+        stamp="",
+        order_ref="",
+        delivery_note="",
+        bill_to="",
+        ship_to="",
+    )
+    return render_case, expected
+
+
+def _garbage_case(plan_row: dict[str, Any]) -> tuple[RenderCase, dict[str, Any]]:
+    case_id = plan_row["case_id"]
+    rng = case_rng(case_id)
+    line_count = rng.randrange(8, 13)
+    lines = [GARBAGE_TOKENS[index % len(GARBAGE_TOKENS)] for index in range(line_count)]
+    rng.shuffle(lines)
+    rotation = rng.randrange(len(lines))
+    text = "\n".join(lines[rotation:] + lines[:rotation])
+    expected = {
+        "expected_fields": {
+            "supplier_name": None,
+            "invoice_number": None,
+            "invoice_date": None,
+            "total_amount": None,
+            "currency": None,
+            "tax_id": None,
+        },
+        "expected_verdict_status": "REVIEW",
+        "slices": {
+            "language": plan_row["lang"],
+            "tier": plan_row["tier"],
+            "amount_style": "none",
+            "date_style": "none",
+            "scenario": "garbage",
+            "format": "pdf",
+            "pages": 1,
+        },
+    }
+    render_case = RenderCase(
+        case_id=case_id,
+        language=plan_row["lang"],
+        layout=plan_row["layout"],
+        supplier=text,
+        street="",
+        city_line="",
+        contact_phone="",
+        contact_email="",
+        iban="",
+        bic="",
+        number_label="",
+        invoice_number=None,
+        date_label="",
+        invoice_date=None,
+        currency_label="",
+        currency=None,
+        currency_markers=None,
+        tax_label="",
+        tax_id=None,
+        items=(),
+        subtotal=0.0,
+        vat_rate=0.0,
+        vat_amount=0.0,
+        total_label="",
+        total_amount=None,
+        amount_style="none",
+        terms="",
+        stamp="",
+        order_ref="",
+        delivery_note="",
+        bill_to="",
+        ship_to="",
+    )
+    return render_case, expected
+
+
 def build_case(plan_row: dict[str, Any]) -> tuple[RenderCase, dict[str, Any]]:
     """Derive one PDF case and its truth solely from the frozen plan and RNG."""
+    if plan_row["scenario"]["kind"] == "empty":
+        return _empty_case(plan_row)
+    if plan_row["scenario"]["kind"] == "garbage":
+        return _garbage_case(plan_row)
     case_id = plan_row["case_id"]
     language = plan_row["lang"]
     tier = plan_row["tier"]
@@ -61,7 +191,7 @@ def build_case(plan_row: dict[str, Any]) -> tuple[RenderCase, dict[str, Any]]:
     del bank_name
     iban = make_iban(rng, language)
     invoice_number, number_label = make_invoice_number(rng, language, tier)
-    tax_id = make_vat(rng, language, absent=False)
+    tax_id = make_vat(rng, language, absent=plan_row["scenario"].get("no_vat", False))
 
     item_count = rng.randrange(1, 3) if layout == "basic" else rng.randrange(3, 7)
     item_pool = pool["table_items"]
@@ -174,10 +304,10 @@ def build_case(plan_row: dict[str, Any]) -> tuple[RenderCase, dict[str, Any]]:
 
 
 def build_all() -> list[dict[str, Any]]:
-    """Render every PDF_PLAN row, write truth files, and return manifest cases."""
+    """Render every PDF_PLAN and degenerate row, write truth files, and return cases."""
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     manifest_cases: list[dict[str, Any]] = []
-    for plan_row in PDF_PLAN:
+    for plan_row in [*PDF_PLAN, *DEGENERATE_PDF_PLAN]:
         case, expected = build_case(plan_row)
         pdf_bytes = render_case_pdf(case)
         smoke = pdf_smoke_report(pdf_bytes, case)
@@ -215,12 +345,13 @@ def verify_all() -> int:
         print("manifest_pdf.json is missing")
         return 1
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if set(entry["case_id"] for entry in manifest["cases"]) != {row["case_id"] for row in PDF_PLAN}:
+    expected_ids = {row["case_id"] for row in [*PDF_PLAN, *DEGENERATE_PDF_PLAN]}
+    if set(entry["case_id"] for entry in manifest["cases"]) != expected_ids:
         print("manifest_pdf.json case set differs from PDF_PLAN")
         return 1
 
     problems: list[str] = []
-    plan_by_id = {row["case_id"]: row for row in PDF_PLAN}
+    plan_by_id = {row["case_id"]: row for row in [*PDF_PLAN, *DEGENERATE_PDF_PLAN]}
     for entry in manifest["cases"]:
         case, expected = build_case(plan_by_id[entry["case_id"]])
         pdf_path = GOLDEN_DIR / f"{entry['case_id']}.pdf"

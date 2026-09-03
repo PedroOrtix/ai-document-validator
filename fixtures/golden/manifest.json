@@ -7,8 +7,8 @@
     "GBP"
   ],
   "counts": {
-    "txt": 40,
-    "pdf": 20
+    "txt": 43,
+    "pdf": 23
   },
   "txt_cases": [
     {
@@ -450,6 +450,39 @@
       "formats": [
         "txt"
       ]
+    },
+    {
+      "case_id": "x_txt_empty",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "empty",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "x_txt_garbage",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "garbage",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "2603f83cc66de7060a7592a46bbd09f6f0697f21bd0333e576a7508a49e1cafd",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "x_txt_no_vat",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "txt_sha256": "904c36661efcd76391d712d118b37d4491e871955ac1b0cf57a451f4e9966369",
+      "formats": [
+        "txt"
+      ]
     }
   ],
   "pdf_cases": [
@@ -688,6 +721,42 @@
       "scenario": "disallowed_currency",
       "expected_verdict": "FAIL",
       "pdf_sha256": "cccfabdf92e71315c38ae198ed67031ae9544aadab2986afcc9c3fe967d6424f",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "x_pdf_empty",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "empty",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "cc7e23c4d5b051990b67e5448093f3566c2360858febb1cf50a295fd487c3fec",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "x_pdf_garbage",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "garbage",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "db4afbf1940a18d779609554eb118af873ccf285aa896d2a245ce05147dd2911",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "x_pdf_no_vat",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "4899ff307de094cc9432ea3793a38b4515bf66db27718c778268b71b7895307c",
       "pages": 1,
       "formats": [
         "pdf"

@@ -1,0 +1,13 @@
+Transportes Ribera S.A.
+Calle Huerta 42
+Bilbao, España
++34 9388 767 172
+billing@transportesriberasa.example.com
+
+Factura Nº: FAC-2024-1870
+Fecha: 2026-08-22
+Moneda: EUR
+
+Suscripción de datos    631,61
+
+Total    631,61

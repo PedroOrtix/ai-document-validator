@@ -93,24 +93,27 @@ def _verify_merged_manifest(cases: dict[str, list[dict[str, Any]]]) -> list[str]
         path = GOLDEN_DIR / f"{case['case_id']}.pdf"
         if hashlib.sha256(path.read_bytes()).hexdigest() != case["pdf_sha256"]:
             problems.append(f"{case['case_id']}: merged manifest hash drift")
+        expected = GOLDEN_DIR / f"{case['case_id']}.expected.json"
+        if not expected.is_file():
+            problems.append(f"{case['case_id']}: expected.json missing")
     return problems
 
 
 def verify_dataset() -> int:
     txt_cases = txt_build.build_all()
     txt_problems = txt_build.verify(txt_cases)
+    pdf_cases: list[dict[str, Any]] = []
     pdf_problems: list[str] = []
-    pdf_cases = pdf_build.PDF_PLAN
     manifest_path = GOLDEN_DIR / "manifest_pdf.json"
     if not manifest_path.is_file():
         pdf_problems.append("manifest_pdf.json: missing")
     else:
         try:
-            pdf_cases = json.loads(manifest_path.read_text(encoding="utf-8"))["cases"]
             pdf_problems.extend(
                 problem
                 for problem in [f"{pdf_build.verify_all()}"] if problem != "0"
             )
+            pdf_cases = json.loads(manifest_path.read_text(encoding="utf-8"))["cases"]
         except (json.JSONDecodeError, KeyError):
             pdf_problems.append("manifest_pdf.json: invalid")
 

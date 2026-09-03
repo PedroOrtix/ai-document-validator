@@ -240,6 +240,42 @@
       "formats": [
         "pdf"
       ]
+    },
+    {
+      "case_id": "x_pdf_empty",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "empty",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "cc7e23c4d5b051990b67e5448093f3566c2360858febb1cf50a295fd487c3fec",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "x_pdf_garbage",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "garbage",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "db4afbf1940a18d779609554eb118af873ccf285aa896d2a245ce05147dd2911",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "x_pdf_no_vat",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "4899ff307de094cc9432ea3793a38b4515bf66db27718c778268b71b7895307c",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
     }
   ]
 }

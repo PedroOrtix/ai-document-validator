@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from fixtures.generator import spec_v2
+from fixtures.generator.spec_v2 import DEGENERATE_TXT_PLAN, GARBAGE_TOKENS
 
 GENERATOR_DIR = Path(__file__).resolve().parent
 GOLDEN_DIR = GENERATOR_DIR.parent / "golden"
@@ -301,8 +302,75 @@ def _render_t2(
     return text, expected
 
 
+def _render_empty(row: dict[str, Any]) -> RenderedCase:
+    fields = {name: None for name in (
+        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
+    )}
+    expected = {
+        "expected_fields": fields,
+        "expected_verdict_status": "REVIEW",
+        "slices": {
+            "language": row["lang"],
+            "tier": row["tier"],
+            "amount_style": "none",
+            "date_style": "none",
+            "scenario": "empty",
+            "format": "txt",
+        },
+    }
+    manifest_case = {
+        "case_id": row["case_id"],
+        "language": row["lang"],
+        "tier": row["tier"],
+        "scenario": "empty",
+        "expected_verdict": "REVIEW",
+        "txt_sha256": hashlib.sha256(b"").hexdigest(),
+        "formats": ["txt"],
+    }
+    return RenderedCase(row["case_id"], "", expected, manifest_case)
+
+
+def _render_garbage(row: dict[str, Any]) -> RenderedCase:
+    rng = spec_v2.case_rng(row["case_id"])
+    line_count = rng.randrange(8, 13)
+    lines = [GARBAGE_TOKENS[index % len(GARBAGE_TOKENS)] for index in range(line_count)]
+    rng.shuffle(lines)
+    rotation = rng.randrange(len(lines))
+    lines = lines[rotation:] + lines[:rotation]
+    text = "\n".join(lines) + "\n"
+    fields = {name: None for name in (
+        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
+    )}
+    expected = {
+        "expected_fields": fields,
+        "expected_verdict_status": "REVIEW",
+        "slices": {
+            "language": row["lang"],
+            "tier": row["tier"],
+            "amount_style": "none",
+            "date_style": "none",
+            "scenario": "garbage",
+            "format": "txt",
+        },
+    }
+    manifest_case = {
+        "case_id": row["case_id"],
+        "language": row["lang"],
+        "tier": row["tier"],
+        "scenario": "garbage",
+        "expected_verdict": "REVIEW",
+        "txt_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "formats": ["txt"],
+    }
+    return RenderedCase(row["case_id"], text, expected, manifest_case)
+
+
 def build_case(row: dict[str, Any]) -> RenderedCase:
     """Render one frozen TXT row and derive all truth from the spec."""
+    if row["scenario"]["kind"] == "empty":
+        return _render_empty(row)
+    if row["scenario"]["kind"] == "garbage":
+        return _render_garbage(row)
     rng = spec_v2.case_rng(row["case_id"])
     tier = row["tier"]
     if tier == 0:
@@ -332,6 +400,12 @@ def build_case(row: dict[str, Any]) -> RenderedCase:
             line for line in text.splitlines() if dropped_value not in line
         ) + "\n"
         fields["total_amount"] = None
+
+    if row["scenario"].get("no_vat"):
+        tax_label = spec_v2.POOLS[row["lang"]]["vat_labels"][0]
+        removed = f"{tax_label}: {fields['tax_id']}"
+        text = "\n".join(line for line in text.splitlines() if line != removed) + "\n"
+        fields["tax_id"] = None
 
     required_missing = any(
         fields[field] is None
@@ -370,6 +444,8 @@ def build_case(row: dict[str, Any]) -> RenderedCase:
 
 
 def _case_amount_style(case_id: str, tier: int) -> str:
+    if not case_id.rsplit("_", 1)[-1].isdigit():
+        return "none"
     index = int(case_id.rsplit("_", 1)[-1])
     if tier == 0:
         return spec_v2.AMOUNT_STYLES_T0[index % 2]
@@ -384,6 +460,8 @@ def _case_amount_style(case_id: str, tier: int) -> str:
 
 
 def _case_date_style(case_id: str, tier: int) -> str:
+    if not case_id.rsplit("_", 1)[-1].isdigit():
+        return "none"
     index = int(case_id.rsplit("_", 1)[-1])
     if tier == 0:
         return spec_v2.DATE_STYLES_T0[index % 2]
@@ -395,7 +473,7 @@ def _case_date_style(case_id: str, tier: int) -> str:
 
 
 def build_all() -> list[RenderedCase]:
-    return [build_case(row) for row in spec_v2.TXT_PLAN]
+    return [build_case(row) for row in [*spec_v2.TXT_PLAN, *DEGENERATE_TXT_PLAN]]
 
 
 def _write_cases(cases: list[RenderedCase]) -> None:

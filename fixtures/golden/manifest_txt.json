@@ -440,6 +440,39 @@
       "formats": [
         "txt"
       ]
+    },
+    {
+      "case_id": "x_txt_empty",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "empty",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "x_txt_garbage",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "garbage",
+      "expected_verdict": "REVIEW",
+      "txt_sha256": "2603f83cc66de7060a7592a46bbd09f6f0697f21bd0333e576a7508a49e1cafd",
+      "formats": [
+        "txt"
+      ]
+    },
+    {
+      "case_id": "x_txt_no_vat",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "txt_sha256": "904c36661efcd76391d712d118b37d4491e871955ac1b0cf57a451f4e9966369",
+      "formats": [
+        "txt"
+      ]
     }
   ]
 }
