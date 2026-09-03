@@ -93,13 +93,37 @@ def test_currency_allowed_rule(
     rule = CurrencyAllowed()
     config = ValidationConfig(allowed_currencies=allowed)
     field = (
-        make_field(currency_value)
-        if currency_value
-        else ExtractedField(value=None, confidence=0)
+        make_field(currency_value) if currency_value else ExtractedField(value=None, confidence=0)
     )
     result = rule.evaluate(make_extraction(currency=field), config)
     assert result.passed is expected_passed
     assert result.message == expected_message
+
+
+def test_missing_currency_with_allowed_currencies_yields_review() -> None:
+    extraction = make_extraction(
+        invoice_date=make_field(date(2026, 1, 1)),
+        total_amount=make_field(100.0),
+        supplier_name=make_field("Acme"),
+        invoice_number=make_field("INV-2026-0001"),
+        currency=ExtractedField(value=None, confidence=0.0),
+    )
+    config = ValidationConfig(allowed_currencies=["EUR", "GBP"])
+    verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 15))
+    assert verdict.status == "REVIEW"
+
+
+def test_missing_currency_without_allowed_currencies_yields_pass() -> None:
+    extraction = make_extraction(
+        invoice_date=make_field(date(2026, 1, 1)),
+        total_amount=make_field(100.0),
+        supplier_name=make_field("Acme"),
+        invoice_number=make_field("INV-2026-0001"),
+        currency=ExtractedField(value=None, confidence=0.0),
+    )
+    config = ValidationConfig(allowed_currencies=None)
+    verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 15))
+    assert verdict.status == "PASS"
 
 
 def test_engine_passes_valid_document() -> None:
@@ -215,9 +239,7 @@ def test_low_confidence_rule_flags_below_threshold_and_reviews() -> None:
     assert result.deciding_fields == ("total_amount",)
     verdict = RulesEngine().evaluate(extraction, ValidationConfig())
     assert verdict.status == "REVIEW"
-    flagged = next(
-        r for r in verdict.rule_results if r.rule_id == rule.rule_id
-    )
+    flagged = next(r for r in verdict.rule_results if r.rule_id == rule.rule_id)
     assert flagged.passed is False and flagged.severity == "review"
 
 

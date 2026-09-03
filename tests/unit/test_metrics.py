@@ -57,9 +57,7 @@ def test_confidence_separation_splits_matched_from_mismatched() -> None:
         (True, None),  # None confidence counts as 0.0 on a matched cell
     ]
     metrics = confidence_separation(records)
-    assert metrics["mean_confidence_matched"] == pytest.approx(
-        round((0.95 + 0.8 + 0.0) / 3, 4)
-    )
+    assert metrics["mean_confidence_matched"] == pytest.approx(round((0.95 + 0.8 + 0.0) / 3, 4))
     assert metrics["mean_confidence_mismatched"] == pytest.approx(0.2)
     assert metrics["matched_cells"] == 3
     assert metrics["mismatched_cells"] == 2

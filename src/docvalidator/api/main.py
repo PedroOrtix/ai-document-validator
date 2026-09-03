@@ -59,9 +59,7 @@ class JsonValidateRequest(BaseModel):
 class APIError(Exception):
     """An error that is safe to expose to API clients."""
 
-    def __init__(
-        self, code: str, message: str, details: Any | None = None
-    ) -> None:
+    def __init__(self, code: str, message: str, details: Any | None = None) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
@@ -102,9 +100,7 @@ def _default_backend() -> str:
     return "auto" if os.environ.get("OPENROUTER_API_KEY") else "ocr"
 
 
-def _validation_error(
-    exc: Exception, request_id: str
-) -> JSONResponse:
+def _validation_error(exc: Exception, request_id: str) -> JSONResponse:
     if isinstance(exc, ValidationError):
         details = [
             {
@@ -146,9 +142,7 @@ def custom_openapi() -> dict[str, Any]:
         ),
         "required": True,
         "content": {
-            "application/json": {
-                "schema": {"$ref": "#/components/schemas/JsonValidateRequest"}
-            },
+            "application/json": {"schema": {"$ref": "#/components/schemas/JsonValidateRequest"}},
             "multipart/form-data": {
                 "schema": {
                     "type": "object",
@@ -180,14 +174,14 @@ app.openapi = custom_openapi  # type: ignore[method-assign]
 
 
 @app.middleware("http")
-async def request_logging_middleware(
-    request: Request, call_next
-) -> JSONResponse:
+async def request_logging_middleware(request: Request, call_next) -> JSONResponse:
     """Assign a request ID, echo it in headers, and log one structured line."""
     request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     request.state.request_id = request_id
     request.state.backend = None
     request.state.verdict_status = None
+    request.state.model = None
+    request.state.total_tokens = None
     started_at = time.perf_counter()
 
     response = await call_next(request)
@@ -205,6 +199,8 @@ async def request_logging_middleware(
                 "status_code": response.status_code,
                 "latency_ms": round(latency_ms, 2),
                 "backend": request.state.backend,
+                "model": getattr(request.state, "model", None),
+                "total_tokens": getattr(request.state, "total_tokens", None),
                 "verdict_status": request.state.verdict_status,
             }
         },
@@ -216,12 +212,8 @@ async def request_logging_middleware(
 async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
     """Convert known API errors to structured responses."""
     if exc.code == "unsupported_backend":
-        return _error_response(
-            501, exc.code, exc.message, request.state.request_id
-        )
-    return _error_response(
-        422, exc.code, exc.message, request.state.request_id, exc.details
-    )
+        return _error_response(501, exc.code, exc.message, request.state.request_id)
+    return _error_response(422, exc.code, exc.message, request.state.request_id, exc.details)
 
 
 @app.exception_handler(RequestValidationError)
@@ -242,9 +234,7 @@ async def request_validation_error_handler(
 
 
 @app.exception_handler(ValidationError)
-async def pydantic_validation_error_handler(
-    request: Request, exc: ValidationError
-) -> JSONResponse:
+async def pydantic_validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Convert nested Pydantic validation failures to structured responses."""
     details = [
         {
@@ -259,9 +249,7 @@ async def pydantic_validation_error_handler(
 
 
 @app.exception_handler(ExtractionError)
-async def extraction_error_handler(
-    request: Request, exc: ExtractionError
-) -> JSONResponse:
+async def extraction_error_handler(request: Request, exc: ExtractionError) -> JSONResponse:
     """Convert extraction failures to backend-specific structured responses."""
     if isinstance(exc, LLMConfigurationError):
         return _error_response(
@@ -303,9 +291,7 @@ async def _parse_request(request: Request) -> ParsedRequest:
         form = await request.form()
         upload = form.get("file")
         config_value = form.get("config")
-        is_upload = isinstance(upload, (UploadFile, StarletteUploadFile)) or hasattr(
-            upload, "read"
-        )
+        is_upload = isinstance(upload, (UploadFile, StarletteUploadFile)) or hasattr(upload, "read")
         if not is_upload:
             raise APIError("invalid_request", "file is required")
         document = _document_from_multipart(upload.filename or "", await upload.read())
@@ -341,9 +327,7 @@ def _document_from_json(body: JsonValidateRequest) -> DocumentInput:
     return DocumentInput(text=body.text, filename=body.filename)
 
 
-def _document_from_multipart(
-    filename: str, content: bytes
-) -> DocumentInput:
+def _document_from_multipart(filename: str, content: bytes) -> DocumentInput:
     lower_filename = filename.lower()
     if lower_filename.endswith(".pdf"):
         return DocumentInput(pdf_bytes=content, filename=filename)
@@ -409,7 +393,10 @@ async def extract(request: Request) -> DocumentExtraction:
     parsed = await _parse_request(request)
     backend = _select_backend(parsed.extraction_backend)
     request.state.backend = backend
-    return _extract(parsed.document, backend)
+    extraction = _extract(parsed.document, backend)
+    request.state.model = extraction.metadata.model
+    request.state.total_tokens = extraction.metadata.total_tokens
+    return extraction
 
 
 @app.post(
@@ -421,8 +408,8 @@ async def validate(request: Request) -> ValidateResponse:
     parsed = await _parse_request(request)
     backend = _select_backend(parsed.extraction_backend)
     request.state.backend = backend
-    verdict = _run_pipeline(
-        parsed.document, parsed.config, backend
-    )
+    verdict = _run_pipeline(parsed.document, parsed.config, backend)
     request.state.verdict_status = verdict.status
+    request.state.model = verdict.extraction.metadata.model
+    request.state.total_tokens = verdict.extraction.metadata.total_tokens
     return ValidateResponse(**verdict.model_dump(), request_id=request.state.request_id)

@@ -87,8 +87,7 @@ class RegexFieldParser:
             self._extract_tax_id,
         ]
         return {
-            method.__name__.removeprefix("_extract_"): method(text, lines)
-            for method in methods
+            method.__name__.removeprefix("_extract_"): method(text, lines) for method in methods
         }
 
     def _field(

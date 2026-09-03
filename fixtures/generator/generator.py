@@ -85,7 +85,11 @@ COUNTRIES: dict[str, dict[str, Any]] = {
         "cities": ("Lyon", "Nantes", "Lille", "Bordeaux", "Toulouse"),
         "street": "{n} rue {name}",
         "street_names": (
-            "de la République", "Victor Hugo", "Lafayette", "du Marché", "Jean Jaurès",
+            "de la République",
+            "Victor Hugo",
+            "Lafayette",
+            "du Marché",
+            "Jean Jaurès",
         ),
         "date_labels": ("Date", "Date de Facture"),
         "number_labels": ("Facture N°", "N° de Facture", "Facture #", "Pièce N°"),
@@ -127,33 +131,124 @@ COUNTRIES: dict[str, dict[str, Any]] = {
 VAT_PREFIX = {"ES": "ES", "DE": "DE", "FR": "FR", "IT": "IT", "EN": "GB"}
 
 MONTH_NAMES = {
-    "EN": ("January", "February", "March", "April", "May", "June",
-           "July", "August", "September", "October", "November", "December"),
-    "ES": ("enero", "febrero", "marzo", "abril", "mayo", "junio",
-           "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"),
-    "DE": ("Januar", "Februar", "März", "April", "Mai", "Juni",
-           "Juli", "August", "September", "Oktober", "November", "Dezember"),
-    "FR": ("janvier", "février", "mars", "avril", "mai", "juin",
-           "juillet", "août", "septembre", "octobre", "novembre", "décembre"),
-    "IT": ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
-           "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"),
+    "EN": (
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ),
+    "ES": (
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+    ),
+    "DE": (
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
+    ),
+    "FR": (
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ),
+    "IT": (
+        "gennaio",
+        "febbraio",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
+    ),
 }
 MONTH_ABBREV = {
     "EN": (
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
     ),
     "ES": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
     "DE": ("Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"),
     "FR": (
-        "janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc",
+        "janv",
+        "févr",
+        "mars",
+        "avr",
+        "mai",
+        "juin",
+        "juil",
+        "août",
+        "sept",
+        "oct",
+        "nov",
+        "déc",
     ),
     "IT": ("gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"),
 }
 
 ITEMS = (
-    "Consulting services", "Support package", "Software license", "Hardware maintenance",
-    "Freight and handling", "Office supplies", "Training session", "Maintenance contract",
-    "Installation fee", "Data platform subscription", "Spare parts", "Inspection report",
+    "Consulting services",
+    "Support package",
+    "Software license",
+    "Hardware maintenance",
+    "Freight and handling",
+    "Office supplies",
+    "Training session",
+    "Maintenance contract",
+    "Installation fee",
+    "Data platform subscription",
+    "Spare parts",
+    "Inspection report",
 )
 DESCRIPTIONS = {
     "ES": ("Servicios de consultoría", "Formación", "Reparación", "Suministros", "Transporte"),
@@ -168,6 +263,7 @@ SYMBOLS = {"EUR": "€", "GBP": "£", "USD": "$", "CHF": "CHF", "SEK": "kr", "PL
 # --------------------------------------------------------------------------
 # Value formatting
 # --------------------------------------------------------------------------
+
 
 def format_amount(value: float, style: str) -> str:
     """Render an amount in a regional style. Styles:
@@ -283,8 +379,6 @@ def pick_date(rng: random.Random, tier: int) -> tuple[date, str]:
         else:
             d = AS_OF - timedelta(days=rng.randrange(5, 80))
     style = (
-        DATE_STYLES[rng.randrange(len(DATE_STYLES))]
-        if tier >= 1
-        else rng.choice(("iso", "dmy"))
+        DATE_STYLES[rng.randrange(len(DATE_STYLES))] if tier >= 1 else rng.choice(("iso", "dmy"))
     )
     return d, style

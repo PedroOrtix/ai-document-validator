@@ -16,9 +16,7 @@ Invoice Date: 2026-03-14
 Total: EUR 1,210.00
 VAT: DE123456789
 """
-SCANNED_PDF = (
-    Path(__file__).parents[2] / "fixtures" / "golden" / "scan_pdf_es_t0_0.pdf"
-)
+SCANNED_PDF = Path(__file__).parents[2] / "fixtures" / "golden" / "scan_pdf_es_t0_0.pdf"
 
 
 def test_ocr_pdf_with_fake_engine_returns_regex_extraction() -> None:

@@ -82,9 +82,7 @@ class TestLLMBackendErrors:
         assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
         assert response.json()["error"]["code"] == "llm_configuration_error"
 
-    def test_llm_request_error_returns_502(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_llm_request_error_returns_502(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
@@ -94,9 +92,7 @@ class TestLLMBackendErrors:
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
         assert response.json()["error"]["code"] == "llm_response_error"
 
-    def test_llm_timeout_returns_504(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_llm_timeout_returns_504(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_llm_extract(monkeypatch, LLMTimeoutError("slow"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
@@ -106,9 +102,7 @@ class TestLLMBackendErrors:
         assert response.status_code == status.HTTP_504_GATEWAY_TIMEOUT
         assert response.json()["error"]["code"] == "llm_timeout"
 
-    def test_llm_parsing_error_returns_502(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_llm_parsing_error_returns_502(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_llm_extract(monkeypatch, LLMParsingError("garbage"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
@@ -118,9 +112,7 @@ class TestLLMBackendErrors:
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
         assert response.json()["error"]["code"] == "llm_response_error"
 
-    def test_extract_endpoint_llm_failure_is_typed(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_extract_endpoint_llm_failure_is_typed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(

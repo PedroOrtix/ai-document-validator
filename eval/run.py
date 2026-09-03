@@ -344,22 +344,38 @@ def print_gates(report: dict[str, Any]) -> None:
         )
 
     # Multi-lane mode (--lane): engine lanes carry pre-aggregated metrics in
-    # ``aggregate``. Print an informative row per lane so the GATES section is
-    # never silently empty; hard tier gates stay a txt/pdf-only contract.
+    # ``aggregate``. Evaluate calibrated hard regression gates so CI and eval
+    # fail on quality regressions instead of silently emitting informational rows.
+    engine_tier_thresholds: dict[str, dict[int, tuple[float, float]]] = {
+        "ocr": {0: (0.90, 0.95), 1: (0.70, 0.65)},
+        "auto": {0: (0.95, 0.95), 1: (0.80, 0.80)},
+        "slm": {0: (0.95, 0.95), 1: (0.80, 0.80)},
+        "vlm": {0: (0.95, 0.95), 1: (0.80, 0.80)},
+    }
+    engine_overall_thresholds: dict[str, tuple[float, float]] = {
+        "ocr": (0.75, 0.75),
+        "auto": (0.90, 0.90),
+        "slm": (0.90, 0.90),
+        "vlm": (0.90, 0.90),
+    }
+
     for lane_name, lane in report["lanes"].items():
         if lane_name in {"txt", "pdf"}:
             continue
+        lane_thresholds = engine_tier_thresholds.get(lane_name, {})
         for tier in (0, 1, 2):
             tier_slice = _slice_metrics(lane, f"tier:{tier}")
             if tier_slice is not None:
+                thresholds = lane_thresholds.get(tier)
                 rows.append(
                     _gate_row(
                         f"{lane_name} tier:{tier}",
                         tier_slice,
-                        thresholds=None,
-                        informative=True,
+                        thresholds=thresholds,
+                        informative=(thresholds is None),
                     )
                 )
+        overall_thresholds = engine_overall_thresholds.get(lane_name)
         rows.append(
             _gate_row(
                 f"{lane_name} overall",
@@ -370,8 +386,8 @@ def print_gates(report: dict[str, Any]) -> None:
                     ),
                     "verdict_agreement": lane.get("verdict", {}).get("agreement_rate", 0.0),
                 },
-                thresholds=None,
-                informative=True,
+                thresholds=overall_thresholds,
+                informative=(overall_thresholds is None),
             )
         )
 
@@ -401,10 +417,7 @@ def print_report(report: dict[str, Any]) -> None:
         verdict = lane.get("verdict", {})
         rate = verdict.get("agreement_rate", 0.0)
         if "agreements" in verdict and "total" in verdict:
-            print(
-                f"verdict agreement: {rate:.2%} "
-                f"({verdict['agreements']}/{verdict['total']})"
-            )
+            print(f"verdict agreement: {rate:.2%} ({verdict['agreements']}/{verdict['total']})")
         else:
             print(f"verdict agreement: {rate:.2%}")
 
@@ -450,8 +463,7 @@ def print_report(report: dict[str, Any]) -> None:
         accuracy_val = accuracy if accuracy is not None else 0.0
         agreement = lane.get("verdict", {}).get("agreement_rate", 0.0)
         print(
-            f"{lane_name:<10} field_accuracy={accuracy_val:.4f} "
-            f"verdict_agreement={agreement:.4f}"
+            f"{lane_name:<10} field_accuracy={accuracy_val:.4f} verdict_agreement={agreement:.4f}"
         )
 
 

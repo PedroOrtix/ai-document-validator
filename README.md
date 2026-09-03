@@ -39,8 +39,8 @@ make docker-build && make docker-up
 
 ### 1. Run tests and linting (60 seconds)
 ```bash
-make test    # Runs 381 pytest tests in ~4s (100% pass)
-make lint    # Runs ruff code formatting and type checks (0 errors)
+make test    # Runs 393 pytest tests in ~4s (100% pass)
+make lint    # Runs ruff code formatting and style checks (0 errors)
 ```
 
 ### 2. Run the evaluation harness (2 minutes)
@@ -84,7 +84,8 @@ The service operates out of the box with **zero configuration**:
 | Condition | Default Backend | Behavior |
 |---|---|---|
 | `OPENROUTER_API_KEY` present | `auto` | Enters production routing: text $\to$ `LLMExtractor`, digital PDF $\to$ `markitdown` + LLM, scanned PDF $\to$ `VisionExtractor` (VLM), with local OCR as safety net. |
-| No key (or key expired) | `ocr` | Deterministic local floor: RapidOCR (PP-OCRv5 ONNX CPU) + 2D spatial sorting + regex parser (~700 ms/doc, $0.00). |
+| `OPENROUTER_API_KEY` absent | `ocr` | Deterministic local floor: RapidOCR (PP-OCRv5 ONNX CPU) + 2D spatial sorting + regex parser (~700–1000 ms/doc, $0.00). |
+| `OPENROUTER_API_KEY` invalid/expired | — | Returns `503 Service Unavailable` (`llm_configuration_error`) or `502 Bad Gateway` (`llm_response_error`) — never silent fallback degradation. |
 
 - Explicit backend selection is supported via `extraction_backend: "auto" | "llm" | "vlm" | "ocr"`.
 - **No silent API-level retries**: Failures surface honestly through typed HTTP status codes (`422` validation, `502` LLM error, `503` missing key, `504` timeout).
@@ -93,7 +94,7 @@ The service operates out of the box with **zero configuration**:
 
 ## Golden Dataset v2.2 (78 Fixtures)
 
-The evaluation dataset is deterministically generated (not hand-maintained), split between English and Spanish across 3 difficulty tiers and edge-case scenarios (subtotal traps, credit notes, missing required fields, zero amounts, textured and noisy scans):
+The evaluation dataset is deterministically generated (not hand-maintained), split between English and Spanish across 3 difficulty tiers and edge-case scenarios (subtotal traps, stale variants, missing required fields, zero amounts, textured and noisy scans):
 
 | Format / Lane | Tier 0 (Clean) | Tier 1 (Variants) | Tier 2 (Adversarial) | Total Cases | Content Description |
 |---|:---:|:---:|:---:|:---:|---|
@@ -118,11 +119,12 @@ orphan files. There is no tier 3 lane: rule scenarios are distributed in tiers
 
 `eval.run` prints a `GATES` section by default:
 
-- `tier:0` is hard for each lane: field accuracy and verdict agreement >= `0.95`.
-- `tier:1` is hard for each lane: field accuracy >= `0.60` and verdict agreement >= `0.25`.
+- `tier:0` is hard for active engine lanes: field accuracy >= `0.90` and verdict agreement >= `0.95`.
+- `tier:1` is hard for active engine lanes: field accuracy >= `0.70` and verdict agreement >= `0.65`.
 - `tier:2` and scenario slices are informative.
-- Lane and global lane aggregates are informative; `--no-gates` preserves the
-  legacy optional `--min-field-accuracy` and `--min-verdict-agreement` behavior.
+- Overall is hard for active engine lanes: field accuracy >= `0.75` and verdict agreement >= `0.75`.
+- The run exits with non-zero status (`exit 1`) if any active gate fails, preventing quality regressions in CI.
+- `--no-gates` preserves informative-only reporting.
 
 ### Extractor baseline (credential-free OCR floor)
 
@@ -131,15 +133,15 @@ Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03` over all
 
 | Slice (lane `ocr`, across 78 cases: txt+pdf+scanned) | Field accuracy | Verdict agreement |
 |---|---:|---:|
-| **Overall (78 cases)** | **82.05%** | **80.77%** |
+| **Overall (78 cases)** | **82.05%** | **85.90%** |
 | Tier 0 (canonical clean) | 97.33% | 100.00% |
 | Tier 1 (format/label variants) | 86.21% | 82.76% |
-| Tier 2 (adversarial/noisy) | 61.11% | 58.33% |
+| Tier 2 (adversarial/noisy) | 61.11% | 75.00% |
 | Spanish language (`language:ES`) | 84.65% | 89.47% |
-| English language (`language:EN`) | 79.58% | 72.50% |
+| English language (`language:EN`) | 79.58% | 82.50% |
 
-Latency per document (measured): text ~0.1 ms (direct regex parser), digital-born PDF
-**616–927 ms**, scanned PDF **608–913 ms** — **$0.000000/doc**, fully local on CPU with zero credentials.
+Latency per document (measured on 8-core x86_64 host): text ~0.1 ms (direct regex parser), digital-born PDF
+**714–918 ms**, scanned PDF **642–982 ms** — **$0.000000/doc**, fully local on CPU with zero credentials.
 
 ## Evaluation harness
 
@@ -436,9 +438,14 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
    are supported through the text layer (markitdown) plus local RapidOCR for scanned pages, and
    plain-text fixtures drive the golden set. Scanned-image PDFs that yield no OCR text fail loudly
    with a typed error instead of silently returning empty extractions.
-5. **One document type, extensible seams.** Only `SUPPLIER_INVOICE` is implemented, but the extractor
-   interface, rule registry, and config schema are document-type aware; adding `CERTIFICATE` means a new
-   extractor + rules, not a rewrite.
+5. **Domain typing — SUPPLIER_INVOICE schema with extensible seams.** The assessment explicitly specifies
+   supplier invoice validation. The system models, extracts, and validates the typed schema of `SUPPLIER_INVOICE`,
+   operating as the validation stage in a B2B pipeline where document intake or pre-classification has already routed
+   the document (or assuming invoice semantics). We deliberately did not bolt on a heuristic pre-classifier: doing
+   so would introduce uncalibrated classification failure modes outside the spec. Instead, the extractor interface,
+   rule registry, and config schema are document-type aware (`document_type: Literal["SUPPLIER_INVOICE"] = "SUPPLIER_INVOICE"`);
+   adding `CERTIFICATE` or `PURCHASE_ORDER` means registering a new extractor + rules for that type, preserving
+   type safety without rewrites.
 
 ## Cost, latency, and risk notes
 

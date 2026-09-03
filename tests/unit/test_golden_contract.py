@@ -30,8 +30,8 @@ EXPECTED_TIERS = {
     "pdf": {0: 7, 1: 9, 2: 7},
 }
 EXPECTED_VERDICTS = {
-    "txt": {"PASS": 27, "REVIEW": 6, "FAIL": 10},
-    "pdf": {"PASS": 15, "REVIEW": 4, "FAIL": 4},
+    "txt": {"PASS": 25, "REVIEW": 8, "FAIL": 10},
+    "pdf": {"PASS": 13, "REVIEW": 6, "FAIL": 4},
 }
 
 
@@ -88,7 +88,12 @@ def test_expected_schema_and_independently_recomputed_verdict(case: dict) -> Non
     expected = _expected_file(case["case_id"])
     assert set(expected) == {"expected_fields", "expected_verdict_status", "slices"}
     assert set(expected["expected_fields"]) == {
-        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
+        "supplier_name",
+        "invoice_number",
+        "invoice_date",
+        "total_amount",
+        "currency",
+        "tax_id",
     }
     slices = expected["slices"]
     assert slices["language"] == case["language"]
@@ -106,11 +111,18 @@ def test_expected_schema_and_independently_recomputed_verdict(case: dict) -> Non
         stale = (AS_OF - invoice_date).days > MANIFEST["max_age_days"]
     else:
         stale = False
-    if stale or (fields["total_amount"] is not None and fields["total_amount"] <= 0) or (
-        fields["currency"] is not None and fields["currency"] not in MANIFEST["allowed_currencies"]
+    if (
+        stale
+        or (fields["total_amount"] is not None and fields["total_amount"] <= 0)
+        or (
+            fields["currency"] is not None
+            and fields["currency"] not in MANIFEST["allowed_currencies"]
+        )
     ):
         recomputed = "FAIL"
-    elif missing_required:
+    elif missing_required or (
+        fields["currency"] is None and MANIFEST.get("allowed_currencies") is not None
+    ):
         recomputed = "REVIEW"
     else:
         recomputed = "PASS"
@@ -143,11 +155,7 @@ def test_no_orphan_golden_files() -> None:
 
 @pytest.mark.parametrize(
     "case_id",
-    [
-        f"t0_{language}_{index}"
-        for language in ("en", "es")
-        for index in range(6)
-    ],
+    [f"t0_{language}_{index}" for language in ("en", "es") for index in range(6)],
 )
 def test_v2_tier0_txt_extracts_and_passes(case_id: str) -> None:
     expected = _expected_file(case_id)
@@ -205,8 +213,7 @@ def test_scanned_manifest_counts_and_distributions() -> None:
         2: 4,
     }
     language_counts = {
-        language: sum(case["language"] == language for case in cases)
-        for language in ("EN", "ES")
+        language: sum(case["language"] == language for case in cases) for language in ("EN", "ES")
     }
     assert language_counts == {"EN": 6, "ES": 6}
     assert all(case["formats"] == ["scanned"] for case in cases)

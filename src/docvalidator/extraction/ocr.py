@@ -85,15 +85,17 @@ def _sort_boxes_reading_order(result: list[Any]) -> str:
             continue
         y_min, y_max = min(ys), max(ys)
         x_min, x_max = min(xs), max(xs)
-        items.append({
-            "text": str(item[1]).strip(),
-            "x_min": x_min,
-            "x_max": x_max,
-            "y_min": y_min,
-            "y_max": y_max,
-            "y_center": (y_min + y_max) / 2.0,
-            "height": max(y_max - y_min, 1.0),
-        })
+        items.append(
+            {
+                "text": str(item[1]).strip(),
+                "x_min": x_min,
+                "x_max": x_max,
+                "y_min": y_min,
+                "y_max": y_max,
+                "y_center": (y_min + y_max) / 2.0,
+                "height": max(y_max - y_min, 1.0),
+            }
+        )
     if not items:
         return ""
 

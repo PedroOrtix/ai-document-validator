@@ -7,9 +7,10 @@ def _per_field_matches(matches: int, total: int) -> dict:
     return {name: {"matches": matches, "total": total} for name in FIELD_NAMES}
 
 
-def _multi_lane_report() -> dict:
+def _multi_lane_report(acc: float = 0.98, agreement: float = 1.0) -> dict:
     """Synthetic multi-lane report: engine lanes only (no legacy txt/pdf lanes)."""
-    def lane(name: str, acc: float, agreement: float) -> dict:
+
+    def lane(name: str) -> dict:
         return {
             "lane": name,
             "formats": ["scanned"],
@@ -17,7 +18,9 @@ def _multi_lane_report() -> dict:
             "fields": {},
             "verdict": {"agreement_rate": agreement},
             "slices": {
-                "tier:0": {"cases": 2, "field_accuracy": acc, "verdict_agreement": agreement}
+                "tier:0": {"cases": 2, "field_accuracy": acc, "verdict_agreement": agreement},
+                "tier:1": {"cases": 2, "field_accuracy": 0.86, "verdict_agreement": 0.83},
+                "tier:2": {"cases": 2, "field_accuracy": 0.61, "verdict_agreement": 0.75},
             },
             "results": [],
             "aggregate": {"field_accuracy": acc, "verdict_agreement": agreement},
@@ -25,12 +28,13 @@ def _multi_lane_report() -> dict:
 
     return {
         "as_of": "2026-09-03",
-        "lanes": {"ocr": lane("ocr", 0.64, 0.51), "slm": lane("slm", 0.70, 0.48)},
+        "lanes": {"ocr": lane("ocr"), "slm": lane("slm")},
     }
 
 
 def _legacy_report() -> dict:
     """Legacy report shape: dataset lanes txt/pdf (the no---lane mode)."""
+
     def dataset_lane(name: str, acc: float, agreement: float) -> dict:
         return {
             "lane": name,
@@ -51,16 +55,31 @@ def _legacy_report() -> dict:
     }
 
 
-def test_print_gates_multi_lane_emits_info_rows_per_engine_lane(capsys) -> None:
-    report = _multi_lane_report()
+def test_print_gates_multi_lane_evaluates_calibrated_hard_gates(capsys) -> None:
+    report = _multi_lane_report(acc=0.98, agreement=1.0)
 
     print_gates(report)  # must not raise SystemExit
 
     out = capsys.readouterr().out
     assert "GATES" in out
-    assert "[INFO] ocr overall" in out
-    assert "[INFO] slm overall" in out
-    assert "field_accuracy=0.6400" in out
+    assert "[PASS] ocr tier:0" in out
+    assert "[PASS] ocr tier:1" in out
+    assert "[INFO] ocr tier:2" in out
+    assert "[PASS] ocr overall" in out
+
+
+def test_print_gates_multi_lane_fails_on_regression(capsys) -> None:
+    import pytest
+
+    report = _multi_lane_report(acc=0.64, agreement=0.51)
+
+    with pytest.raises(SystemExit) as exc_info:
+        print_gates(report)
+    assert exc_info.value.code == 1
+
+    out = capsys.readouterr().out
+    assert "[FAIL] ocr tier:0" in out
+    assert "[FAIL] ocr overall" in out
 
 
 def test_print_gates_legacy_mode_keeps_hard_gate_rows(capsys) -> None:
@@ -86,7 +105,7 @@ def test_print_report_multi_lane_emits_lane_and_slices(capsys) -> None:
     assert "SLICES" in out
     assert "[ocr] tier:0" in out
     assert "OVERALL" in out
-    assert "ocr        field_accuracy=0.6400" in out
+    assert "ocr        field_accuracy=0.9800" in out
 
 
 def test_print_report_prints_field_failures(capsys) -> None:

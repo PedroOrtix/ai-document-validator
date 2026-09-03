@@ -7,7 +7,7 @@
     "currency": null,
     "tax_id": "GB7159855416"
   },
-  "expected_verdict_status": "PASS",
+  "expected_verdict_status": "REVIEW",
   "slices": {
     "language": "EN",
     "tier": 2,

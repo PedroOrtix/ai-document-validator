@@ -7,7 +7,7 @@
     "currency": null,
     "tax_id": "ES63354769"
   },
-  "expected_verdict_status": "PASS",
+  "expected_verdict_status": "REVIEW",
   "slices": {
     "language": "ES",
     "tier": 2,

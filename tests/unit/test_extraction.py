@@ -228,29 +228,55 @@ def test_non_letter_first_line_is_not_a_supplier_name(extractor: OcrExtractor) -
     assert extraction.fields["supplier_name"].value is None
 
 
+REGEX_GAP_CASE_IDS = {
+    "t1_en_0",
+    "t1_en_1",
+    "t1_en_2",
+    "t1_en_3",
+    "t1_en_4",
+    "t1_en_5",
+    "t1_en_6",
+    "t1_en_7",
+    "t1_es_7",
+    "t2_en_0",
+    "t2_en_1",
+    "t2_en_2",
+    "t2_en_3",
+    "t2_en_4",
+    "t2_en_5",
+    "t2_es_0",
+    "t2_es_1",
+    "t2_es_2",
+    "t2_es_3",
+    "t2_es_4",
+    "t2_es_5",
+    "x_txt_garbage",
+}
+
+
 @pytest.mark.parametrize(
     ("fixture_name", "tier"),
     [
-        *(
-            pytest.param(
-                case["case_id"],
-                case["tier"],
-                marks=(
+        pytest.param(
+            case["case_id"],
+            case["tier"],
+            marks=(
+                [
                     pytest.mark.xfail(
                         reason=(
                             "known regex-parser gap at tier>=1 "
                             "(spelled dates, GB VAT ids, rare label variants); "
                             "tracked for the LLM backend"
                         ),
-                        strict=False,
+                        strict=True,
                     )
-                    if case["tier"] >= 1
-                    else []
-                ),
-                id=case["case_id"],
-            )
-            for case in TXT_MANIFEST["cases"]
-        ),
+                ]
+                if case["case_id"] in REGEX_GAP_CASE_IDS
+                else []
+            ),
+            id=case["case_id"],
+        )
+        for case in TXT_MANIFEST["cases"]
     ],
 )
 def test_fixture_expected_fields(

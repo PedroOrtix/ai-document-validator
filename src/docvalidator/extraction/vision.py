@@ -28,9 +28,8 @@ class VisionExtractor(LLMExtractor, Extractor):
         self,
         settings: LLMSettings | None = None,
         model: BaseChatModel | None = None,
-        structured_model: Runnable[
-            Any, dict[str, AIMessage | InvoiceExtraction | None]
-        ] | None = None,
+        structured_model: Runnable[Any, dict[str, AIMessage | InvoiceExtraction | None]]
+        | None = None,
     ) -> None:
         super().__init__(settings, model, structured_model)
 

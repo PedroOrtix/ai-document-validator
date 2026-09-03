@@ -127,9 +127,7 @@ class AutoExtractor(Extractor):
         sub_route: DocumentRoute,
         fallback_reason: str | None = None,
     ) -> DocumentExtraction:
-        sub_route_value = (
-            "vlm" if sub_route is DocumentRoute.VISION else sub_route.value
-        )
+        sub_route_value = "vlm" if sub_route is DocumentRoute.VISION else sub_route.value
         return extraction.model_copy(
             update={
                 "metadata": extraction.metadata.model_copy(

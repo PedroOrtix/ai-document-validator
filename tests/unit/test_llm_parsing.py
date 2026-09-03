@@ -97,13 +97,9 @@ class TestReasoningEffortWiring:
             def with_structured_output(self, *args: object, **kwargs: object) -> Any:
                 return _StructuredStub(InvoiceExtraction.model_validate(_VALID_PAYLOAD))
 
-        monkeypatch.setattr(
-            "langchain_openai.chat_models.base.ChatOpenAI", FakeChatOpenAI
-        )
+        monkeypatch.setattr("langchain_openai.chat_models.base.ChatOpenAI", FakeChatOpenAI)
 
-    def test_reasoning_effort_passed_as_extra_body(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_reasoning_effort_passed_as_extra_body(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from docvalidator.extraction.llm import LLMExtractor
 
         captured: dict[str, object] = {}

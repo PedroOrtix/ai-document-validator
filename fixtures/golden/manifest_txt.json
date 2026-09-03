@@ -314,7 +314,7 @@
       "language": "EN",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "txt_sha256": "1b4c7b15fe741c6eb3bd58203e95f76461d0b6727ffd6c27223a2f79edafd92a",
       "formats": [
         "txt"
@@ -380,7 +380,7 @@
       "language": "ES",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "txt_sha256": "b11b0f7b919b0ec7c77dd8bb39f3ee237595b141fb56b4d85539897721dd8c64",
       "formats": [
         "txt"

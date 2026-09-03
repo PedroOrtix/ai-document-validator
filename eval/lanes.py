@@ -140,12 +140,14 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                     and result["slices"].get("tier") == tier
                 ]
                 tokens = [
-                    result["total_tokens"] for result in tier_results if result["total_tokens"]
-                    is not None
+                    result["total_tokens"]
+                    for result in tier_results
+                    if result["total_tokens"] is not None
                 ]
                 durations = [
-                    result["duration_ms"] for result in tier_results if result["duration_ms"]
-                    is not None
+                    result["duration_ms"]
+                    for result in tier_results
+                    if result["duration_ms"] is not None
                 ]
                 separation = confidence_separation(_confidences(tier_results))
                 rows.append(

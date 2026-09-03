@@ -66,7 +66,7 @@
       "language": "EN",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "4ea4ded960e328a35b8bf15f9b552a13090ea86d95f7f93761a2bc3405d9fa98",
       "pages": 1,
       "formats": [
@@ -138,7 +138,7 @@
       "language": "ES",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "03510d8ff06d0515886f937f79f7ef60e6b937c656a3b1fd01b395a8afba24c8",
       "pages": 1,
       "formats": [

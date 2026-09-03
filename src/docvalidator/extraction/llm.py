@@ -258,10 +258,7 @@ class LLMExtractor(Extractor):
     def _classify_error(self, exc: Exception) -> Exception:
         if isinstance(
             exc,
-            LLMConfigurationError
-            | LLMRequestError
-            | LLMParsingError
-            | LLMTimeoutError,
+            LLMConfigurationError | LLMRequestError | LLMParsingError | LLMTimeoutError,
         ):
             return exc
         if isinstance(exc, AuthenticationError | PermissionDeniedError):

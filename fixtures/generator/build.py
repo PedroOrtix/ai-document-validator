@@ -1,7 +1,7 @@
 """Build or verify the consolidated golden v2 dataset.
 
-    uv run python -m fixtures.generator.build            # regenerate + write manifests
-    uv run python -m fixtures.generator.build --verify   # re-derive truth + hashes
+uv run python -m fixtures.generator.build            # regenerate + write manifests
+uv run python -m fixtures.generator.build --verify   # re-derive truth + hashes
 """
 
 from __future__ import annotations
@@ -60,9 +60,7 @@ def _remove_orphans(cases: dict[str, list[dict[str, Any]]]) -> None:
 def write_dataset() -> dict[str, Any]:
     txt_build._write_cases(txt_build.build_all())
     pdf_cases = pdf_build.build_all()
-    txt_cases = json.loads((GOLDEN_DIR / "manifest_txt.json").read_text(encoding="utf-8"))[
-        "cases"
-    ]
+    txt_cases = json.loads((GOLDEN_DIR / "manifest_txt.json").read_text(encoding="utf-8"))["cases"]
     scanned_cases = scanned_build.build_all()
     cases = {"txt": txt_cases, "pdf": pdf_cases, "scanned": scanned_cases}
     _remove_orphans(cases)
@@ -121,8 +119,7 @@ def verify_dataset() -> int:
     else:
         try:
             pdf_problems.extend(
-                problem
-                for problem in [f"{pdf_build.verify_all()}"] if problem != "0"
+                problem for problem in [f"{pdf_build.verify_all()}"] if problem != "0"
             )
             pdf_cases = json.loads(manifest_path.read_text(encoding="utf-8"))["cases"]
         except (json.JSONDecodeError, KeyError):

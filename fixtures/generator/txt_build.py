@@ -52,9 +52,7 @@ def _supplier(rng, lang: str) -> tuple[str, str, str, str]:
     """Return supplier, street, city, country."""
     pool = spec_v2.POOLS[lang]
     supplier = rng.choice(pool["seeds"])
-    street = pool["street"].format(
-        name=rng.choice(pool["street_names"]), n=rng.randrange(1, 99)
-    )
+    street = pool["street"].format(name=rng.choice(pool["street_names"]), n=rng.randrange(1, 99))
     city = rng.choice(pool["cities"])
     return supplier, street, city, pool["country_word"]
 
@@ -64,9 +62,7 @@ def _lines(*sections: list[str]) -> str:
     return text + "\n"
 
 
-def _render_t0(
-    row: dict[str, Any], rng: random.Random
-) -> tuple[str, dict[str, Any]]:
+def _render_t0(row: dict[str, Any], rng: random.Random) -> tuple[str, dict[str, Any]]:
     lang = row["lang"]
     scenario = row["scenario"]
     currency = row["currency"]
@@ -126,15 +122,10 @@ def _item_amounts(amount: float, count: int, rng: random.Random) -> list[float]:
     total_cents = round(amount * 100)
     base, remainder = divmod(total_cents, count)
     extra_positions = set(rng.sample(range(count), remainder))
-    return [
-        (base + (1 if position in extra_positions else 0)) / 100
-        for position in range(count)
-    ]
+    return [(base + (1 if position in extra_positions else 0)) / 100 for position in range(count)]
 
 
-def _render_t1(
-    row: dict[str, Any], rng: random.Random
-) -> tuple[str, dict[str, Any]]:
+def _render_t1(row: dict[str, Any], rng: random.Random) -> tuple[str, dict[str, Any]]:
     lang = row["lang"]
     tier = row["tier"]
     index = int(row["case_id"].rsplit("_", 1)[-1])
@@ -198,9 +189,7 @@ def _render_t1(
     fields.append(f"{vat_label}: {tax_id}")
     items = [
         f"{name}    {_format_money(value, item_style)}"
-        for name, value, item_style in zip(
-            item_names, item_amounts, item_styles, strict=True
-        )
+        for name, value, item_style in zip(item_names, item_amounts, item_styles, strict=True)
     ]
     total_text = f"{total_label}    {marker_prefix}{_format_money(amount, amount_style)}"
     total_text += marker_suffix
@@ -218,9 +207,7 @@ def _render_t1(
     return text, expected
 
 
-def _render_t2(
-    row: dict[str, Any], rng: random.Random
-) -> tuple[str, dict[str, Any]]:
+def _render_t2(row: dict[str, Any], rng: random.Random) -> tuple[str, dict[str, Any]]:
     lang = row["lang"]
     scenario = row["scenario"]
     currency = row["currency"]
@@ -238,8 +225,12 @@ def _render_t2(
     index = int(row["case_id"].rsplit("_", 1)[-1])
     date_styles = spec_v2.DATE_STYLES_FULL
     amount_styles = (
-        "comma_decimal", "space_fr", "space_fr",
-        "dot_decimal", "grouped_eu", "dot_decimal",
+        "comma_decimal",
+        "space_fr",
+        "space_fr",
+        "dot_decimal",
+        "grouped_eu",
+        "dot_decimal",
     )
     date_style = date_styles[index % len(date_styles)]
     amount_style = amount_styles[index]
@@ -285,8 +276,7 @@ def _render_t2(
         total_line = f"{total_label}    {_format_money(amount, amount_style)}"
     else:
         total_line = (
-            f"{total_label}    {_currency_display(currency)} "
-            f"{_format_money(amount, amount_style)}"
+            f"{total_label}    {_currency_display(currency)} {_format_money(amount, amount_style)}"
         )
     totals = [*distractor_lines, total_line]
     footer = [f"{vat_label}: {tax_id}", phone, email]
@@ -303,9 +293,17 @@ def _render_t2(
 
 
 def _render_empty(row: dict[str, Any]) -> RenderedCase:
-    fields = {name: None for name in (
-        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
-    )}
+    fields = {
+        name: None
+        for name in (
+            "supplier_name",
+            "invoice_number",
+            "invoice_date",
+            "total_amount",
+            "currency",
+            "tax_id",
+        )
+    }
     expected = {
         "expected_fields": fields,
         "expected_verdict_status": "REVIEW",
@@ -338,9 +336,17 @@ def _render_garbage(row: dict[str, Any]) -> RenderedCase:
     rotation = rng.randrange(len(lines))
     lines = lines[rotation:] + lines[:rotation]
     text = "\n".join(lines) + "\n"
-    fields = {name: None for name in (
-        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
-    )}
+    fields = {
+        name: None
+        for name in (
+            "supplier_name",
+            "invoice_number",
+            "invoice_date",
+            "total_amount",
+            "currency",
+            "tax_id",
+        )
+    }
     expected = {
         "expected_fields": fields,
         "expected_verdict_status": "REVIEW",
@@ -383,22 +389,16 @@ def build_case(row: dict[str, Any]) -> RenderedCase:
     drop = row["scenario"].get("drop")
     if drop == "number":
         dropped_value = str(fields["invoice_number"])
-        text = "\n".join(
-            line for line in text.splitlines() if dropped_value not in line
-        ) + "\n"
+        text = "\n".join(line for line in text.splitlines() if dropped_value not in line) + "\n"
         fields["invoice_number"] = None
     elif drop == "date":
         dropped_value = str(fields["invoice_date"])
-        text = "\n".join(
-            line for line in text.splitlines() if dropped_value not in line
-        ) + "\n"
+        text = "\n".join(line for line in text.splitlines() if dropped_value not in line) + "\n"
         fields["invoice_date"] = None
     elif drop == "total":
         amount_style = _case_amount_style(row["case_id"], row["tier"])
         dropped_value = _format_money(float(fields["total_amount"]), amount_style)
-        text = "\n".join(
-            line for line in text.splitlines() if dropped_value not in line
-        ) + "\n"
+        text = "\n".join(line for line in text.splitlines() if dropped_value not in line) + "\n"
         fields["total_amount"] = None
 
     if row["scenario"].get("no_vat"):
@@ -454,8 +454,12 @@ def _case_amount_style(case_id: str, tier: int) -> str:
             return spec_v2.AMOUNT_STYLES_FULL[index]
         return "dot_decimal"
     return (
-        "comma_decimal", "space_fr", "space_fr",
-        "dot_decimal", "grouped_eu", "dot_decimal",
+        "comma_decimal",
+        "space_fr",
+        "space_fr",
+        "dot_decimal",
+        "grouped_eu",
+        "dot_decimal",
     )[index]
 
 
@@ -504,9 +508,10 @@ def verify(cases: list[RenderedCase]) -> list[str]:
         expected_path = GOLDEN_DIR / f"{case.case_id}.expected.json"
         if txt_path.read_text(encoding="utf-8") != case.text:
             problems.append(f"{case.case_id}: TXT drift")
-        if expected_path.read_text(encoding="utf-8") != json.dumps(
-            case.expected, indent=2, ensure_ascii=False
-        ) + "\n":
+        if (
+            expected_path.read_text(encoding="utf-8")
+            != json.dumps(case.expected, indent=2, ensure_ascii=False) + "\n"
+        ):
             problems.append(f"{case.case_id}: expected JSON drift")
     manifest_path = GOLDEN_DIR / MANIFEST_NAME
     manifest = {
@@ -516,9 +521,10 @@ def verify(cases: list[RenderedCase]) -> list[str]:
             key=lambda entry: entry["case_id"],
         ),
     }
-    if manifest_path.read_text(encoding="utf-8") != json.dumps(
-        manifest, indent=2, ensure_ascii=False
-    ) + "\n":
+    if (
+        manifest_path.read_text(encoding="utf-8")
+        != json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+    ):
         problems.append("manifest_txt.json: drift")
     return problems
 

@@ -41,8 +41,10 @@ class RuleRegistry:
 
     def register_decorator(self, rule_factory: Callable[..., Rule]) -> Callable[..., Rule]:
         """Return a decorator that registers the rule produced by a factory."""
+
         def decorator(*args: object, **kwargs: object) -> Rule:
             rule = rule_factory(*args, **kwargs)
             self.register(rule)
             return rule
+
         return decorator

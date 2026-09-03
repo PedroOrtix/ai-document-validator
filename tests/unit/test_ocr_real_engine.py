@@ -30,9 +30,7 @@ def test_real_rapidocr_extracts_at_least_four_fields(case_id: str) -> None:
 
     pdf = (GOLDEN / f"{case_id}.pdf").read_bytes()
     expected = json.loads((GOLDEN / f"{case_id}.expected.json").read_text())
-    extraction = OcrExtractor().extract(
-        DocumentInput(pdf_bytes=pdf, filename=f"{case_id}.pdf")
-    )
+    extraction = OcrExtractor().extract(DocumentInput(pdf_bytes=pdf, filename=f"{case_id}.pdf"))
     hits = sum(
         1
         for name, value in expected["expected_fields"].items()

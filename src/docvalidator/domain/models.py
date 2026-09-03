@@ -103,7 +103,7 @@ class RuleResult(BaseModel):
     @property
     def requests_review(self) -> bool:
         """True when this failed rule should push the verdict to REVIEW."""
-        return not self.passed and not self.inconclusive and self.severity == "review"
+        return not self.passed and self.severity == "review"
 
 
 class Verdict(BaseModel):

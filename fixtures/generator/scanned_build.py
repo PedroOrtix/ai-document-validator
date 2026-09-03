@@ -1,7 +1,7 @@
 """Build or verify the deterministic scanned-invoice golden lane.
 
-    uv run python -m fixtures.generator.scanned_build            # build all 12 cases
-    uv run python -m fixtures.generator.scanned_build --verify   # verify hashes and truth
+uv run python -m fixtures.generator.scanned_build            # build all 12 cases
+uv run python -m fixtures.generator.scanned_build --verify   # verify hashes and truth
 """
 
 from __future__ import annotations
@@ -233,8 +233,10 @@ def render_case_png(case: RenderCase, rng: random.Random) -> bytes:
                 fill=150,
             )
         y_mm = 82
-        labels = ("Description", "Qty", "Unit price", "Amount") if case.language == "EN" else (
-            "Descripción", "Cant.", "Precio unit.", "Importe"
+        labels = (
+            ("Description", "Qty", "Unit price", "Amount")
+            if case.language == "EN"
+            else ("Descripción", "Cant.", "Precio unit.", "Importe")
         )
         for x_mm, label in zip((15, 99, 124, 160), labels, strict=True):
             _text(draw, x_mm + 1.5, y_mm + 1.7, label, size=8.5)

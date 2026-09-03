@@ -43,10 +43,7 @@ class _FakeAutoExtractor:
     def extract(self, document: DocumentInput) -> DocumentExtraction:
         assert isinstance(document, DocumentInput)
         return DocumentExtraction(
-            fields={
-                name: ExtractedField(value=None, confidence=0)
-                for name in FIELD_NAMES
-            },
+            fields={name: ExtractedField(value=None, confidence=0) for name in FIELD_NAMES},
             metadata=ExtractionMetadata(backend="auto", model=self.model),
         )
 
@@ -56,9 +53,7 @@ def _patch_auto_extractor(monkeypatch: pytest.MonkeyPatch, model: str) -> None:
         def __init__(self, *_args: Any, **_kwargs: Any) -> None:
             self.model = model
 
-    monkeypatch.setattr(
-        "docvalidator.extraction.routing.AutoExtractor", _RoutedFakeAutoExtractor
-    )
+    monkeypatch.setattr("docvalidator.extraction.routing.AutoExtractor", _RoutedFakeAutoExtractor)
 
 
 def _text_pdf() -> bytes:

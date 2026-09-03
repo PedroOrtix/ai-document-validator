@@ -325,7 +325,7 @@
       "language": "EN",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "txt_sha256": "1b4c7b15fe741c6eb3bd58203e95f76461d0b6727ffd6c27223a2f79edafd92a",
       "formats": [
         "txt"
@@ -391,7 +391,7 @@
       "language": "ES",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "txt_sha256": "b11b0f7b919b0ec7c77dd8bb39f3ee237595b141fb56b4d85539897721dd8c64",
       "formats": [
         "txt"
@@ -588,7 +588,7 @@
       "language": "EN",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "5f580467cf6eabb39f48c818aaf1ca7a48e2833837678bee49a9026c610e605d",
       "pages": 1,
       "formats": [
@@ -708,7 +708,7 @@
       "language": "ES",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "497076d8177568371f8500fbcf114a172eece1a994feed001a698fc24351bdf8",
       "pages": 1,
       "formats": [
@@ -830,7 +830,7 @@
       "language": "EN",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "4ea4ded960e328a35b8bf15f9b552a13090ea86d95f7f93761a2bc3405d9fa98",
       "pages": 1,
       "formats": [
@@ -902,7 +902,7 @@
       "language": "ES",
       "tier": 2,
       "scenario": "clean",
-      "expected_verdict": "PASS",
+      "expected_verdict": "REVIEW",
       "pdf_sha256": "03510d8ff06d0515886f937f79f7ef60e6b937c656a3b1fd01b395a8afba24c8",
       "pages": 1,
       "formats": [

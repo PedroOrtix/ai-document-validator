@@ -138,6 +138,8 @@ class CurrencyAllowed:
                 passed=False,
                 message="currency is missing — rule inconclusive",
                 inconclusive=True,
+                severity="review",
+                deciding_fields=("currency",),
             )
         if field.value not in config.allowed_currencies:
             return RuleResult(rule_id=self.rule_id, passed=False, message="currency is not allowed")
