@@ -39,8 +39,14 @@ SYSTEM_PROMPT = (
 )
 
 VISION_INSTRUCTION = (
-    "Read the scanned invoice image and return the six invoice fields requested by "
-    "the structured schema. Use null for fields that are not visible."
+    "Read the scanned invoice image and extract exactly these six fields: "
+    '"supplier_name", "invoice_number", "invoice_date", "total_amount", '
+    '"currency", "tax_id". Use null for fields that are not visible. '
+    "invoice_date must be ISO YYYY-MM-DD. total_amount must be the grand "
+    "total (never subtotal or tax), as a plain number without currency "
+    "symbols or thousand separators. currency must be the ISO 4217 code "
+    "(EUR, GBP...), null if only symbols are visible and ambiguous. "
+    "tax_id is the VAT/registration identifier, null if absent."
 )
 
 _FIELD_NAMES = {
@@ -53,7 +59,7 @@ _FIELD_NAMES = {
 }
 _LLM_CONFIDENCE = 0.75
 _FENCE_PATTERN = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
-_StructuredResponse = dict[str, Any] | InvoiceExtraction | AIMessage
+_StructuredResponse = dict[str, Any] | InvoiceExtraction | AIMessage | DocumentExtraction
 _StructuredModel = Runnable[Any, _StructuredResponse]
 
 
@@ -266,6 +272,9 @@ class LLMExtractor(Extractor):
         self,
         output: _StructuredResponse,
     ) -> DocumentExtraction:
+        if isinstance(output, DocumentExtraction):
+            # raw-cascade step already produced the canonical extraction
+            return output
         if isinstance(output, AIMessage):
             return parse_llm_response(
                 _message_text(output),
@@ -306,6 +315,24 @@ class LLMExtractor(Extractor):
             classified = self._classify_error(exc)
             raise classified from exc
 
+    def _extract_raw(
+        self,
+        model: BaseChatModel,
+        messages: list[BaseMessage],
+    ) -> DocumentExtraction:
+        """Last cascade step: plain invoke + defensive JSON parsing."""
+        try:
+            response = model.invoke(messages)
+        except Exception as exc:
+            raise self._classify_error(exc) from exc
+        if not isinstance(response, AIMessage):
+            raise LLMParsingError("LLM provider returned an invalid completion response")
+        return parse_llm_response(
+            _message_text(response),
+            response.response_metadata,
+            self.settings.validator_llm_model,
+        )
+
     def _classify_error(self, exc: Exception) -> Exception:
         if isinstance(
             exc,
@@ -331,6 +358,12 @@ class LLMExtractor(Extractor):
             error = LLMTimeoutError("LLM extraction timed out")
             raise error from exc
         if isinstance(exc, OutputParserException | ValidationError):
+            # A fenced/markdown-wrapped answer that fails schema validation means
+            # the model is not honouring the structured format (common with
+            # multimodal prompts on some providers) — degrade to raw parsing
+            # instead of failing the request.
+            if "json_invalid" in str(exc) or "Invalid JSON" in str(exc):
+                return _UnsupportedResponseFormat()
             raise LLMParsingError("LLM response has invalid field values") from exc
         if isinstance(exc, openai.APIConnectionError | ConnectionError):
             raise LLMRequestError("unable to reach the LLM provider") from exc

@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
 from docvalidator.domain.models import DocumentExtraction
@@ -14,10 +14,8 @@ from docvalidator.extraction.input import DocumentInput, ExtractionError
 from docvalidator.extraction.llm import (
     VISION_INSTRUCTION,
     LLMExtractor,
-    LLMParsingError,
     _build_chat_model,
     _StructuredResponse,
-    _UnsupportedResponseFormat,
 )
 from docvalidator.extraction.rendering import render_pdf_pages_to_png
 from docvalidator.settings import LLMSettings
@@ -73,15 +71,11 @@ class VisionExtractor(LLMExtractor, Extractor):
         output = self._invoke_structured_output(self._build_model(), [message])
         return self._parse_structured_output(output)
 
-    def _invoke_structured_output(
-        self,
-        model: BaseChatModel,
-        messages: list[BaseMessage],
-    ) -> _StructuredResponse:
-        try:
-            return self._invoke_structured(model, messages)
-        except _UnsupportedResponseFormat as exc:
-            raise LLMParsingError("VLM structured output is not supported by the provider") from exc
+    # _invoke_structured_output is inherited unchanged from LLMExtractor: the
+    # json_schema -> json_mode -> raw degradation cascade must apply to the
+    # multimodal path too — providers often ignore structured-output request
+    # formats for image prompts and return markdown-fenced JSON, which must
+    # fall through to raw defensive parsing instead of failing the request.
 
     def _build_model(self) -> BaseChatModel:
         if self._model is not None:
