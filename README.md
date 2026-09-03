@@ -17,8 +17,7 @@ curl -s localhost:8000/health
 
 The service runs with **zero configuration**: without an `OPENROUTER_API_KEY` the default
 extraction backend is the deterministic offline extractor; with a key present, the LangChain
-LLM extractor becomes the primary engine and the offline extractor becomes its runtime
-fallback. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
+Auto routing becomes the primary engine. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
 the submission date) is delivered out-of-band with the submission — paste it into `.env`
 (see `.env.example`) to run the LLM path; the repo itself never contains any key.
 
@@ -26,15 +25,12 @@ the submission date) is delivered out-of-band with the submission — paste it i
 
 | Condition | Default backend |
 |---|---|
-| `OPENROUTER_API_KEY` present | `llm` (LangChain → OpenRouter, `z-ai/glm-5.3-flash` @ reasoning effort `low`) |
+| `OPENROUTER_API_KEY` present | `auto` (routes text/PDF text → LLM and scanned PDFs → VLM, with OCR fallback) |
 | No key (or key expired) | `offline` (regex/heuristics, deterministic, ~ms) |
 
-- Every request can still override this with `extraction_backend: "offline" | "llm" | "vlm" | "ocr"`.
-- **Runtime fallback:** if the LLM lane fails mid-request (timeout, provider error, unparseable
-  response), the same document is retried once with the offline extractor. The result carries
-  `metadata.backend = "offline-fallback"` and `metadata.fallback_reason`
-  (`llm_timeout` | `llm_request_error` | `llm_parsing_error`), plus a structured warning in the
-  logs. A misconfigured key is NOT masked this way — it returns `503` as before.
+- Every request can still override this with `extraction_backend: "auto" | "offline" | "llm" | "vlm" | "ocr"`.
+- **No API-level runtime fallback:** extraction failures surface through their typed HTTP error
+  mapping; the API does not silently retry with the offline extractor.
 
 ## Golden dataset v2
 
@@ -123,15 +119,20 @@ contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
 
 ### Multi-lane decision table
 
-`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`, or
-`all`. The default is the available network-free set (`offline`, plus `ocr` when
-the optional RapidOCR dependency is installed). `--live` is required for `slm`
-and `vlm`; they are skipped with an explicit message when OpenRouter credentials
-are absent, never crashing the run.
+`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`,
+`auto`, or `all`. The default is the available network-free set (`offline`, plus
+`ocr` when the optional RapidOCR dependency is installed). `--live` is required for
+`slm`, `vlm`, and `auto`; they are skipped with an explicit message when OpenRouter
+credentials are absent, never crashing the run.
 
 Eligibility: `offline` runs txt + pdf (scanned remains a counted miss),
-`slm` runs txt + pdf via markitdown text, and both `vlm` and `ocr` run scanned +
-pdf. The decision table reports one row per lane x format x tier with field
+`slm` runs txt + pdf via markitdown text, both `vlm` and `ocr` run scanned +
+pdf, and `auto` runs the full matrix (txt + pdf + scanned) through the document-type
+router — its metadata sub-route (`llm` / `vlm` / `ocr`) is what the table slices
+into the `auto:llm`, `auto:vlm`, and `auto:ocr` rows, so the per-route cost and
+latency of the router's decisions are visible next to the forced lanes.
+
+The decision table reports one row per lane x format x tier with field
 accuracy, verdict agreement, average measured milliseconds, average provider
 total tokens for LLM lanes, and an estimated per-document cost for
 `z-ai/glm-5.3-flash` (USD $0.000000075/prompt token + $0.00000025/completion
@@ -158,7 +159,7 @@ writes the full report plus its `decision_table` array.
   - `content_b64` — base64-encoded document bytes (PDF by default; decoded as text when
     `filename` ends in `.txt`) — plus optional `filename`;
   - optional `config` (defaults apply when omitted);
-  - optional `extraction_backend`: `offline` | `llm` | `vlm` (default: `llm` with a key, else `offline`).
+  - optional `extraction_backend`: `auto` | `offline` | `llm` | `vlm` | `ocr` (default: `auto` with a key, else `offline`).
 
 Responses: `200` with the verdict (see the sample below), `422` with a structured
 `{"error": {"code", "message", "details"}, "request_id"}` body for invalid input or
@@ -172,15 +173,15 @@ unreadable documents, `5xx` only for upstream LLM failures. Every response echoe
 ```mermaid
 flowchart TD
     A["document (PDF bytes / text) + rule config"] --> B["POST /v1/validate · POST /v1/extract<br/>(FastAPI, structured JSON logs)"]
-    B --> C{extraction backend}
-  C -->|llm · primary with key| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
-  C -->|vlm · explicit scanned lane| E2["VisionExtractor<br/>PDF page image → OpenRouter<br/>z-ai/glm-5.3-flash, reasoning=low"]
+    B --> C{AutoExtractor}
+    C -->|txt| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
+    C -->|pdf-text| T["markitdown + LLMExtractor"] --> OCR["OcrExtractor"]
+    C -->|scanned| E2["VisionExtractor<br/>PDF page image → OpenRouter<br/>z-ai/glm-5.3-flash, reasoning=low"] --> OCR
     C -->|offline · no-key default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
-    E -->|on LLM failure| D2["offline-fallback<br/>retry once + fallback_reason"]
-    C -->|llm-recorded| F["RecordedLLMExtractor<br/>recorded responses for tests"]
     D --> G["DocumentExtraction<br/>value + confidence + evidence per field"]
     E --> G
-    F --> G
+    T --> G
+    OCR --> G
     G --> H["RulesEngine<br/>pluggable rule registry"]
     H --> I["Verdict: PASS / FAIL / REVIEW<br/>rule results + model metadata"]
 ```

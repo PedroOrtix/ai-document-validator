@@ -1,4 +1,4 @@
-"""Integration tests: LLM-first backend selection and offline runtime fallback (API)."""
+"""Integration tests: LLM-first backend selection and typed error handling (API)."""
 
 from pathlib import Path
 from typing import Any
@@ -53,7 +53,7 @@ class TestBackendSelection:
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": ""}):
             assert _default_backend() == "offline"
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test-key"}):
-            assert _default_backend() == "llm"
+            assert _default_backend() == "auto"
 
     def test_validate_without_key_uses_offline(self, _no_key: None) -> None:
         response = client.post(
@@ -82,7 +82,7 @@ class TestLLMBackendErrors:
         assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
         assert response.json()["error"]["code"] == "llm_configuration_error"
 
-    def test_llm_request_error_falls_back_to_offline(
+    def test_llm_request_error_returns_502(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
@@ -91,13 +91,10 @@ class TestLLMBackendErrors:
             "/v1/validate",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
-        assert response.status_code == status.HTTP_200_OK
-        body = response.json()
-        assert body["extraction"]["metadata"]["backend"] == "offline-fallback"
-        assert body["extraction"]["metadata"]["fallback_reason"] == "llm_request_error"
-        assert body["status"] in {"PASS", "FAIL", "REVIEW"}
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert response.json()["error"]["code"] == "llm_response_error"
 
-    def test_llm_timeout_falls_back_to_offline(
+    def test_llm_timeout_returns_504(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_llm_extract(monkeypatch, LLMTimeoutError("slow"))
@@ -106,12 +103,10 @@ class TestLLMBackendErrors:
             "/v1/validate",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
-        assert response.status_code == status.HTTP_200_OK
-        metadata = response.json()["extraction"]["metadata"]
-        assert metadata["backend"] == "offline-fallback"
-        assert metadata["fallback_reason"] == "llm_timeout"
+        assert response.status_code == status.HTTP_504_GATEWAY_TIMEOUT
+        assert response.json()["error"]["code"] == "llm_timeout"
 
-    def test_llm_parsing_error_falls_back_to_offline(
+    def test_llm_parsing_error_returns_502(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_llm_extract(monkeypatch, LLMParsingError("garbage"))
@@ -120,12 +115,10 @@ class TestLLMBackendErrors:
             "/v1/validate",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
-        assert response.status_code == status.HTTP_200_OK
-        metadata = response.json()["extraction"]["metadata"]
-        assert metadata["backend"] == "offline-fallback"
-        assert metadata["fallback_reason"] == "llm_parsing_error"
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert response.json()["error"]["code"] == "llm_response_error"
 
-    def test_extract_endpoint_llm_failure_also_falls_back(
+    def test_extract_endpoint_llm_failure_is_typed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
@@ -134,12 +127,12 @@ class TestLLMBackendErrors:
             "/v1/extract",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["metadata"]["backend"] == "offline-fallback"
+        assert response.status_code == status.HTTP_502_BAD_GATEWAY
+        assert response.json()["error"]["code"] == "llm_response_error"
 
 
-class TestOfflineFallbackNotMasked:
-    def test_llm_configuration_error_does_not_fall_back(
+class TestLLMConfiguration:
+    def test_llm_configuration_error_returns_503_without_fallback(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Explicit llm backend with a rejected key returns 503, never offline."""
@@ -154,8 +147,8 @@ class TestOfflineFallbackNotMasked:
 
 
 class TestOfflineExtractorSanity:
-    def test_fallback_source_extractor_reads_golden_fixture(self) -> None:
-        """The offline fallback must extract from the v2 golden fixture."""
+    def test_offline_extractor_reads_golden_fixture(self) -> None:
+        """The credential-free backend extracts from the v2 golden fixture."""
         extraction = OfflineExtractor().extract(DocumentInput(text=FULL_DOC_TEXT))
         assert extraction.metadata.backend == "offline"
         values = {k: f.value for k, f in extraction.fields.items()}

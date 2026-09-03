@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 
 from docvalidator.domain.models import DocumentExtraction
@@ -13,9 +13,9 @@ from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.input import DocumentInput, ExtractionError
 from docvalidator.extraction.llm import (
     VISION_INSTRUCTION,
+    InvoiceExtraction,
     LLMExtractor,
     _build_chat_model,
-    _StructuredResponse,
 )
 from docvalidator.extraction.rendering import render_pdf_pages_to_png
 from docvalidator.settings import LLMSettings
@@ -28,7 +28,9 @@ class VisionExtractor(LLMExtractor, Extractor):
         self,
         settings: LLMSettings | None = None,
         model: BaseChatModel | None = None,
-        structured_model: Runnable[Any, _StructuredResponse] | None = None,
+        structured_model: Runnable[
+            Any, dict[str, AIMessage | InvoiceExtraction | None]
+        ] | None = None,
     ) -> None:
         super().__init__(settings, model, structured_model)
 
@@ -68,14 +70,10 @@ class VisionExtractor(LLMExtractor, Extractor):
                 {"type": "text", "text": VISION_INSTRUCTION},
             ]
         )
-        output = self._invoke_structured_output(self._build_model(), [message])
-        return self._parse_structured_output(output)
+        return self._invoke_messages([message])
 
-    # _invoke_structured_output is inherited unchanged from LLMExtractor: the
-    # json_schema -> json_mode -> raw degradation cascade must apply to the
-    # multimodal path too — providers often ignore structured-output request
-    # formats for image prompts and return markdown-fenced JSON, which must
-    # fall through to raw defensive parsing instead of failing the request.
+    # The shared chain performs one structured-output call; parse failures are
+    # typed errors rather than retries through another response format.
 
     def _build_model(self) -> BaseChatModel:
         if self._model is not None:
