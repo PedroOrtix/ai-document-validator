@@ -37,7 +37,6 @@ class ExtractionMetadata(BaseModel):
     model: str | None = None
     provider: str | None = None
     total_tokens: int | None = None
-    total_tokens: int | None = None
 
 
 class DocumentExtraction(BaseModel):
