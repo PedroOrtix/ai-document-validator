@@ -44,7 +44,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["offline", "llm", "vlm", "ocr"] | None = None
+    extraction_backend: Literal["auto", "offline", "llm", "vlm", "ocr"] | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":
@@ -99,7 +99,7 @@ def _error_response(
 
 
 def _default_backend() -> str:
-    return "llm" if os.environ.get("OPENROUTER_API_KEY") else "offline"
+    return "auto" if os.environ.get("OPENROUTER_API_KEY") else "offline"
 
 
 def _validation_error(
@@ -304,16 +304,15 @@ def _run_pipeline(
     document: DocumentInput,
     config: ValidationConfig,
     backend: str,
-    request_id: str,
 ) -> Verdict:
-    extraction = _extract_with_fallback(document, backend, request_id)
+    extraction = _extract(document, backend)
     verdict = RulesEngine().evaluate(extraction, config)
     return verdict
 
 
 def _select_backend(requested: str | None) -> str:
     backend = requested or _default_backend()
-    if backend not in {"offline", "llm", "vlm", "ocr"}:
+    if backend not in {"auto", "offline", "llm", "vlm", "ocr"}:
         raise APIError("unsupported_backend", f"unknown extraction backend: {backend}")
     return backend
 
@@ -323,6 +322,11 @@ def _llm_api_key() -> str:
 
 
 def _build_extractor(backend: str) -> Extractor:
+    if backend == "auto":
+        from docvalidator.extraction.routing import AutoExtractor
+        from docvalidator.settings import LLMSettings
+
+        return AutoExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
     if backend == "llm":
         from docvalidator.extraction.llm import LLMExtractor
         from docvalidator.settings import LLMSettings
@@ -338,43 +342,9 @@ def _build_extractor(backend: str) -> Extractor:
     return OfflineExtractor()
 
 
-_FALLBACK_REASONS: dict[type[Exception], str] = {
-    LLMRequestError: "llm_request_error",
-    LLMParsingError: "llm_parsing_error",
-    LLMTimeoutError: "llm_timeout",
-}
-
-
-def _extract_with_fallback(
-    document: DocumentInput,
-    backend: str,
-    request_id: str,
-) -> DocumentExtraction:
-    """Extract with the requested backend, retrying LLM failures once offline."""
-    try:
-        return _build_extractor(backend).extract(document)
-    except tuple(_FALLBACK_REASONS) as exc:
-        if backend != "llm":
-            raise
-        reason = _FALLBACK_REASONS[type(exc)]
-        logger.warning(
-            "llm extraction failed; falling back to offline extractor",
-            extra={
-                "log_data": {
-                    "request_id": request_id,
-                    "backend": backend,
-                    "reason": reason,
-                }
-            },
-        )
-        fallback = OfflineExtractor().extract(document)
-        return fallback.model_copy(
-            update={
-                "metadata": fallback.metadata.model_copy(
-                    update={"backend": "offline-fallback", "fallback_reason": reason}
-                )
-            }
-        )
+def _extract(document: DocumentInput, backend: str) -> DocumentExtraction:
+    """Extract fields with the selected backend without runtime degradation."""
+    return _build_extractor(backend).extract(document)
 
 
 @app.post(
@@ -386,7 +356,7 @@ async def extract(request: Request) -> DocumentExtraction:
     parsed = await _parse_request(request)
     backend = _select_backend(parsed.extraction_backend)
     request.state.backend = backend
-    return _extract_with_fallback(parsed.document, backend, request.state.request_id)
+    return _extract(parsed.document, backend)
 
 
 @app.post(
@@ -399,7 +369,7 @@ async def validate(request: Request) -> ValidateResponse:
     backend = _select_backend(parsed.extraction_backend)
     request.state.backend = backend
     verdict = _run_pipeline(
-        parsed.document, parsed.config, backend, request.state.request_id
+        parsed.document, parsed.config, backend
     )
     request.state.verdict_status = verdict.status
     return ValidateResponse(**verdict.model_dump(), request_id=request.state.request_id)
