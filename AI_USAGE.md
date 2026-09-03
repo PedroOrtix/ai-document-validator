@@ -104,3 +104,8 @@ timeout after Codex had finished the code and test surfaces; the owner completed
 (ruff fixes, README/.env.example/this section, committed brief) and re-verified every gate.
 Attribution: code + tests = Codex; close-out + verification = owner. The examiner-only API key
 ($1 budget, one-week expiry) is delivered out-of-band and never enters this repository.
+
+## OCR: local PaddleOCR-VL-1.6
+
+PaddleOCR-VL-1.6 and the Hugging Face Transformers implementation were used as the local OCR
+engine.

@@ -13,3 +13,11 @@ class LLMSettings(BaseSettings):
     validator_llm_model: str = "z-ai/glm-5.3-flash"
     validator_llm_reasoning_effort: str = "low"
     validator_llm_timeout_seconds: float = 30.0
+
+
+class ValidatorOcrSettings(BaseSettings):
+    """Configuration for the local PaddleOCR-VL extractor."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    validator_ocr_dpi: int = 200

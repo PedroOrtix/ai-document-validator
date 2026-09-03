@@ -14,6 +14,20 @@ RUN uv sync --frozen --no-dev || uv sync --no-dev
 # --- Runtime stage ---
 FROM python:3.12-slim-bookworm
 
+ENV PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/models/huggingface \
+    TRANSFORMERS_OFFLINE=1
+
+RUN mkdir -p /models/huggingface && \
+    python -m pip install --no-cache-dir \
+      "pypdfium2>=4.30" \
+      "pillow>=10.0" \
+      "rapidocr-onnxruntime>=1.4" \
+      "numpy>=1.26"
+
+# Pre-download RapidOCR (PP-OCRv5) ONNX weights at build time so runtime needs no network.
+RUN python -c "from rapidocr_onnxruntime import RapidOCR; RapidOCR()"
+
 WORKDIR /app
 
 # Copy the virtual environment from the builder (self-contained, uv binary not needed at runtime)

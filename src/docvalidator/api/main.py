@@ -23,6 +23,7 @@ from docvalidator.extraction.llm import (
     LLMRequestError,
     LLMTimeoutError,
 )
+from docvalidator.extraction.ocr import OcrExtractor
 from docvalidator.rules_engine import RulesEngine
 
 logger = configure_logging()
@@ -43,7 +44,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["offline", "llm"] | None = None
+    extraction_backend: Literal["offline", "llm", "ocr"] | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":
@@ -307,7 +308,7 @@ def _run_pipeline(
 
 def _select_backend(requested: str | None) -> str:
     backend = requested or _default_backend()
-    if backend not in {"offline", "llm"}:
+    if backend not in {"offline", "llm", "ocr"}:
         raise APIError("unsupported_backend", f"unknown extraction backend: {backend}")
     return backend
 
@@ -322,6 +323,8 @@ def _build_extractor(backend: str) -> Extractor:
         from docvalidator.settings import LLMSettings
 
         return LLMExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
+    if backend == "ocr":
+        return OcrExtractor()
     return OfflineExtractor()
 
 
