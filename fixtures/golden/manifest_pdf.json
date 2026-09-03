@@ -43,7 +43,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "cdbfd9b96e88dc6a641b8083d6c8592ce8df3e3e95737213c7f64c3f78698c9e",
+      "pdf_sha256": "59181a87f52b8d57ded3d5afa40e947b262ab68631aa06403ec82299d4e7baff",
       "pages": 1,
       "formats": [
         "pdf"
@@ -55,7 +55,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "03ae053859005dc8ba2f6ab45e6f35247cf39cb401f58806b28e0b9f1beaf685",
+      "pdf_sha256": "719f25a0fe6123c93c7fb8d4c0d6b3a35175a64b25d3aa9868ec897c0770bb5d",
       "pages": 1,
       "formats": [
         "pdf"
@@ -67,7 +67,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "11db713baf83a67975d46871fd1f0028cd20ed897fb703cee75149c3592ce2ad",
+      "pdf_sha256": "9f07c514c4b2dab492128b7c2e4f9724e127446754aaa034a1eb04972f3708fc",
       "pages": 1,
       "formats": [
         "pdf"
@@ -79,7 +79,7 @@
       "tier": 1,
       "scenario": "missing_date",
       "expected_verdict": "REVIEW",
-      "pdf_sha256": "bb72370f3513351067af9e5811d9f0597e05bbe4b49c12ccff4456ca871529ba",
+      "pdf_sha256": "6e7bf3da094452a65905abf2dc2a216275101839266d6cb40572f6fb0e9155ea",
       "pages": 1,
       "formats": [
         "pdf"
@@ -163,7 +163,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "47e5b881969f4352a51bdd2c92028d5a6ceea5eecac8504864f40c731f7aed6b",
+      "pdf_sha256": "0950e7fc1642c5ee598873e5d99915eff32414d6bc05efd52adf46a19aa7a792",
       "pages": 1,
       "formats": [
         "pdf"
@@ -175,7 +175,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "ece1a79f167ed8bcfc3af4665028823fa90469f1ab1457f8ab8e206cf72fefab",
+      "pdf_sha256": "26516b75269fa1ff9531039e098dc12eee9c750d5b48f3ebff34450ee81c3176",
       "pages": 1,
       "formats": [
         "pdf"
@@ -187,7 +187,7 @@
       "tier": 1,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "d26699027ce54a7eb27acb2654a4d63a22e65b064b9334ed71e674814b277e0e",
+      "pdf_sha256": "da515e014525781835f107c4d710a517b5f16b0d086c468bee8c900022388243",
       "pages": 1,
       "formats": [
         "pdf"
@@ -199,7 +199,7 @@
       "tier": 1,
       "scenario": "missing_date",
       "expected_verdict": "REVIEW",
-      "pdf_sha256": "fdff0dc23775f2f6433849d1a87e10c8164e4120d262ea98ce4bb37c4b73fb47",
+      "pdf_sha256": "61f6a34614ff02dee75128143344278b0d55ab13889454bc8a6971e8c431e1f3",
       "pages": 1,
       "formats": [
         "pdf"
@@ -211,7 +211,7 @@
       "tier": 2,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "5c575e33c6b5a9b989546d9d2e9eff273a91126c6b8383cda96a17820ac269df",
+      "pdf_sha256": "38f98908af46b703d312378978ead741f2bffde82793c149fa981492b27f028f",
       "pages": 1,
       "formats": [
         "pdf"
@@ -223,7 +223,7 @@
       "tier": 2,
       "scenario": "clean",
       "expected_verdict": "PASS",
-      "pdf_sha256": "0c5ca4e9782a76a34de446bf88c345ed741ad618216a90557cea64c7705e5215",
+      "pdf_sha256": "497076d8177568371f8500fbcf114a172eece1a994feed001a698fc24351bdf8",
       "pages": 1,
       "formats": [
         "pdf"
@@ -235,7 +235,7 @@
       "tier": 2,
       "scenario": "disallowed_currency",
       "expected_verdict": "FAIL",
-      "pdf_sha256": "369c0e4d699bf48c8ecd3a16eee0f3a3c13090a65502d1ee349a388dff4116d4",
+      "pdf_sha256": "cccfabdf92e71315c38ae198ed67031ae9544aadab2986afcc9c3fe967d6424f",
       "pages": 1,
       "formats": [
         "pdf"

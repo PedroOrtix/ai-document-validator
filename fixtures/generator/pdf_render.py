@@ -221,11 +221,16 @@ def _table(
     *,
     wrapped: bool,
 ) -> float:
+    header_labels = (
+        ("Description", "Qty", "Unit price", "Amount")
+        if case.language == "EN"
+        else ("Descripción", "Cant.", "Precio unit.", "Importe")
+    )
     columns = (
-        (MARGIN, 84.0, "Description"),
-        (99.0, 25.0, "Qty"),
-        (124.0, 36.0, "Unit price"),
-        (160.0, 35.0, "Amount"),
+        (MARGIN, 84.0, header_labels[0]),
+        (99.0, 25.0, header_labels[1]),
+        (124.0, 36.0, header_labels[2]),
+        (160.0, 35.0, header_labels[3]),
     )
     row_height = 7.0 if not wrapped else 8.5
     header_y = 82.0
@@ -251,6 +256,10 @@ def _table(
             pdf.set_font_size(8)
             pdf.multi_cell(columns[0][1] - 3, 3.5, cells[0])
             description_height = max(row_height, pdf.get_y() - y + 1)
+        else:
+            pdf.set_xy(columns[0][0] + 1.5, y + 1.7)
+            pdf.set_font_size(8)
+            pdf.cell(columns[0][1] - 3, 4, cells[0])
         pdf.rect(MARGIN, y, A4_WIDTH - 2 * MARGIN, description_height)
         for x, _width, _ in columns[1:]:
             pdf.line(x, y, x, y + description_height)
