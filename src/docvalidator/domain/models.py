@@ -36,6 +36,7 @@ class ExtractionMetadata(BaseModel):
     duration_ms: float | None = None
     model: str | None = None
     provider: str | None = None
+    total_tokens: int | None = None
 
 
 class DocumentExtraction(BaseModel):

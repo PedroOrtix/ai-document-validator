@@ -1,0 +1,7 @@
+{
+  "matches": ["Northwind Supplies GmbH"],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": "openrouter",
+  "usage": {"total_tokens": 191},
+  "raw_response": "{\"supplier_name\":\"Northwind Supplies GmbH\",\"invoice_number\":\"INV-2026-0001\",\"invoice_date\":\"2026-08-20\",\"total_amount\":1236.0,\"currency\":\"EUR\",\"tax_id\":\"DE123456789\"}"
+}

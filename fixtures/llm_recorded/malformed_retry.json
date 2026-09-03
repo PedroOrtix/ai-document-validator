@@ -1,0 +1,7 @@
+{
+  "matches": ["@@@@ ####"],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": "openrouter",
+  "usage": {"total_tokens": 82},
+  "raw_response": "```json\n{\"supplier_name\":null,\"invoice_number\":null,\"invoice_date\":null,\"total_amount\":null,\"currency\":null,\"tax_id\":null}\n```"
+}

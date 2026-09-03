@@ -1,6 +1,7 @@
 import json
 from base64 import b64encode
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -100,10 +101,11 @@ def test_reject_json_with_both_content_sources() -> None:
     assert response.status_code == 422
 
 
-def test_llm_backend_without_adapter_returns_501() -> None:
-    response = client.post(
-        "/v1/extract", json={"text": invoice_text, "extraction_backend": "llm"}
-    )
+def test_llm_backend_without_api_key_returns_503() -> None:
+    with patch("docvalidator.api.main._llm_api_key", return_value=""):
+        response = client.post(
+            "/v1/extract", json={"text": invoice_text, "extraction_backend": "llm"}
+        )
 
-    assert response.status_code == 501
-    assert response.json()["error"]["code"] == "unsupported_backend"
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "llm_configuration_error"
