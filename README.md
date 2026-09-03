@@ -96,9 +96,12 @@ to measure that.
 ## Evaluation harness
 
 ```bash
-uv run python -m eval.run --as-of 2026-09-03   # both lanes over the v2 golden set, GATES section
+uv run python -m eval.run --as-of 2026-09-03   # network-free lanes + GATES section
 # hard gates by tier: tier0 >= 0.95/0.95, tier1 >= 0.60/0.25; tier2 and scenario slices informative
 uv run python -m eval.run --no-gates           # report only
+uv run --extra ocr python -m eval.run --lane offline,ocr --as-of 2026-09-03
+uv run python -m eval.run --lane all --live --as-of 2026-09-03
+uv run python -m eval.run --lane all --live --as-of 2026-09-03 --json-out eval/report.json
 ```
 
 The offline extractor runs over the v2.2 golden set (43 txt + 23 digital-born
@@ -117,6 +120,24 @@ The v2.2 dataset also contains 12 deterministic image-only scanned PDFs
 lane deliberately cannot read them; `--include-scanned` (default on) reports
 them as a separate `scanned` lane for future VLM/OCR measurements and does not
 contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
+
+### Multi-lane decision table
+
+`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`, or
+`all`. The default is the available network-free set (`offline`, plus `ocr` when
+the optional RapidOCR dependency is installed). `--live` is required for `slm`
+and `vlm`; they are skipped with an explicit message when OpenRouter credentials
+are absent, never crashing the run.
+
+Eligibility: `offline` runs txt + pdf (scanned remains a counted miss),
+`slm` runs txt + pdf via markitdown text, and both `vlm` and `ocr` run scanned +
+pdf. The decision table reports one row per lane x format x tier with field
+accuracy, verdict agreement, average measured milliseconds, average provider
+total tokens for LLM lanes, and an estimated per-document cost for
+`z-ai/glm-5.3-flash` (USD $0.000000075/prompt token + $0.00000025/completion
+token; blended against recorded total tokens). Local lanes are $0. Extraction
+and API failures count as field/verdict misses. `--json-out eval/report.json`
+writes the full report plus its `decision_table` array.
 
 ## API
 

@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -25,9 +27,23 @@ from docvalidator.domain.models import (
     ExtractionMetadata,
     ValidationConfig,
 )
-from docvalidator.extraction import DocumentInput, OfflineExtractor
+from docvalidator.extraction import DocumentInput
+from docvalidator.extraction.base import Extractor
+from docvalidator.extraction.llm import LLMExtractor
+from docvalidator.extraction.ocr import OcrExtractor
+from docvalidator.extraction.vision import VisionExtractor
 from docvalidator.rules_engine import RulesEngine
 
+from .lanes import (
+    LANE_NAMES,
+    LanePlan,
+    decision_table,
+    default_lane_request,
+    extraction_telemetry,
+    make_offline_extractor,
+    print_decision_table,
+    resolve_lane_plans,
+)
 from .metrics import field_metrics, verdict_metrics
 
 FIELD_NAMES = (
@@ -40,6 +56,19 @@ FIELD_NAMES = (
 )
 GOLDEN_DIR = Path("fixtures/golden")
 DEFAULT_AS_OF = date(2026, 9, 3)
+ExtractorFactory = Callable[[], Extractor]
+
+
+def make_llm_extractor() -> LLMExtractor:
+    return LLMExtractor()
+
+
+def make_vision_extractor() -> VisionExtractor:
+    return VisionExtractor()
+
+
+def make_ocr_extractor() -> OcrExtractor:
+    return OcrExtractor()
 
 
 def load_manifest() -> dict[str, Any]:
@@ -59,7 +88,7 @@ def run_case(
     expected: dict[str, Any],
     engine: RulesEngine,
     config_values: dict[str, Any],
-    extractor: OfflineExtractor,
+    extractor: Extractor,
     *,
     today: date,
 ) -> dict[str, Any]:
@@ -67,6 +96,7 @@ def run_case(
         extraction = extractor.extract(document)
     except Exception:
         extraction = no_response_extraction()
+    telemetry = extraction_telemetry(extraction)
     verdict = engine.evaluate(extraction, ValidationConfig(**config_values), today=today)
     return {
         "case_id": case_id,
@@ -82,6 +112,8 @@ def run_case(
             for r in verdict.rule_results
         ],
         "slices": expected.get("slices", {}),
+        "duration_ms": telemetry["duration_ms"],
+        "total_tokens": telemetry["total_tokens"],
     }
 
 
@@ -103,9 +135,12 @@ def run_lane(
     cases: list[dict[str, Any]],
     *,
     today: date,
+    lane_name: str = "offline",
+    formats: tuple[str, ...] = ("txt", "pdf", "scanned"),
+    extractor_factory: Callable[[], Extractor] = make_offline_extractor,
 ) -> dict[str, Any]:
-    """Run one lane (list of prepared cases) and compute metrics + slices."""
-    extractor = OfflineExtractor()
+    """Run one engine lane and compute metrics, slices, and telemetry."""
+    extractor = extractor_factory()
     engine = RulesEngine()
     config_values = {"max_age_days": 90, "allowed_currencies": ["EUR", "GBP"]}
     results = [
@@ -130,12 +165,23 @@ def run_lane(
                 )
             )
     verdict_records = [(r["predicted_verdict"], r["expected_verdict"]) for r in results]
+    fields = field_metrics(field_records, field_names=FIELD_NAMES)
+    verdict = verdict_metrics(verdict_records)
+    aggregate = {
+        "field_accuracy": lane_field_accuracy(
+            {"case_count": len(results), "fields": fields}
+        ),
+        "verdict_agreement": verdict["agreement_rate"],
+    }
     return {
+        "lane": lane_name,
+        "formats": list(formats),
         "case_count": len(results),
-        "fields": field_metrics(field_records, field_names=FIELD_NAMES),
-        "verdict": verdict_metrics(verdict_records),
+        "fields": fields,
+        "verdict": verdict,
         "slices": slice_metrics(results),
         "results": results,
+        "aggregate": aggregate,
     }
 
 
@@ -386,6 +432,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-gates", dest="gates", action="store_false")
     parser.add_argument("--min-field-accuracy", type=float, default=None)
     parser.add_argument("--min-verdict-agreement", type=float, default=None)
+    parser.add_argument(
+        "--lane",
+        action="append",
+        default=None,
+        metavar="LANE[,LANE...]",
+        help="offline, slm, vlm, ocr, or all; repeatable (default: available offline/ocr)",
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="enable slm/vlm; both lanes also require OPENROUTER_API_KEY",
+    )
+    parser.add_argument(
+        "--json-out",
+        type=Path,
+        help="write the full report and decision table here",
+    )
     return parser.parse_args()
 
 
@@ -400,19 +463,72 @@ def main() -> None:
     txt_cases = prepare_cases(manifest, txt_only=True)
     pdf_cases = prepare_cases(manifest, pdf_only=True)
     scanned_cases = prepare_scanned_cases(manifest)
-    lanes = {"txt": run_lane(txt_cases, today=today)}
+    case_sets = {"txt": txt_cases, "pdf": pdf_cases, "scanned": scanned_cases}
+    available_formats: set[str] = set()
+    if args.txt_only or not args.pdf_only:
+        available_formats.add("txt")
     if not args.txt_only:
-        lanes["pdf"] = run_lane(pdf_cases, today=today)
+        available_formats.add("pdf")
     if args.include_scanned and not args.txt_only and not args.pdf_only:
-        lanes["scanned"] = run_lane(scanned_cases, today=today)
+        available_formats.add("scanned")
+
+    raw_lanes = args.lane or [",".join(default_lane_request())]
+    requested: list[str] = []
+    for lane_spec in raw_lanes:
+        requested.extend(
+            lane.strip().lower() for lane in lane_spec.split(",") if lane.strip()
+        )
+    if "all" in requested:
+        requested = list(LANE_NAMES)
+    try:
+        plans = resolve_lane_plans(
+            tuple(requested),
+            live=args.live,
+            has_api_key=bool(os.environ.get("OPENROUTER_API_KEY")),
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    factories: dict[str, ExtractorFactory] = {
+        "offline": make_offline_extractor,
+        "slm": make_llm_extractor,
+        "vlm": make_vision_extractor,
+        "ocr": make_ocr_extractor,
+    }
+    lanes: dict[str, Any] = {}
+    skipped: list[LanePlan] = []
+    for plan in plans:
+        if not plan.available:
+            skipped.append(plan)
+            continue
+        formats = tuple(
+            format_name for format_name in plan.formats if format_name in available_formats
+        )
+        if not formats:
+            continue
+        lane_cases = [case for format_name in formats for case in case_sets[format_name]]
+        lanes[plan.name] = run_lane(
+            lane_cases,
+            today=today,
+            lane_name=plan.name,
+            formats=formats,
+            extractor_factory=factories[plan.name],
+        )
 
     report = {"as_of": today.isoformat(), "lanes": lanes}
     print_report(report)
-    if args.gates:
-        print_gates(report)
+    for plan in skipped:
+        print(f"SKIP {plan.name}: {plan.skip_reason}")
+    print_decision_table(report)
+    json_payload = {**report, "decision_table": decision_table(report)}
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
-        args.json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        args.json.write_text(json.dumps(json_payload, indent=2) + "\n", encoding="utf-8")
+    if args.json_out:
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
+        args.json_out.write_text(json.dumps(json_payload, indent=2) + "\n", encoding="utf-8")
+    if args.gates:
+        print_gates(report)
 
     legacy_thresholds = (
         args.min_field_accuracy is not None or args.min_verdict_agreement is not None

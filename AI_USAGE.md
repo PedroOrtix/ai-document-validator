@@ -118,3 +118,9 @@ OpenRouter VLM settings/API wiring, network-free unit/integration tests, and thi
 The local OCR engine is RapidOCR (PP-OCRv5, ONNX Runtime) behind the same pipeline/seam.
 PaddleOCR-VL-1.6 via transformers was implemented and rejected after a live latency
 measurement (~30+s/doc on 24 CPU cores); the decision and rationale are in the README.
+
+## Multi-lane engine comparison (F3)
+
+Codex implemented the multi-lane eval CLI, decision-table telemetry and cost
+model, fake-extractor tests, and docs; the owner will run the live
+`slm`/`vlm` comparison with the OpenRouter key.
