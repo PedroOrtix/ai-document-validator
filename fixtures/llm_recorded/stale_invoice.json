@@ -1,7 +1,0 @@
-{
-  "matches": ["INV-2025-0098"],
-  "model": "z-ai/glm-5.3-flash",
-  "provider": "openrouter",
-  "usage": {"total_tokens": 188},
-  "raw_response": "{\"supplier_name\":\"Old Line Logistics AB\",\"invoice_number\":\"INV-2025-0098\",\"invoice_date\":\"2025-06-30\",\"total_amount\":2140.0,\"currency\":\"EUR\",\"tax_id\":\"SE556789123401\"}"
-}

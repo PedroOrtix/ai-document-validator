@@ -1,7 +1,0 @@
-{
-  "matches": ["INV-2026-0044"],
-  "model": "z-ai/glm-5.3-flash",
-  "provider": "openrouter",
-  "usage": {"total_tokens": 176},
-  "raw_response": "{\"supplier_name\":\"Atlantic Software Inc.\",\"invoice_number\":\"INV-2026-0044\",\"invoice_date\":\"2026-08-10\",\"total_amount\":1944.0,\"currency\":\"USD\",\"tax_id\":\"US123456789\"}"
-}

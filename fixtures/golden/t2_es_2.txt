@@ -1,0 +1,25 @@
+Emisor
+Logística Bilbao
+S.L.
+Calle Norte 47
+Valladolid, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Toledo
+España
+
+Referencia: 2024/7497
+Fecha Factura: 27.07.2026
+Order Ref: ORD-2026-8561
+Delivery Note: DN-2040
+
+Subtotal    20 235,01
+IVA (21 %)    4 441,83
+Total sin IVA    20 235,01
+Importe Total    £ 24 676,84
+
+VAT: ES17857764
++34 9156 933 761
+billing@logísticabilbaosl.example.com

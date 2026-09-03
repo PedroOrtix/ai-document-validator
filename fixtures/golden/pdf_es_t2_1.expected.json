@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Panadería Miralvalle S.L.",
+    "invoice_number": "2026/9740",
+    "invoice_date": "2026-07-20",
+    "total_amount": 589572.5,
+    "currency": null,
+    "tax_id": "ES37000939"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "space_fr",
+    "date_style": "spelled",
+    "scenario": "clean",
+    "format": "pdf",
+    "pages": 1
+  }
+}

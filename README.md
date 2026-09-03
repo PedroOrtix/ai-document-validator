@@ -17,21 +17,73 @@ curl -s localhost:8000/health
 
 No API keys required — the default extraction backend is a deterministic offline extractor.
 
+## Golden dataset v2
+
+The fixed evaluation set is generated, not hand-maintained. It contains 60
+documents: 40 text cases and 20 single-page PDF cases, split evenly between
+English and Spanish. Tier 0 is canonical, tier 1 adds label and format variants,
+and tier 2 stresses rare labels, mixed formats, and unlabeled/mixed currency.
+Every case carries generated field truth and verdict truth.
+
+| Lane | Tier | Count | Scenarios |
+|---|---:|---:|---|
+| TXT | 0 | 12 | clean, stale |
+| TXT | 1 | 16 | clean, stale variants |
+| TXT | 2 | 12 | missing total, mixed/unlabeled currency |
+| PDF | 0 | 6 | clean, stale |
+| PDF | 1 | 8 | clean, missing date |
+| PDF | 2 | 6 | clean, mixed/unlabeled currency |
+
+Regenerate or verify it with:
+
+```bash
+uv run python -m fixtures.generator.build
+uv run python -m fixtures.generator.build --verify
+```
+
+The build writes `manifest_txt.json` and `manifest_pdf.json` fragments plus the
+merged `manifest.json`; `--verify` re-derives both lanes and checks hashes and
+orphan files. There is no tier 3 lane: rule scenarios are distributed in tiers
+0–2 and remain represented by their expected verdicts.
+
+### Gates policy
+
+`eval.run` prints a `GATES` section by default:
+
+- `tier:0` is hard for each lane: field accuracy and verdict agreement >= `0.95`.
+- `tier:1` is hard for each lane: field accuracy >= `0.60` and verdict agreement >= `0.25`.
+- `tier:2` and scenario slices are informative.
+- Lane and global lane aggregates are informative; `--no-gates` preserves the
+  legacy optional `--min-field-accuracy` and `--min-verdict-agreement` behavior.
+
+### Extractor offline baseline
+
+Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03`:
+
+| Slice | Field accuracy | Verdict agreement |
+|---|---:|---:|
+| TXT tier 0 | 100.00% | 100.00% |
+| TXT tier 1 | 68.75% | 31.25% |
+| TXT tier 2 | 41.67% | 33.33% |
+| PDF lane overall | 80.83% | 60.00% |
+
 ## Evaluation harness
 
 ```bash
-uv run python -m eval.run --as-of 2026-09-03   # offline + recorded-LLM lanes, per-field metrics
-# CI regression gate: exits non-zero below the thresholds
-uv run python -m eval.run --min-field-accuracy 0.95 --min-verdict-agreement 1.0
+uv run python -m eval.run --as-of 2026-09-03   # both lanes over the v2 golden set, GATES section
+# hard gates by tier: tier0 >= 0.95/0.95, tier1 >= 0.60/0.25; tier2 and scenario slices informative
+uv run python -m eval.run --no-gates           # report only
 ```
 
-Two lanes run over the same golden set (20 fixtures: EU/US/JP formats, subtotal
-traps, credit notes, OCR noise, empty and garbage documents): the deterministic
-offline extractor and the recorded-LLM stub, so the comparison is reproducible
-without credentials. Runs are anchored to `--as-of` (default 2026-09-03) so
-age-rule expectations never rot with wall-clock time. Known miss: a US-style
-`03/07/2026` is read day-first (`us_date_ambiguous` fixture) — resolving it
-needs locale metadata we deliberately do not guess.
+Two lanes run over the v2 golden set (40 txt + 20 single-page pdf fixtures across
+tiers 0-2: label/format variants, unlabeled currency, distractor totals, textured
+PDF layouts): the deterministic offline extractor (LLM and recorded-LLM
+backends plug into the same interface), so the comparison is reproducible
+without credentials. Runs are anchored to
+`--as-of` (default 2026-09-03) so age-rule expectations never rot with
+wall-clock time. Known extractor misses at tier 1-2 (see the measured table
+above): spelled-out dates, GB-format VAT ids, and rare label variants — the
+dataset isolates them; closing the gap is the LLM backend's job.
 
 ## API
 

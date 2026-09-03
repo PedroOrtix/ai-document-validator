@@ -1,0 +1,14 @@
+Oakbridge Logistics Ltd
+53 Harbor Street
+Leeds, United Kingdom
++44 20 8513 9215
+billing@oakbridgelogisticsltd.example.com
+
+Invoice No: 2026/5032
+Invoice Date: 10/07/2026
+Currency: EUR
+VAT: GB5847168151
+
+Training session    2083.59
+
+Total Amount    2083.59

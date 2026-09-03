@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Union Print Works Ltd",
+    "invoice_number": "AC4863",
+    "invoice_date": "2026-03-07",
+    "total_amount": 432000.0,
+    "currency": "EUR",
+    "tax_id": "GB2963727495"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "stale",
+    "format": "pdf",
+    "pages": 1
+  }
+}

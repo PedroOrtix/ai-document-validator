@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Harbor Analytics Inc",
+    "invoice_number": null,
+    "invoice_date": "2026-08-24",
+    "total_amount": 17294.22,
+    "currency": "EUR",
+    "tax_id": "GB9941546037"
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "missing_number",
+    "format": "txt"
+  }
+}

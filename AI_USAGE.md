@@ -46,6 +46,21 @@ body parse in `/v1/extract`, and a duplicated Pydantic field declaration.
 
 ## How correctness was verified
 
+- **Golden v2 dataset build (2026-09-03).** Three Codex units formed the dataset
+  workstream: one TXT generator (40 EN/ES cases), one PDF generator (20 EN/ES
+  single-page cases), and this integration unit that consolidated both lane
+  manifests, purged the v1 golden files, updated the contract/extraction/API
+  tests, and added tier gates.
+- **Hermes QA findings and fixes.** Missing PDF table description cells were
+  found in review and fixed in the PDF generator; English table headers leaking
+  into Spanish invoices were localized; a visual-review false alarm claiming a
+  line-math error was rejected after checking the PDF text layer, which showed
+  the generated values were correct.
+- **Gate calibration by measurement.** Tier 0 gates were set at 0.95/0.95 after
+  the offline extractor measured 100%/100% in both lanes. TXT tier 1 was
+  calibrated at 0.60 field accuracy / 0.25 verdict agreement from its measured
+  68.75%/31.25%. Tier 2 and scenario slices remained informative because they
+  are diagnostic rather than release gates.
 - Unit tests per extraction field (labeled, fallback, format variants, missing) and per rule
   (pass / fail / skip, boundary at exactly `max_age_days`).
 - Aggregation tests: missing required field ⇒ `REVIEW`; violated rule ⇒ `FAIL`; both ⇒ `FAIL`.

@@ -1,0 +1,15 @@
+Northwind Supplies Ltd
+59 Market Street
+Bristol, United Kingdom
++44 20 5176 5885
+billing@northwindsuppliesltd.example.com
+
+Invoice No: FT4668
+Invoice Date: 03/07/2026
+Currency: EUR
+VAT: GB1269294763
+
+Support package    7823.47
+Installation fee    4973.12
+
+Total Amount    12796.59

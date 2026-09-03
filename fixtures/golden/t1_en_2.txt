@@ -1,0 +1,23 @@
+Station Foods B.V.
+68 Victoria Street
+Manchester, United Kingdom
++44 20 9739 5757
+billing@stationfoodsbv.example.com
+
+Invoice Number: 2024/8670
+Date: 30.06.2026
+Tax ID: GB5321140862
+
+Support package    6003.23
+Hardware maintenance    6003.24
+Installation fee    6003.23
+
+Total Due    € 18.009,70
+VAT    0.00
+Rounding    0.00
+
+Bank: HSBC
+IBAN: 75BU KG43 9120 6418 0330
+BIC: HBUKGB4B
+
+Late payments accrue interest at 2% per month.

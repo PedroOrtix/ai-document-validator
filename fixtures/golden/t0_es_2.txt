@@ -1,0 +1,15 @@
+Textiles Industria S.A.
+Calle Industria 51
+Zaragoza, España
++34 9192 136 151
+billing@textilesindustriasa.example.com
+
+Factura Nº: RE6002
+Fecha: 2026-07-09
+Moneda: EUR
+NIF: ES97359679
+
+Suscripción de datos    2.325,31
+Formación    3.117,83
+
+Total    5.443,14

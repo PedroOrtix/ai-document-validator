@@ -1,0 +1,25 @@
+Emisor
+Distribuciones Sol
+S.A.
+Calle Norte 97
+Bilbao, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Murcia
+España
+
+Referencia: RE-2025-9995
+Fecha Factura: 06 ene 2026
+Order Ref: ORD-2026-4156
+Delivery Note: DN-3519
+
+Subtotal    2.193,31
+IVA (21 %)    481,46
+Total sin IVA    2.193,31
+Importe Total    € 2.674,77
+
+VAT: ES10570780
++34 9527 587 969
+billing@distribucionessolsa.example.com

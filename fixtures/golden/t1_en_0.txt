@@ -1,0 +1,26 @@
+Harbor Analytics Inc
+84 Park Street
+Manchester, United Kingdom
++44 20 8917 9251
+billing@harboranalyticsinc.example.com
+
+Invoice Number: INV6820
+Date: 2026-06-16
+Tax ID: GB3056245352
+
+Data platform subscription    2205.85
+Consulting services    2205.85
+Freight and handling    2205.85
+Inspection report    2205.85
+Installation fee    2205.85
+Hardware maintenance    2205.85
+
+Total Due    € 13235.10
+VAT    0.00
+Rounding    0.00
+
+Bank: Barclays
+IBAN: 86BU KG39 3796 3847 4814
+BIC: BUKGB22
+
+Payment due within 30 days of the invoice date.

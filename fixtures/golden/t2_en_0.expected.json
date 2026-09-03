@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Crestline Software Ltd",
+    "invoice_number": "AC-2025-1511",
+    "invoice_date": "2026-07-16",
+    "total_amount": 13918.44,
+    "currency": null,
+    "tax_id": "GB6029838884"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "comma_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

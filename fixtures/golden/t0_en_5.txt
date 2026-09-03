@@ -1,0 +1,14 @@
+Oakbridge Logistics Ltd
+58 Oak Street
+Bristol, United Kingdom
++44 20 5162 4655
+billing@oakbridgelogisticsltd.example.com
+
+Invoice No: 2024/9170
+Invoice Date: 2026-04-06
+Currency: GBP
+VAT: GB8545509262
+
+Consulting services    12.102,32
+
+Total Amount    12.102,32

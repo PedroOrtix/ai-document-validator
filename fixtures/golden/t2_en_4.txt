@@ -1,0 +1,25 @@
+Seller
+Oakbridge Logistics
+Ltd
+95 Market Street
+Austin, United Kingdom
+
+Bill to:
+Consignee Group
+12 Commerce Avenue
+Dublin
+United Kingdom
+
+Reference: FT5099
+Issue Date: 06 Jan 2026
+Order Ref: ORD-2024-4853
+Delivery Note: DN-3520
+
+Subtotal    25.992,29
+VAT (20%)    5.705,62
+Total excl. VAT    25.992,29
+Total    € 31.697,91
+
+TAX: GB2128541393
++44 20 9027 4566
+billing@oakbridgelogisticsltd.example.com

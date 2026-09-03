@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Market Optics GmbH",
+    "invoice_number": "FT9444",
+    "invoice_date": "2026-08-02",
+    "total_amount": 13627.44,
+    "currency": "GBP",
+    "tax_id": "GB5011968421"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "space_fr",
+    "date_style": "dmy",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

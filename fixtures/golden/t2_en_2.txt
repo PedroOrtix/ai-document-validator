@@ -1,0 +1,25 @@
+Seller
+Oakbridge Logistics
+Ltd
+41 Bridge Street
+Dublin, United Kingdom
+
+Bill to:
+Consignee Group
+12 Commerce Avenue
+Leeds
+United Kingdom
+
+Reference: AC6746
+Issue Date: 13.08.2026
+Order Ref: ORD-2026-8686
+Delivery Note: DN-6734
+
+Subtotal    1 090,67
+VAT (20%)    239,41
+Total excl. VAT    1 090,67
+Total    £ 1 330,08
+
+TAX: GB6675025267
++44 20 3748 6534
+billing@oakbridgelogisticsltd.example.com

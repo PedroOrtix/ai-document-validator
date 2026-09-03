@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Market Optics GmbH",
+    "invoice_number": "CR8871",
+    "invoice_date": "2026-06-28",
+    "total_amount": 7810.7,
+    "currency": "EUR",
+    "tax_id": "GB6391512261"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

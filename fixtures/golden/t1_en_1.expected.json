@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Oakbridge Logistics Ltd",
+    "invoice_number": "AC9386",
+    "invoice_date": "2026-08-09",
+    "total_amount": 21292.95,
+    "currency": "GBP",
+    "tax_id": "GB4335715900"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "comma_decimal",
+    "date_style": "dmy",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

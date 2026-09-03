@@ -1,0 +1,26 @@
+Transportes Ribera S.A.
+Calle Atocha 21
+Toledo, España
++34 9596 367 342
+billing@transportesriberasa.example.com
+
+Número de Factura: FT-2024-7587
+Fecha de Factura: 24 julio 2026
+CIF: ES22853034
+
+Formación    3,113.64
+Inspección técnica    3,113.64
+Reparación    3,113.63
+Servicios de consultoría    3,113.64
+Piezas de repuesto    3,113.64
+Alquiler de maquinaria    3,113.64
+
+Total Factura    £ 18,681.83
+VAT    0.00
+Rounding    0.00
+
+Bank: Banco Sabadell
+IBAN: ES56 4748 1689 3089 4061 7931
+BIC: BSABESBB
+
+Pago a 30 días desde la fecha de factura.

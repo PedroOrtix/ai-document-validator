@@ -1,0 +1,14 @@
+Distribuciones Sol S.A.
+Calle Mayor 97
+Cáceres, España
++34 9660 802 923
+billing@distribucionessolsa.example.com
+
+Factura Nº: FAC5478
+Fecha: 2026-07-07
+Moneda: EUR
+NIF: ES63629977
+
+Suministros    11.226,11
+
+Total    11.226,11

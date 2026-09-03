@@ -1,0 +1,15 @@
+Ferretería Montes S.L.
+Calle Alfonso 68
+Toledo, España
++34 9101 699 864
+billing@ferreteríamontessl.example.com
+
+Factura Nº: 2025/3038
+Fecha: 2026-07-02
+Moneda: EUR
+NIF: ES90090622
+
+Suministros    11141.58
+Transporte    6763.22
+
+Total    17904.80

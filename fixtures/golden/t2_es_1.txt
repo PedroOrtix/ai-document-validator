@@ -1,0 +1,25 @@
+Emisor
+Transportes Ribera
+S.A.
+Calle Rioja 64
+Logroño, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Toledo
+España
+
+Referencia: 2024/4418
+Fecha Factura: 15/06/2026
+Order Ref: ORD-2026-8418
+Delivery Note: DN-5854
+
+Subtotal    25 030,97
+IVA (21 %)    5 494,60
+Total sin IVA    25 030,97
+Importe Total    £ 30 525,57
+
+VAT: ES14130706
++34 9101 949 660
+billing@transportesriberasa.example.com

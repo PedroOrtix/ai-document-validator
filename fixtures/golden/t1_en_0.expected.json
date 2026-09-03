@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Harbor Analytics Inc",
+    "invoice_number": "INV6820",
+    "invoice_date": "2026-06-16",
+    "total_amount": 13235.1,
+    "currency": "EUR",
+    "tax_id": "GB3056245352"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

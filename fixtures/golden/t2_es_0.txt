@@ -1,0 +1,25 @@
+Emisor
+Viveros Guadiana
+S.L.
+Calle Alfonso 19
+Toledo, España
+
+Cliente:
+Consignee Group
+12 Commerce Avenue
+Logroño
+España
+
+Referencia: 2026/1225
+Fecha Factura: 2026-07-31
+Order Ref: ORD-2024-1955
+Delivery Note: DN-6797
+
+Subtotal    20018,28
+IVA (21 %)    4394,26
+Total sin IVA    20018,28
+Importe Total    24412,54
+
+VAT: ES63354769
++34 9126 942 600
+billing@viverosguadianasl.example.com

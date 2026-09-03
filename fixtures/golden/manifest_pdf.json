@@ -1,0 +1,245 @@
+{
+  "lane": "pdf",
+  "cases": [
+    {
+      "case_id": "pdf_en_t0_0",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "f2d41cf48c8fd445bead57b3d925ecc8d4b04b97af1858dec7e9bbc17782653f",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t0_1",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "2fcd51788ef9304fe07728989271907dc7ccbdab0227d8cd72c737b9c681e9a8",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t0_2",
+      "language": "EN",
+      "tier": 0,
+      "scenario": "stale",
+      "expected_verdict": "FAIL",
+      "pdf_sha256": "dd355277bd22b166214c232506628452dd18d536dce45730c2335c87a4f45344",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t1_0",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "59181a87f52b8d57ded3d5afa40e947b262ab68631aa06403ec82299d4e7baff",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t1_1",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "719f25a0fe6123c93c7fb8d4c0d6b3a35175a64b25d3aa9868ec897c0770bb5d",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t1_2",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "9f07c514c4b2dab492128b7c2e4f9724e127446754aaa034a1eb04972f3708fc",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t1_3",
+      "language": "EN",
+      "tier": 1,
+      "scenario": "missing_date",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "6e7bf3da094452a65905abf2dc2a216275101839266d6cb40572f6fb0e9155ea",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t2_0",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "e40f27ee70cb8d857cc3b532557a3711aa77b1bf3402e1740ba73fc65676fd14",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t2_1",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "5f580467cf6eabb39f48c818aaf1ca7a48e2833837678bee49a9026c610e605d",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_en_t2_2",
+      "language": "EN",
+      "tier": 2,
+      "scenario": "disallowed_currency",
+      "expected_verdict": "FAIL",
+      "pdf_sha256": "a442cdea851c4b18547670152133f559b3e3cb64a3e391c6d66b715f4013a10e",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t0_0",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "2c2c88451c155c3bc5d99672193663cc224ec389378721b3a8ce5f8a9382b384",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t0_1",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "3cbff3b95274237a3312a02dd861a96ec962ef6d46dadc0f26e49e2c60b8448e",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t0_2",
+      "language": "ES",
+      "tier": 0,
+      "scenario": "stale",
+      "expected_verdict": "FAIL",
+      "pdf_sha256": "28a72befe2b3022fa9ce1e9d9b87fb8136091a027f735ceb6d865d73f8e5423b",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t1_0",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "0950e7fc1642c5ee598873e5d99915eff32414d6bc05efd52adf46a19aa7a792",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t1_1",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "26516b75269fa1ff9531039e098dc12eee9c750d5b48f3ebff34450ee81c3176",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t1_2",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "da515e014525781835f107c4d710a517b5f16b0d086c468bee8c900022388243",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t1_3",
+      "language": "ES",
+      "tier": 1,
+      "scenario": "missing_date",
+      "expected_verdict": "REVIEW",
+      "pdf_sha256": "61f6a34614ff02dee75128143344278b0d55ab13889454bc8a6971e8c431e1f3",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t2_0",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "38f98908af46b703d312378978ead741f2bffde82793c149fa981492b27f028f",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t2_1",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "clean",
+      "expected_verdict": "PASS",
+      "pdf_sha256": "497076d8177568371f8500fbcf114a172eece1a994feed001a698fc24351bdf8",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    },
+    {
+      "case_id": "pdf_es_t2_2",
+      "language": "ES",
+      "tier": 2,
+      "scenario": "disallowed_currency",
+      "expected_verdict": "FAIL",
+      "pdf_sha256": "cccfabdf92e71315c38ae198ed67031ae9544aadab2986afcc9c3fe967d6424f",
+      "pages": 1,
+      "formats": [
+        "pdf"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+Cerámica Alfonso S.L.
+Calle Rioja 31
+Bilbao, España
++34 9367 574 440
+billing@cerámicaalfonsosl.example.com
+
+Número de Factura: 2025/1433
+Fecha de Factura: 12.07.2026
+CIF: ES19037038
+
+Servicios de consultoría    1890.05
+Transporte    1890.05
+Mantenimiento    1890.05
+
+Total Factura    5.670,15 EUR
+VAT    0.00
+Rounding    0.00
+
+Bank: CaixaBank
+IBAN: ES56 2581 3739 0875 1115 8732
+BIC: CAIXESBB
+
+Demora de pago: 2 % de interés mensual.

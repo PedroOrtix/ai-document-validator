@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Distribuciones Sol S.A.",
+    "invoice_number": "RE-2025-9995",
+    "invoice_date": "2026-01-06",
+    "total_amount": 2674.77,
+    "currency": "EUR",
+    "tax_id": "ES10570780"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "grouped_eu",
+    "date_style": "abbrev",
+    "scenario": "stale_old",
+    "format": "txt"
+  }
+}

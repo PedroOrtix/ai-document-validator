@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Cerámica Alfonso S.L.",
+    "invoice_number": "2025/1433",
+    "invoice_date": "2026-07-12",
+    "total_amount": 5670.15,
+    "currency": "EUR",
+    "tax_id": "ES19037038"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 1,
+    "amount_style": "grouped_eu",
+    "date_style": "dotted",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Viveros Guadiana S.L.",
+    "invoice_number": "2026/1225",
+    "invoice_date": "2026-07-31",
+    "total_amount": 24412.54,
+    "currency": null,
+    "tax_id": "ES63354769"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "comma_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}
