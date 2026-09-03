@@ -17,6 +17,12 @@ from docvalidator.api.logging_setup import configure_logging
 from docvalidator.domain.models import DocumentExtraction, ValidationConfig, Verdict
 from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
 from docvalidator.extraction.base import Extractor
+from docvalidator.extraction.llm import (
+    LLMConfigurationError,
+    LLMParsingError,
+    LLMRequestError,
+    LLMTimeoutError,
+)
 from docvalidator.rules_engine import RulesEngine
 
 logger = configure_logging()
@@ -200,7 +206,19 @@ async def pydantic_validation_error_handler(
 async def extraction_error_handler(
     request: Request, exc: ExtractionError
 ) -> JSONResponse:
-    """Convert extraction failures to structured 422 responses."""
+    """Convert extraction failures to backend-specific structured responses."""
+    if isinstance(exc, LLMConfigurationError):
+        return _error_response(
+            503,
+            "llm_configuration_error",
+            str(exc),
+            request.state.request_id,
+            {"hint": "configure OPENROUTER_API_KEY or use the offline backend"},
+        )
+    if isinstance(exc, (LLMParsingError, LLMRequestError)):
+        return _error_response(502, "llm_response_error", str(exc), request.state.request_id)
+    if isinstance(exc, LLMTimeoutError):
+        return _error_response(504, "llm_timeout", str(exc), request.state.request_id)
     return _validation_error(exc, request.state.request_id)
 
 

@@ -1,27 +1,46 @@
 """Integration tests: LLM-first backend selection and offline runtime fallback (API)."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from langchain_core.messages import AIMessage
 
 from docvalidator.api.main import _default_backend, app
+from docvalidator.extraction.input import DocumentInput
 from docvalidator.extraction.llm import (
     LLMConfigurationError,
     LLMParsingError,
     LLMRequestError,
     LLMTimeoutError,
 )
-from docvalidator.extraction.input import DocumentInput
 from docvalidator.extraction.offline import OfflineExtractor
 
 GOLDEN_DIR = Path(__file__).parents[2] / "fixtures" / "golden"
 FULL_DOC_TEXT = (GOLDEN_DIR / "t0_en_0.txt").read_text(encoding="utf-8")
 
 client = TestClient(app)
+
+
+class _ExplodingExtractor:
+    """Drop-in LLMExtractor double whose extract raises a canned exception."""
+
+    exc: Exception | None = None
+
+    def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+        pass
+
+    def extract(self, document: DocumentInput) -> Any:
+        assert _ExplodingExtractor.exc is not None
+        raise _ExplodingExtractor.exc
+
+
+def _patch_llm_extract(monkeypatch: pytest.MonkeyPatch, exc: Exception) -> None:
+    """Patch the lazily-imported LLMExtractor used inside _build_extractor."""
+    _ExplodingExtractor.exc = exc
+    monkeypatch.setattr("docvalidator.extraction.llm.LLMExtractor", _ExplodingExtractor)
 
 
 @pytest.fixture()
@@ -55,22 +74,18 @@ class TestBackendSelection:
 
 class TestLLMBackendErrors:
     def test_llm_configuration_error_returns_503(self) -> None:
+        """Explicit llm backend without any key configured -> 503, no fallback."""
         response = client.post(
             "/v1/validate",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
-        # no key configured in this test environment -> LLMConfigurationError path
-        assert response.status_code in {status.HTTP_503_SERVICE_UNAVAILABLE}
-        body = response.json()
-        assert body["error"]["code"] == "llm_configuration_error"
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.json()["error"]["code"] == "llm_configuration_error"
 
-    def test_llm_request_error_returns_502(
+    def test_llm_request_error_falls_back_to_offline(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        def _raise(doc: DocumentInput) -> None:
-            raise LLMRequestError("provider down")
-
-        monkeypatch.setattr("docvalidator.api.main.LLMExtractor.extract", _raise)
+        _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
             "/v1/validate",
@@ -85,10 +100,7 @@ class TestLLMBackendErrors:
     def test_llm_timeout_falls_back_to_offline(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        def _raise(doc: DocumentInput) -> None:
-            raise LLMTimeoutError("slow")
-
-        monkeypatch.setattr("docvalidator.api.main.LLMExtractor.extract", _raise)
+        _patch_llm_extract(monkeypatch, LLMTimeoutError("slow"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
             "/v1/validate",
@@ -102,10 +114,7 @@ class TestLLMBackendErrors:
     def test_llm_parsing_error_falls_back_to_offline(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        def _raise(doc: DocumentInput) -> None:
-            raise LLMParsingError("garbage")
-
-        monkeypatch.setattr("docvalidator.api.main.LLMExtractor.extract", _raise)
+        _patch_llm_extract(monkeypatch, LLMParsingError("garbage"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
             "/v1/validate",
@@ -119,19 +128,14 @@ class TestLLMBackendErrors:
     def test_extract_endpoint_llm_failure_also_falls_back(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        def _raise(doc: DocumentInput) -> None:
-            raise LLMRequestError("provider down")
-
-        monkeypatch.setattr("docvalidator.api.main.LLMExtractor.extract", _raise)
+        _patch_llm_extract(monkeypatch, LLMRequestError("provider down"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
         response = client.post(
             "/v1/extract",
             json={"text": FULL_DOC_TEXT, "extraction_backend": "llm"},
         )
         assert response.status_code == status.HTTP_200_OK
-        assert (
-            response.json()["metadata"]["backend"] == "offline-fallback"
-        )
+        assert response.json()["metadata"]["backend"] == "offline-fallback"
 
 
 class TestOfflineFallbackNotMasked:
@@ -139,11 +143,7 @@ class TestOfflineFallbackNotMasked:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Explicit llm backend with a rejected key returns 503, never offline."""
-
-        def _raise(doc: DocumentInput) -> None:
-            raise LLMConfigurationError("rejected key")
-
-        monkeypatch.setattr("docvalidator.api.main.LLMExtractor.extract", _raise)
+        _patch_llm_extract(monkeypatch, LLMConfigurationError("rejected key"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "bad-key")
         response = client.post(
             "/v1/validate",

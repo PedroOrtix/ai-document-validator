@@ -7,8 +7,8 @@ import pytest
 
 from docvalidator.extraction.input import DocumentInput
 from docvalidator.extraction.llm import (
-    LLMParsingError,
     InvoiceExtraction,
+    LLMParsingError,
     parse_llm_response,
     parse_structured_extraction,
 )
