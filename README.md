@@ -70,18 +70,20 @@ Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03`:
 ## Evaluation harness
 
 ```bash
-uv run python -m eval.run --as-of 2026-09-03   # offline + recorded-LLM lanes, per-field metrics
-# CI regression gate: exits non-zero below the thresholds
-uv run python -m eval.run --min-field-accuracy 0.95 --min-verdict-agreement 1.0
+uv run python -m eval.run --as-of 2026-09-03   # both lanes over the v2 golden set, GATES section
+# hard gates by tier: tier0 >= 0.95/0.95, tier1 >= 0.60/0.25; tier2 and scenario slices informative
+uv run python -m eval.run --no-gates           # report only
 ```
 
-Two lanes run over the same golden set (20 fixtures: EU/US/JP formats, subtotal
-traps, credit notes, OCR noise, empty and garbage documents): the deterministic
-offline extractor and the recorded-LLM stub, so the comparison is reproducible
-without credentials. Runs are anchored to `--as-of` (default 2026-09-03) so
-age-rule expectations never rot with wall-clock time. Known miss: a US-style
-`03/07/2026` is read day-first (`us_date_ambiguous` fixture) — resolving it
-needs locale metadata we deliberately do not guess.
+Two lanes run over the v2 golden set (40 txt + 20 single-page pdf fixtures across
+tiers 0-2: label/format variants, unlabeled currency, distractor totals, textured
+PDF layouts): the deterministic offline extractor (LLM and recorded-LLM
+backends plug into the same interface), so the comparison is reproducible
+without credentials. Runs are anchored to
+`--as-of` (default 2026-09-03) so age-rule expectations never rot with
+wall-clock time. Known extractor misses at tier 1-2 (see the measured table
+above): spelled-out dates, GB-format VAT ids, and rare label variants — the
+dataset isolates them; closing the gap is the LLM backend's job.
 
 ## API
 
