@@ -16,11 +16,25 @@ It ingests supplier invoices (PDF or plain text), extracts canonical structured 
 If you have 15 minutes to review and challenge this project, here is the recommended walkthrough:
 
 ```text
-  Minute 0–2: Code Quality & Tests      ──> make test && make lint
-  Minute 2–5: Benchmark & Metrics       ──> make eval (78 fixtures, $0, 100% offline)
-  Minute 5–8: Run API & Explore Swagger ──> make run -> http://localhost:8000/docs
-  Minute 8–11: Live Ingestion (PDF/TXT) ──> curl sample commands below
-  Minute 11–15: Architecture & AI Audit ──> Inspect AutoRouter & AI_USAGE.md
+  Minute 0–1: Environment Setup        ──> make setup (or Docker)
+  Minute 1–3: Code Quality & Tests      ──> make test && make lint
+  Minute 3–6: Benchmark & Metrics       ──> make eval (78 fixtures, $0, 100% offline)
+  Minute 6–9: Run API & Explore Swagger ──> make run -> http://localhost:8000/docs
+  Minute 9–12: Live Ingestion (PDF/TXT) ──> curl sample commands below
+  Minute 12–15: Architecture & AI Audit ──> Inspect AutoRouter & AI_USAGE.md
+```
+
+### 0. Quick environment setup (30 seconds)
+Prerequisites: Python 3.12+ and [`uv`](https://github.com/astral-sh/uv) (or Docker).
+
+```bash
+# Option A: Local environment with uv
+make setup                 # runs 'uv sync --dev' (creates .venv and installs all dependencies)
+cp .env.example .env       # (Optional) paste the OPENROUTER_API_KEY from submission email
+                           # Without a key, the local $0 OCR floor runs completely offline automatically
+
+# Option B: Run entirely in Docker (no local Python or dependencies needed)
+make docker-build && make docker-up
 ```
 
 ### 1. Run tests and linting (60 seconds)

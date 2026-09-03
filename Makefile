@@ -1,4 +1,4 @@
-.PHONY: help sync test lint lint-fix eval eval-live run docker-build docker-up
+.PHONY: help sync setup test lint lint-fix eval eval-live run docker-build docker-up
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -6,6 +6,9 @@ help: ## Show this help message
 
 sync: ## Install and sync all project dependencies with uv
 	uv sync --dev
+
+setup: sync ## Alias for sync: create .venv and install all dependencies
+
 
 test: ## Run the full pytest test suite (381 tests)
 	uv run pytest
