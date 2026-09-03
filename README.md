@@ -41,6 +41,26 @@ needs locale metadata we deliberately do not guess.
 | POST | `/v1/extract` | document → extraction only |
 | GET  | `/health` | liveness |
 
+### API contract
+
+`POST /v1/validate` accepts **either** representation:
+
+- **Multipart form** (`multipart/form-data`): `file` (a `.pdf` — read through its text layer —
+  or a `.txt`) + `config` (a JSON string matching the config example above).
+- **JSON body** (`application/json`), exactly one content source:
+  - `text` — plain-text document content, **or**
+  - `content_b64` — base64-encoded document bytes (PDF by default; decoded as text when
+    `filename` ends in `.txt`) — plus optional `filename`;
+  - optional `config` (defaults apply when omitted);
+  - optional `extraction_backend`: `offline` (default) | `llm` | `llm-recorded`.
+
+Responses: `200` with the verdict (see the sample below), `422` with a structured
+`{"error": {"code", "message", "details"}, "request_id"}` body for invalid input or
+unreadable documents, `5xx` only for upstream LLM failures. Every response echoes an
+`X-Request-ID` header (client-supplied or generated) that also appears in the structured logs.
+
+`POST /v1/extract` accepts the same representations and returns only the extraction object.
+
 ## Architecture
 
 ```mermaid

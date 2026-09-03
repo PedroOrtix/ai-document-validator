@@ -60,7 +60,7 @@ The exact briefs given to the coding executor are committed verbatim in
 `docs/prompts/2026-09-03_phase123_core.md`; the LLM extraction system prompt lives in
 `src/docvalidator/extraction/llm.py` (single source of truth, reproduced in the README).
 
-Final state at submission: 96 tests green (`uv run pytest`), ruff clean, eval harness over a
+Final state at submission: 101 tests green (`uv run pytest`), ruff clean, eval harness over a
 20-fixture golden set (offline 0.99 field accuracy / 1.00 verdict agreement; recorded-LLM
 1.00 / 1.00) wired into CI as a regression gate, Docker image built and smoke-tested
 end-to-end, and one live OpenRouter call verified the LLM path.
