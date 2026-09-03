@@ -1,10 +1,23 @@
-Cerámica Alfonso S.L.
-Calle Industria 14
-Sevilla, España
+Distribuciones Sol S.A.
+Calle Sol 76
+Toledo, España
++34 9473 296 105
+billing@distribucionessolsa.example.com
 
-Número de Factura: AC-2026-6880
-Fecha: 2026-06-27
-VAT: ES60935811
+Número de Factura: AB-2025-2610
+Fecha de Factura: 15/07/2026
+CIF: ES27646003
 
-Suministros
-Importe Total    16,562.79 GBP
+Alquiler de maquinaria    7167.16
+Transporte    7167.16
+Licencias de software    7167.15
+
+Total Factura    £ 21501,47
+VAT    0.00
+Rounding    0.00
+
+Bank: BBVA
+IBAN: ES67 3028 1074 3224 9755 8855
+BIC: BBVAESMM
+
+Transferencia bancaria indicando el número de factura.

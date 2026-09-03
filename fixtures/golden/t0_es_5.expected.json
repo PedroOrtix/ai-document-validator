@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Talleres Vega S.L.",
+    "invoice_number": "FAC-2026-8726",
+    "invoice_date": "2026-04-06",
+    "total_amount": 11245.8,
+    "currency": "GBP",
+    "tax_id": "ES82371711"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 0,
+    "amount_style": "grouped_eu",
+    "date_style": "dmy",
+    "scenario": "stale",
+    "format": "txt"
+  }
+}

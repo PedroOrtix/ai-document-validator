@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Estudio Jurídico Alcázar S.L.",
+    "invoice_number": "FT-2026-5175",
+    "invoice_date": "2026-08-24",
+    "total_amount": null,
+    "currency": "EUR",
+    "tax_id": "ES19466969"
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "ES",
+    "tier": 2,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "missing_total",
+    "format": "txt"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Northwind Supplies Ltd",
+    "invoice_number": "AC-2026-3192",
+    "invoice_date": "2026-08-08",
+    "total_amount": 4768.46,
+    "currency": "EUR",
+    "tax_id": "GB3443676733"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 0,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
+    "format": "txt"
+  }
+}

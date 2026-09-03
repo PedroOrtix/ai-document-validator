@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Union Print Works Ltd",
+    "invoice_number": "2026/9656",
+    "invoice_date": "2026-08-24",
+    "total_amount": 13412.55,
+    "currency": "USD",
+    "tax_id": "GB8808972280"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "dot_decimal",
+    "date_style": "spelled",
+    "scenario": "disallowed_currency",
+    "format": "txt"
+  }
+}

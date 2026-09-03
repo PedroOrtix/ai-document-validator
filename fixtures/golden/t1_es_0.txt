@@ -1,11 +1,27 @@
-Talleres Vega S.L.
-Calle Alfonso 79
-Sevilla, España
+Transportes Ribera S.A.
+Calle Huerta 60
+Murcia, España
++34 9677 323 606
+billing@transportesriberasa.example.com
 
-Número de Factura: FAC-2026-0666
-Fecha: 8 julio 2026
-Divisa: GBP
-CIF: ES59175706
+Número de Factura: AB-2024-7935
+Fecha de Factura: 2026-06-23
+Divisa: EUR
+CIF: ES98802869
 
-Transporte
-Importe Total    10306,42
+Transporte    309.24
+Reparación    309.24
+Suscripción de datos    309.24
+Servicios de consultoría    309.24
+Mantenimiento    309.25
+Suministros    309.24
+
+Total Factura    1855.45
+VAT    0.00
+Rounding    0.00
+
+Bank: Santander
+IBAN: ES51 6303 3761 6567 2923 5071
+BIC: SANTESMM
+
+Pago a 30 días desde la fecha de factura.

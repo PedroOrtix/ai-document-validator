@@ -1,11 +1,11 @@
 {
   "expected_fields": {
-    "supplier_name": "Harbor Analytics Inc",
-    "invoice_number": "RE-2026-8088",
-    "invoice_date": "2026-08-03",
-    "total_amount": 3758.6,
-    "currency": null,
-    "tax_id": null
+    "supplier_name": "Oakbridge Logistics Ltd",
+    "invoice_number": "2026/5032",
+    "invoice_date": "2026-07-10",
+    "total_amount": 2083.59,
+    "currency": "EUR",
+    "tax_id": "GB5847168151"
   },
   "expected_verdict_status": "PASS",
   "slices": {
@@ -13,7 +13,7 @@
     "tier": 0,
     "amount_style": "dot_decimal",
     "date_style": "iso",
-    "scenario": "random",
+    "scenario": "clean",
     "format": "txt"
   }
 }

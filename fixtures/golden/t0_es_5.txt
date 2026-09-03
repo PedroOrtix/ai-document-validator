@@ -1,0 +1,15 @@
+Talleres Vega S.L.
+Calle Sol 4
+Cáceres, España
++34 9959 462 355
+billing@talleresvegasl.example.com
+
+Factura Nº: FAC-2026-8726
+Fecha: 2026-04-06
+Moneda: GBP
+NIF: ES82371711
+
+Alquiler de maquinaria    4782.42
+Instalación    6463.38
+
+Total    11245.80

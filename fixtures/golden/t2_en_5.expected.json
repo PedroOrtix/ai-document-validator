@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Oakbridge Logistics Ltd",
+    "invoice_number": "FT4674",
+    "invoice_date": "2026-08-24",
+    "total_amount": null,
+    "currency": "EUR",
+    "tax_id": "GB2815053884"
+  },
+  "expected_verdict_status": "REVIEW",
+  "slices": {
+    "language": "EN",
+    "tier": 2,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "missing_total",
+    "format": "txt"
+  }
+}

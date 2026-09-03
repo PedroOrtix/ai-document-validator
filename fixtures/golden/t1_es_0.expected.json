@@ -1,19 +1,19 @@
 {
   "expected_fields": {
-    "supplier_name": "Talleres Vega S.L.",
-    "invoice_number": "FAC-2026-0666",
-    "invoice_date": "2026-07-08",
-    "total_amount": 10306.42,
-    "currency": "GBP",
-    "tax_id": "ES59175706"
+    "supplier_name": "Transportes Ribera S.A.",
+    "invoice_number": "AB-2024-7935",
+    "invoice_date": "2026-06-23",
+    "total_amount": 1855.45,
+    "currency": "EUR",
+    "tax_id": "ES98802869"
   },
   "expected_verdict_status": "PASS",
   "slices": {
     "language": "ES",
     "tier": 1,
-    "amount_style": "comma_decimal",
-    "date_style": "spelled",
-    "scenario": "random",
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "clean",
     "format": "txt"
   }
 }

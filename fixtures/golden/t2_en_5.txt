@@ -1,0 +1,24 @@
+Seller
+Oakbridge Logistics
+Ltd
+36 Station Street
+Cork, United Kingdom
+
+Bill to:
+Consignee Group
+12 Commerce Avenue
+Dublin
+United Kingdom
+
+Reference: FT4674
+Issue Date: 2026-08-24
+Order Ref: ORD-2026-9526
+Delivery Note: DN-6114
+
+Subtotal    18243.84
+VAT (20%)    4004.75
+Total excl. VAT    18243.84
+
+TAX: GB2815053884
++44 20 7653 8149
+billing@oakbridgelogisticsltd.example.com

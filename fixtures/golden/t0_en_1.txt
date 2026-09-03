@@ -1,10 +1,15 @@
-Market Optics GmbH
-6 Oak Street
-Austin, United Kingdom
+Northwind Supplies Ltd
+59 Market Street
+Bristol, United Kingdom
++44 20 5176 5885
+billing@northwindsuppliesltd.example.com
 
-Invoice No: AC-2026-5470
-Invoice Date: 14/08/2026
-VAT: GB3797678216
+Invoice No: FT4668
+Invoice Date: 03/07/2026
+Currency: EUR
+VAT: GB1269294763
 
-Office supplies
-Total Amount    8493.59
+Support package    7823.47
+Installation fee    4973.12
+
+Total Amount    12796.59

@@ -1,10 +1,14 @@
-Harbor Analytics Inc
-93 Oak Street
-Rotterdam, United Kingdom
+Market Optics GmbH
+4 Park Street
+Utrecht, United Kingdom
++44 20 2032 4282
+billing@marketopticsgmbh.example.com
 
-Invoice No: FT4674
-Invoice Date: 18/06/2026
-VAT: GB3531463334
+Invoice No: CR8871
+Invoice Date: 2026-06-28
+Currency: EUR
+VAT: GB6391512261
 
-Installation fee
-Total Amount    15055.32
+Hardware maintenance    7810.70
+
+Total Amount    7810.70

@@ -1,0 +1,19 @@
+{
+  "expected_fields": {
+    "supplier_name": "Ferretería Montes S.L.",
+    "invoice_number": "RE-2025-8764",
+    "invoice_date": "2026-08-24",
+    "total_amount": 0.0,
+    "currency": "EUR",
+    "tax_id": "ES86735385"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 1,
+    "amount_style": "dot_decimal",
+    "date_style": "iso",
+    "scenario": "zero_amount",
+    "format": "txt"
+  }
+}

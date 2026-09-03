@@ -1,0 +1,15 @@
+Northwind Supplies Ltd
+64 Park Street
+Rotterdam, United Kingdom
++44 20 9761 5136
+billing@northwindsuppliesltd.example.com
+
+Invoice No: AC-2026-3192
+Invoice Date: 2026-08-08
+Currency: EUR
+VAT: GB3443676733
+
+Freight and handling    1.936,39
+Installation fee    2.832,07
+
+Total Amount    4.768,46
