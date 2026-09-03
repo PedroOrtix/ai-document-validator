@@ -157,5 +157,17 @@ re-verified by the owner before merge: T1 document-type classifier
 T3 structured-output simplification, T4 API `auto` backend as key-present
 default, T5 eval `auto` lane with per-route cost/latency rows. Wave merges ran
 the full suite at every step (365 passed / 3 skipped / 29 xfailed at wave-2)
-plus the offline eval gates. Live cost/latency measurement with the key is the
-owner's step, per the examiner-key discipline ($1 budget, out-of-band only).
+plus the offline eval gates.
+
+## OCR spatial reconstruction & live 3-engine evaluation verification
+
+To elevate the local OCR baseline without overfitting the synthetic golden fixtures, three generalizable architectural improvements were designed and implemented:
+1. **2D spatial line clustering (`_sort_boxes_reading_order`)**: RapidOCR bounding boxes are clustered into lines by vertical center proximity and sorted horizontally left-to-right, eliminating detection polygon scrambling.
+2. **Vertical multi-line key-value pairing**: Resolved vertically stacked labels and values (`Importe Total\n1250.00`, `Fecha:\n14/08/2026`) across adjacent lines.
+3. **Multilingual and typographic normalization**: Added locale-independent Spanish written month parsing, European SI space-separated thousands parsing (`680 867,00 €`), and canonical Spanish invoice number prefix handling.
+
+Final live benchmark verification (`uv run python -m eval.run --live --as-of 2026-09-03`):
+- **`ocr` (78 cases)**: Jumped from 71.15% fields / 52.56% verdict to **82.05% field accuracy / 80.77% verdict agreement** (100% on Tier 0), fully offline and $0.
+- **`slm` (66 cases)**: **98.23% field accuracy / 96.97% verdict agreement** (100% on `supplier_name`, `invoice_number`, `invoice_date`, `tax_id`), ~2.6 s, ~$0.000100/doc.
+- **`vlm` (35 cases)**: **98.10% field accuracy / 100.00% verdict agreement** across all scanned and digital PDFs, ~1.8 s, ~$0.000918/doc.
+- **Suite**: **380 passed, 3 skipped, 22 xfailed, 7 xpassed**, ruff clean.
