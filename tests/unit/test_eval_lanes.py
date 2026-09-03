@@ -38,17 +38,22 @@ class FakeExtractor(Extractor):
         duration_ms: float = 1.0,
         total_tokens: int | None = None,
         fail: bool = False,
+        metadata_model: str | None = None,
+        metadata_backend: str = "fake",
     ) -> None:
         self.values = values or {}
         self.duration_ms = duration_ms
         self.total_tokens = total_tokens
         self.fail = fail
+        self.metadata_model = metadata_model
+        self.metadata_backend = metadata_backend
 
     def extract(self, document: DocumentInput) -> DocumentExtraction:
         if self.fail:
             raise ValueError("deliberate extraction failure")
         metadata = ExtractionMetadata(
-            backend=self.backend_name,
+            backend=self.metadata_backend,
+            model=self.metadata_model,
             duration_ms=self.duration_ms,
             total_tokens=self.total_tokens,
         )
@@ -84,7 +89,7 @@ def _case(case_id: str = "case", format_name: str = "txt", tier: int = 0) -> dic
         (("slm",), True, True, ["slm"]),
         (("vlm",), True, True, ["vlm"]),
         (("all",), False, False, ["offline", "ocr"]),
-        (("all",), True, True, ["offline", "slm", "vlm", "ocr"]),
+        (("all",), True, True, ["offline", "slm", "vlm", "ocr", "auto"]),
     ],
 )
 def test_lane_plans_availability(
@@ -103,6 +108,7 @@ def test_lane_plan_eligibility_matrix() -> None:
     assert LANE_FORMATS["slm"] == ("txt", "pdf")
     assert LANE_FORMATS["vlm"] == ("scanned", "pdf")
     assert LANE_FORMATS["ocr"] == ("scanned", "pdf")
+    assert LANE_FORMATS["auto"] == ("txt", "pdf", "scanned")
 
 
 def test_resolve_lane_plans_rejects_unknown_lane() -> None:
@@ -116,6 +122,22 @@ def test_cost_estimation_constants_and_local_lanes() -> None:
     assert estimate_cost_usd(1000, lane="ocr") == 0.0
     assert estimate_cost_usd(1000, lane="slm") == pytest.approx(0.000325)
     assert estimate_cost_usd(2825, lane="vlm") == pytest.approx(0.000918125)
+
+
+def test_auto_lane_plan_and_cost() -> None:
+    available = resolve_lane_plans(("auto",), live=True, has_api_key=True)
+    assert len(available) == 1
+    assert available[0].available is True
+    assert available[0].skip_reason is None
+    assert available[0].formats == ("txt", "pdf", "scanned")
+
+    offline = resolve_lane_plans(("auto",), live=False, has_api_key=True)
+    assert len(offline) == 1
+    assert offline[0].available is False
+    assert offline[0].skip_reason == "requires --live"
+
+    assert estimate_cost_usd(1000, lane="auto") > 0.0
+    assert estimate_cost_usd(1000, lane="auto") == pytest.approx(1000 * GLM_FLASH_PRICE_PER_TOKEN)
 
 
 def test_extraction_telemetry_reads_metadata() -> None:
@@ -141,6 +163,7 @@ def test_run_case_captures_telemetry_and_errors_as_misses() -> None:
     )
     assert result["duration_ms"] == 2.5
     assert result["total_tokens"] == 42
+    assert result["sub_route"] is None
 
     failing = run_case(
         case["case_id"],
@@ -153,6 +176,34 @@ def test_run_case_captures_telemetry_and_errors_as_misses() -> None:
     )
     assert failing["duration_ms"] is None
     assert failing["total_tokens"] is None
+    assert failing["sub_route"] is None
+
+    routed = run_case(
+        case["case_id"],
+        case["document"],
+        case["expected"],
+        RulesEngine(),
+        {"max_age_days": 90, "allowed_currencies": ["EUR", "GBP"]},
+        FakeExtractor(duration_ms=2.5, total_tokens=42, metadata_model="ocr"),
+        today=date(2026, 9, 3),
+    )
+    assert routed["sub_route"] is None
+
+    auto_result = run_case(
+        case["case_id"],
+        case["document"],
+        case["expected"],
+        RulesEngine(),
+        {"max_age_days": 90, "allowed_currencies": ["EUR", "GBP"]},
+        FakeExtractor(
+            duration_ms=2.5,
+            total_tokens=42,
+            metadata_backend="auto",
+            metadata_model="ocr",
+        ),
+        today=date(2026, 9, 3),
+    )
+    assert auto_result["sub_route"] == "ocr"
 
 
 def _lane_report() -> dict[str, Any]:
@@ -206,6 +257,91 @@ def test_decision_table_row_shape_and_costs() -> None:
     assert first["avg_ms"] == 10.0
     assert first["avg_tokens"] == 100
     assert first["est_cost_per_doc"] == pytest.approx(0.0000325)
+
+
+def test_decision_table_auto_lane_emits_per_route_rows() -> None:
+    base_result = {
+        "expected_verdict": "REJECTED",
+        "predicted_verdict": "REJECTED",
+        "expected_fields": {},
+        "predicted_fields": {name: "ACME" for name in FIELD_NAMES},
+        "field_evidence": {},
+        "rule_results": [],
+    }
+
+    def auto_result(
+        case_id: str,
+        format_name: str,
+        tier: int,
+        sub_route: str | None,
+        *,
+        duration_ms: float | None = 10.0,
+        total_tokens: int | None = 100,
+    ) -> dict[str, Any]:
+        return {
+            "case_id": case_id,
+            **base_result,
+            "slices": {"format": format_name, "tier": tier},
+            "duration_ms": duration_ms,
+            "total_tokens": total_tokens,
+            "sub_route": sub_route,
+        }
+
+    report: dict[str, Any] = {
+        "lanes": {
+            "auto": {
+                "lane": "auto",
+                "formats": ["txt", "pdf", "scanned"],
+                "case_count": 6,
+                "fields": {},
+                "verdict": {},
+                "slices": {
+                    "tier:0": {
+                        "field_accuracy": 1.0,
+                        "verdict_agreement": 1.0,
+                    },
+                    "tier:1": {
+                        "field_accuracy": 1.0,
+                        "verdict_agreement": 1.0,
+                    },
+                    "tier:2": {
+                        "field_accuracy": 1.0,
+                        "verdict_agreement": 1.0,
+                    },
+                },
+                "results": [
+                    auto_result("llm", "txt", 0, "llm"),
+                    auto_result("ocr", "txt", 0, "ocr", duration_ms=20.0, total_tokens=0),
+                    auto_result("none-txt", "txt", 1, None, duration_ms=None, total_tokens=None),
+                    auto_result("vlm", "pdf", 1, "vlm", total_tokens=300),
+                    auto_result("failed", "pdf", 1, None, duration_ms=None, total_tokens=None),
+                    auto_result(
+                        "none-scanned", "scanned", 2, None, duration_ms=None, total_tokens=None
+                    ),
+                ],
+                "aggregate": {},
+            }
+        }
+    }
+
+    rows = decision_table(report)
+    row_keys = [(row["lane"], row["format"], row["tier"]) for row in rows]
+    expected_row_keys = {
+        (lane, format_name, tier)
+        for lane in ("auto", "auto:llm", "auto:vlm", "auto:ocr")
+        for format_name in ("txt", "pdf", "scanned")
+        for tier in (0, 1, 2)
+    }
+    assert set(row_keys) == expected_row_keys
+    assert len(row_keys) == len(expected_row_keys)
+
+    route_row = next(
+        row
+        for row in rows
+        if row["lane"] == "auto:vlm" and row["format"] == "pdf" and row["tier"] == 1
+    )
+    assert route_row["avg_tokens"] == 300
+    assert route_row["est_cost_per_doc"] == pytest.approx(300 * GLM_FLASH_PRICE_PER_TOKEN)
 
 
 def test_default_lane_request_includes_ocr_when_importable() -> None:

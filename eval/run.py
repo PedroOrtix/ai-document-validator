@@ -40,6 +40,7 @@ from .lanes import (
     decision_table,
     default_lane_request,
     extraction_telemetry,
+    make_auto_extractor,
     make_offline_extractor,
     print_decision_table,
     resolve_lane_plans,
@@ -94,8 +95,10 @@ def run_case(
 ) -> dict[str, Any]:
     try:
         extraction = extractor.extract(document)
+        sub_route = extraction.metadata.model if extraction.metadata.backend == "auto" else None
     except Exception:
         extraction = no_response_extraction()
+        sub_route = None
     telemetry = extraction_telemetry(extraction)
     verdict = engine.evaluate(extraction, ValidationConfig(**config_values), today=today)
     return {
@@ -103,9 +106,7 @@ def run_case(
         "expected_verdict": expected["expected_verdict_status"],
         "predicted_verdict": verdict.status,
         "expected_fields": expected["expected_fields"],
-        "predicted_fields": {
-            name: _field_value(extraction, name) for name in FIELD_NAMES
-        },
+        "predicted_fields": {name: _field_value(extraction, name) for name in FIELD_NAMES},
         "field_evidence": {name: _field_evidence(extraction, name) for name in FIELD_NAMES},
         "rule_results": [
             {"rule_id": r.rule_id, "passed": r.passed, "message": r.message}
@@ -114,6 +115,7 @@ def run_case(
         "slices": expected.get("slices", {}),
         "duration_ms": telemetry["duration_ms"],
         "total_tokens": telemetry["total_tokens"],
+        "sub_route": sub_route,
     }
 
 
@@ -168,9 +170,7 @@ def run_lane(
     fields = field_metrics(field_records, field_names=FIELD_NAMES)
     verdict = verdict_metrics(verdict_records)
     aggregate = {
-        "field_accuracy": lane_field_accuracy(
-            {"case_count": len(results), "fields": fields}
-        ),
+        "field_accuracy": lane_field_accuracy({"case_count": len(results), "fields": fields}),
         "verdict_agreement": verdict["agreement_rate"],
     }
     return {
@@ -356,9 +356,7 @@ def print_report(report: dict[str, Any]) -> None:
         if lane is None:
             continue
         print(f"\nLANE {lane_name}: {lane['case_count']} cases")
-        print(
-            f"{'field':<18} {'exact':>8} {'precision':>10} {'recall':>8}"
-        )
+        print(f"{'field':<18} {'exact':>8} {'precision':>10} {'recall':>8}")
         for field_name in FIELD_NAMES:
             metrics = lane["fields"][field_name]
             print(
@@ -475,9 +473,7 @@ def main() -> None:
     raw_lanes = args.lane or [",".join(default_lane_request())]
     requested: list[str] = []
     for lane_spec in raw_lanes:
-        requested.extend(
-            lane.strip().lower() for lane in lane_spec.split(",") if lane.strip()
-        )
+        requested.extend(lane.strip().lower() for lane in lane_spec.split(",") if lane.strip())
     if "all" in requested:
         requested = list(LANE_NAMES)
     try:
@@ -494,6 +490,7 @@ def main() -> None:
         "slm": make_llm_extractor,
         "vlm": make_vision_extractor,
         "ocr": make_ocr_extractor,
+        "auto": make_auto_extractor,
     }
     lanes: dict[str, Any] = {}
     skipped: list[LanePlan] = []
@@ -538,9 +535,7 @@ def main() -> None:
         worst_agreement = min(lane["verdict"]["agreement_rate"] for lane in lanes.values())
         failed_gates: list[str] = []
         if args.min_field_accuracy is not None and worst_accuracy < args.min_field_accuracy:
-            failed_gates.append(
-                f"field_accuracy {worst_accuracy:.4f} < {args.min_field_accuracy}"
-            )
+            failed_gates.append(f"field_accuracy {worst_accuracy:.4f} < {args.min_field_accuracy}")
         if args.min_verdict_agreement is not None and worst_agreement < args.min_verdict_agreement:
             failed_gates.append(
                 f"verdict_agreement {worst_agreement:.4f} < {args.min_verdict_agreement}"
