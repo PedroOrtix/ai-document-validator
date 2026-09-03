@@ -43,7 +43,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["offline", "llm"] | None = None
+    extraction_backend: Literal["offline", "llm", "vlm"] | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":
@@ -307,7 +307,7 @@ def _run_pipeline(
 
 def _select_backend(requested: str | None) -> str:
     backend = requested or _default_backend()
-    if backend not in {"offline", "llm"}:
+    if backend not in {"offline", "llm", "vlm"}:
         raise APIError("unsupported_backend", f"unknown extraction backend: {backend}")
     return backend
 
@@ -322,6 +322,11 @@ def _build_extractor(backend: str) -> Extractor:
         from docvalidator.settings import LLMSettings
 
         return LLMExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
+    if backend == "vlm":
+        from docvalidator.extraction.vision import VisionExtractor
+        from docvalidator.settings import LLMSettings
+
+        return VisionExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
     return OfflineExtractor()
 
 

@@ -104,3 +104,8 @@ timeout after Codex had finished the code and test surfaces; the owner completed
 (ruff fixes, README/.env.example/this section, committed brief) and re-verified every gate.
 Attribution: code + tests = Codex; close-out + verification = owner. The examiner-only API key
 ($1 budget, one-week expiry) is delivered out-of-band and never enters this repository.
+
+## VisionExtractor (F1)
+
+Codex implemented the pypdfium2 page-image renderer, injectable `VisionExtractor`, explicit
+OpenRouter VLM settings/API wiring, network-free unit/integration tests, and this phase's docs.
