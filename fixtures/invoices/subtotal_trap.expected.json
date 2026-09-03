@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Helios Solar Works Ltd",
+    "invoice_number": "INV-2026-0455",
+    "invoice_date": "2026-08-15",
+    "total_amount": 1210.0,
+    "currency": "GBP",
+    "tax_id": "GB432109876"
+  },
+  "expected_verdict_status": "PASS"
+}

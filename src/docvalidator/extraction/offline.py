@@ -13,15 +13,21 @@ from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.input import DocumentInput
 
 
+def _parse_date_candidate(candidate: str, formats: list[str]) -> date | None:
+    """Parse one date string against the supported formats, or return None."""
+    for date_format in formats:
+        try:
+            return datetime.strptime(candidate, date_format).date()
+        except ValueError:
+            continue
+    return None
+
+
 class OfflineExtractor(Extractor):
     """Extract invoice fields using deterministic, offline regex patterns."""
 
     backend = "offline"
 
-    _amount_pattern: ClassVar[re.Pattern[str]] = re.compile(
-        r"(?:[$€£]|EUR|USD|GBP)?\s*"
-        r"\d+(?:[.,]\d{3})*(?:[.,]\d{2})?"
-    )
     _iso_code_pattern: ClassVar[re.Pattern[str]] = re.compile(
         r"\b(?:EUR|USD|GBP|CHF|JPY|CAD|AUD|SEK|NOK|DKK|PLN)\b"
     )
@@ -68,7 +74,8 @@ class OfflineExtractor(Extractor):
         if not lines:
             return self._field(None, 0.0, None)
         first = lines[0]
-        if len(first) > 100:
+        # A first line with no letters at all ("@@@@ ####") is not a company name.
+        if len(first) > 100 or not re.search(r"[A-Za-z]", first):
             return self._field(None, 0.0, None)
         return self._field(first, 0.8, first)
 
@@ -110,23 +117,21 @@ class OfflineExtractor(Extractor):
             if not match:
                 continue
             candidate = match.group(1).strip(" ,;|\t")
-            for date_format in formats:
-                try:
-                    value = datetime.strptime(candidate, date_format).date()
-                except ValueError:
-                    continue
+            value = _parse_date_candidate(candidate, formats)
+            if value is not None:
                 return self._field(value, confidence, candidate)
+            # The label matched but its value was unparsable: trust the label
+            # over a later unlabeled date token and report the miss honestly.
             return self._field(None, 0.0, None)
 
-        for date_format in formats:
-            match = re.search(r"\d{1,4}[./-]\d{1,2}[./-]\d{2,4}", text)
-            if not match:
-                break
-            try:
-                value = datetime.strptime(match.group(0), date_format).date()
-            except ValueError:
-                continue
-            return self._field(value, 0.8, match.group(0))
+        # No labeled date: scan every date-looking token in order and accept
+        # the first one that parses (D/M/Y before M/D/Y, matching our formats
+        # list order). Previously re.search re-returned the same first token
+        # for every format, silently discarding later valid dates.
+        for token_match in re.finditer(r"\d{1,4}[./-]\d{1,2}[./-]\d{2,4}", text):
+            value = _parse_date_candidate(token_match.group(0), formats)
+            if value is not None:
+                return self._field(value, 0.8, token_match.group(0))
         return self._field(None, 0.0, None)
 
     def _extract_total_amount(self, text: str, lines: list[str]) -> ExtractedField:
@@ -136,15 +141,22 @@ class OfflineExtractor(Extractor):
             re.compile(r"\bAmount\s*Due\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*Due\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*Amount\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
+            re.compile(r"\bGesamtbetrag\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
             re.compile(r"\bTotal\s*[:#]?\s*([^\n]+)", re.IGNORECASE),
         ]
+        # Prefer strong labels; among equal-strength labels (multiple "Total"
+        # rows: line items, subtotals, grand total) the LAST match wins — the
+        # grand total is conventionally the bottom-most total on the page.
         for pattern in labeled_patterns:
-            match = pattern.search(text)
-            if not match:
-                continue
-            amount = self._parse_amount(match.group(1))
+            amount = None
+            evidence = None
+            for match in pattern.finditer(text):
+                parsed = self._parse_amount(match.group(1))
+                if parsed is not None:
+                    amount = parsed
+                    evidence = match.group(0).strip()
             if amount is not None:
-                return self._field(amount, 0.95, match.group(0).strip())
+                return self._field(amount, 0.95, evidence)
         return self._field(None, 0.0, None)
 
     def _extract_currency(self, text: str, lines: list[str]) -> ExtractedField:
@@ -189,11 +201,15 @@ class OfflineExtractor(Extractor):
 
     def _parse_amount(self, candidate: str) -> float | None:
         candidate = candidate.strip()
-        match = self._amount_pattern.search(candidate)
+        # Optional leading sign so credit notes ("-350.00") parse as negatives.
+        match = re.search(
+            r"[-+]?\s*(?:[$€£]|EUR|USD|GBP)?\s*\d+(?:[.,]\d{3})*(?:[.,]\d{2})?", candidate
+        )
         if not match:
             return None
         raw = match.group(0)
-        raw = raw.strip(" $€£").replace("EUR", "").replace("USD", "").replace("GBP", "").strip()
+        negative = "-" in raw
+        raw = raw.strip("+- $€£").replace("EUR", "").replace("USD", "").replace("GBP", "").strip()
         last_comma = raw.rfind(",")
         last_dot = raw.rfind(".")
         if last_comma > last_dot:
@@ -201,6 +217,7 @@ class OfflineExtractor(Extractor):
         else:
             raw = raw.replace(",", "")
         try:
-            return float(raw)
+            value = float(raw)
         except ValueError:
             return None
+        return -value if negative else value

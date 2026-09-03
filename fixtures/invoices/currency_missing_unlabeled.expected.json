@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Baltic Furniture OU",
+    "invoice_number": "INV-2026-0512",
+    "invoice_date": "2026-08-28",
+    "total_amount": 1380.0,
+    "currency": null,
+    "tax_id": "EE100923456"
+  },
+  "expected_verdict_status": "PASS"
+}

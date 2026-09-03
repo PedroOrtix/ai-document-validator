@@ -99,6 +99,8 @@ def test_invoice_date_missing_or_invalid_is_not_extracted(extractor: OfflineExtr
         ("Total: 1.234,56", 1234.56),
         ("Amount Due: $99.00", 99.0),
         ("Grand Total: €2.000,00", 2000.0),
+        ("Total: -350.00", -350.0),
+        ("Total: 2.500,00", 2500.0),
     ],
 )
 def test_total_amount_formats(
@@ -171,6 +173,32 @@ def test_tax_id_patterns(
     assert extraction.fields["tax_id"].value == expected_tax_id
 
 
+def test_last_total_row_wins_over_subtotal(extractor: OfflineExtractor) -> None:
+    """Regression: among several Total rows, the grand total is the last one."""
+    text = "Helios Ltd\nTotal (excl. VAT)  1,000.00\nTotal               1,210.00"
+    extraction = extractor.extract(DocumentInput(text=text))
+    assert extraction.fields["total_amount"].value == 1210.0
+
+
+def test_unlabeled_german_total_is_found(extractor: OfflineExtractor) -> None:
+    extraction = extractor.extract(
+        DocumentInput(text="Kraft GmbH\nDatum: 2026-08-15\nGesamtbetrag 2.500,00")
+    )
+    assert extraction.fields["total_amount"].value == 2500.0
+
+
+def test_unparseable_labeled_date_beats_later_unlabeled_token(extractor: OfflineExtractor) -> None:
+    """Regression: a label match must not silently fall through to a later token."""
+    extraction = extractor.extract(DocumentInput(text="Invoice Date: not-a-date\n31/01/2026"))
+    field = extraction.fields["invoice_date"]
+    assert field.value is None
+
+
+def test_non_letter_first_line_is_not_a_supplier_name(extractor: OfflineExtractor) -> None:
+    extraction = extractor.extract(DocumentInput(text="@@@@ ####\nrandom note"))
+    assert extraction.fields["supplier_name"].value is None
+
+
 @pytest.mark.parametrize(
     "fixture_name",
     [
@@ -180,6 +208,22 @@ def test_tax_id_patterns(
         "missing_supplier_name",
         "european_format_vat",
         "minimal_garbage",
+        # us_date_ambiguous deliberately absent: it documents the known
+        # day-first ambiguity miss, reported by the eval harness, not an
+        # extraction contract this unit test asserts.
+        "currency_missing_unlabeled",
+        "subtotal_trap",
+        "spanish_full_labels",
+        "amount_no_thousands",
+        "german_unlabeled_total",
+        "multi_page_total",
+        "gbp_symbol",
+        "jpy_large_amount",
+        "empty_document",
+        "negative_amount",
+        "date_future",
+        "ocr_noise",
+        "supplier_labeled_not_first",
     ],
 )
 def test_fixture_expected_fields(

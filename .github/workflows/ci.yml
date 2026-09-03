@@ -25,5 +25,5 @@ jobs:
       - name: Tests
         run: uv run pytest
 
-      - name: Eval harness (offline golden set)
-        run: uv run python -m eval.run
+      - name: Eval harness (golden set regression gate)
+        run: uv run python -m eval.run --as-of 2026-09-03 --min-field-accuracy 0.95 --min-verdict-agreement 1.0

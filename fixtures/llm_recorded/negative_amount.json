@@ -1,0 +1,11 @@
+{
+  "matches": [
+    "Delta Components"
+  ],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": "openrouter",
+  "usage": {
+    "total_tokens": 179
+  },
+  "raw_response": "{\"supplier_name\": \"Delta Components Ltd\", \"invoice_number\": \"INV-2026-0551\", \"invoice_date\": \"2026-08-12\", \"total_amount\": -350.0, \"currency\": \"GBP\", \"tax_id\": \"GB222987654\"}"
+}

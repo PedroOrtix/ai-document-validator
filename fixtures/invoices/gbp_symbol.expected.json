@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Brighton Print Collective Ltd",
+    "invoice_number": "INV-2026-0923",
+    "invoice_date": "2026-08-18",
+    "total_amount": 2445.0,
+    "currency": "GBP",
+    "tax_id": "GB987123456"
+  },
+  "expected_verdict_status": "PASS"
+}

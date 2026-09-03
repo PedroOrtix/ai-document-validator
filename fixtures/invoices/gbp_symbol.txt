@@ -1,0 +1,13 @@
+Brighton Print Collective Ltd
+44 North Laine
+Brighton BN1 4QT
+United Kingdom
+
+Invoice Number: INV-2026-0923
+Invoice Date: 2026-08-18
+Supplier: Brighton Print Collective Ltd
+VAT: GB987123456
+
+Print run, 5000 flyers                £ 2,400.00
+Delivery                                 £ 45.00
+Total                                  £ 2,445.00

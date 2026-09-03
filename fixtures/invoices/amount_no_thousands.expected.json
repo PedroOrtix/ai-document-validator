@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Vertex Analytics Inc.",
+    "invoice_number": "INV-2026-7714",
+    "invoice_date": "2026-09-01",
+    "total_amount": 12500.0,
+    "currency": "USD",
+    "tax_id": "US555123456"
+  },
+  "expected_verdict_status": "FAIL"
+}

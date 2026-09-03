@@ -1,0 +1,13 @@
+Baltic Furniture OU
+Sadama 5
+10111 Tallinn
+Estonia
+
+Invoice No: INV-2026-0512
+Invoice Date: 2026-08-28
+
+Supplier: Baltic Furniture OU
+VAT: EE100923456
+
+Office chairs                           1,150.00
+Total Amount                            1,380.00

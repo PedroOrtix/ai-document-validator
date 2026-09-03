@@ -1,0 +1,11 @@
+{
+  "matches": [
+    "Helios Solar Works"
+  ],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": "openrouter",
+  "usage": {
+    "total_tokens": 196
+  },
+  "raw_response": "{\"supplier_name\": \"Helios Solar Works Ltd\", \"invoice_number\": \"INV-2026-0455\", \"invoice_date\": \"2026-08-15\", \"total_amount\": 1210.0, \"currency\": \"GBP\", \"tax_id\": \"GB432109876\"}"
+}

@@ -20,8 +20,18 @@ No API keys required — the default extraction backend is a deterministic offli
 ## Evaluation harness
 
 ```bash
-uv run python -m eval.run          # precision/recall per field + verdict agreement
+uv run python -m eval.run --as-of 2026-09-03   # offline + recorded-LLM lanes, per-field metrics
+# CI regression gate: exits non-zero below the thresholds
+uv run python -m eval.run --min-field-accuracy 0.95 --min-verdict-agreement 1.0
 ```
+
+Two lanes run over the same golden set (20 fixtures: EU/US/JP formats, subtotal
+traps, credit notes, OCR noise, empty and garbage documents): the deterministic
+offline extractor and the recorded-LLM stub, so the comparison is reproducible
+without credentials. Runs are anchored to `--as-of` (default 2026-09-03) so
+age-rule expectations never rot with wall-clock time. Known miss: a US-style
+`03/07/2026` is read day-first (`us_date_ambiguous` fixture) — resolving it
+needs locale metadata we deliberately do not guess.
 
 ## API
 
@@ -147,8 +157,9 @@ why it ships as an opt-in adapter with a recorded stub for offline testing.
   ~300 total tokens** per document → well under a cent per document on an open-weight model.
   Per-document latency and token usage are returned in `extraction.metadata` (`duration_ms`,
   `model`, `provider`, `total_tokens`) and logged per request.
-- Eval harness: `uv run python -m eval.run` reports field exact-match, per-field precision/recall and
-  verdict agreement over the golden set (currently 1.00 / 1.00 over 6 fixtures — small set, see below).
+- Eval harness: two lanes over a 20-fixture golden set — offline **0.99 field accuracy / 1.00 verdict
+  agreement** (the one miss is the documented US-date ambiguity), recorded-LLM **1.00 / 1.00** — with
+  `--min-*` thresholds that fail CI on regression.
 
 **What would we monitor in production?**
 
@@ -165,9 +176,13 @@ why it ships as an opt-in adapter with a recorded stub for offline testing.
 
 ## What I would do next with another day
 
-1. Grow the golden set (20–30 fixtures incl. scanned-style, multi-page, non-EU formats) and add an
-   offline-vs-LLM comparison lane to the eval output.
-2. Wire the eval harness into CI as a regression gate (fails PRs that drop field accuracy).
-3. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
-4. Page-level evidence spans and a debug endpoint returning per-field extractor traces.
-5. Second document type (`CERTIFICATE_OF_INCORPORATION`) to pressure-test the extensibility claim.
+Done since the first submission: golden set grown 6 → 20 adversarial fixtures (subtotal traps,
+credit notes, US/JP formats, OCR noise, empty documents), offline-vs-recorded-LLM comparison lane,
+and the eval wired into CI as a regression gate with `--min-*` thresholds.
+
+1. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
+   always reading `03/07/2026` day-first.
+2. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
+3. Page-level evidence spans and a debug endpoint returning per-field extractor traces.
+4. Second document type (`CERTIFICATE_OF_INCORPORATION`) to pressure-test the extensibility claim.
+5. Optional live LLM lane in the eval harness (real API, gated behind a key) next to the recorded one.

@@ -1,0 +1,11 @@
+{
+  "matches": [
+    "Talleres Vega"
+  ],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": "openrouter",
+  "usage": {
+    "total_tokens": 211
+  },
+  "raw_response": "{\"supplier_name\": \"Talleres Vega S.L.\", \"invoice_number\": \"FV-2026-3341\", \"invoice_date\": \"2026-08-15\", \"total_amount\": 2286.9, \"currency\": \"EUR\", \"tax_id\": \"B47123456\"}"
+}

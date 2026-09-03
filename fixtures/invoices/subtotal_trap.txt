@@ -1,0 +1,16 @@
+Helios Solar Works Ltd
+Unit 7, Rage Industrial Estate
+Manchester M17 1WA
+United Kingdom
+
+Invoice Number: INV-2026-0455
+Invoice Date: 2026-08-15
+Currency: GBP
+
+Supplier: Helios Solar Works Ltd
+VAT: GB432109876
+
+Panels (excl. VAT)                      1,000.00
+VAT 20%                                   210.00
+Total (excl. VAT)                       1,000.00
+Total                                   1,210.00

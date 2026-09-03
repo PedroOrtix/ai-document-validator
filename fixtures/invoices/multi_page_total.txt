@@ -1,0 +1,19 @@
+=== Page 1 ===
+Aurora Materials BV
+Handelsweg 12
+2031 CA Haarlem
+Netherlands
+
+Invoice No: INV-2026-0612
+Invoice Date: 2026-08-30
+Currency: EUR
+
+Supplier: Aurora Materials BV
+VAT: NL004567890B01
+
+Item                                   Amount
+Steel coils, grade 2                  8,400.00
+
+=== Page 2 ===
+Freight and handling                     600.00
+Total Amount                           9,000.00

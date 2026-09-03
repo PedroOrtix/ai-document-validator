@@ -1,0 +1,11 @@
+{
+  "expected_fields": {
+    "supplier_name": "Sakura Components KK",
+    "invoice_number": "INV-2026-3388",
+    "invoice_date": "2026-08-05",
+    "total_amount": 165000.0,
+    "currency": "JPY",
+    "tax_id": "JP801234567"
+  },
+  "expected_verdict_status": "FAIL"
+}
