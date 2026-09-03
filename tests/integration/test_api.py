@@ -44,7 +44,7 @@ def test_validate_multipart_txt_returns_pass_verdict() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "PASS"
-    assert body["extraction"]["metadata"]["backend"] == "offline"
+    assert body["extraction"]["metadata"]["backend"] == "ocr"
 
 
 def test_invalid_config_returns_422() -> None:
@@ -80,7 +80,7 @@ def test_extract_returns_document_extraction_only() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["metadata"]["backend"] == "offline"
+    assert body["metadata"]["backend"] == "ocr"
     assert set(body["fields"]) == {
         "supplier_name",
         "invoice_number",

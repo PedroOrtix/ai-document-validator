@@ -16,8 +16,9 @@ curl -s localhost:8000/health
 ```
 
 The service runs with **zero configuration**: without an `OPENROUTER_API_KEY` the default
-extraction backend is the deterministic offline extractor; with a key present, the LangChain
-Auto routing becomes the primary engine. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
+extraction backend is the credential-free OCR floor (local RapidOCR — its ONNX weights ship in
+the Docker image, so there is no network call and no paid credential at runtime); with a key
+present, the LangChain Auto routing becomes the primary engine. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
 the submission date) is delivered out-of-band with the submission — paste it into `.env`
 (see `.env.example`) to run the LLM path; the repo itself never contains any key.
 
@@ -26,11 +27,11 @@ the submission date) is delivered out-of-band with the submission — paste it i
 | Condition | Default backend |
 |---|---|
 | `OPENROUTER_API_KEY` present | `auto` (routes text/PDF text → LLM and scanned PDFs → VLM, with OCR fallback) |
-| No key (or key expired) | `offline` (regex/heuristics, deterministic, ~ms) |
+| No key (or key expired) | `ocr` (local RapidOCR + deterministic regex parsing, ~1 s/doc, $0) |
 
-- Every request can still override this with `extraction_backend: "auto" | "offline" | "llm" | "vlm" | "ocr"`.
+- Four extraction backends: `extraction_backend: "auto" | "llm" | "vlm" | "ocr"`.
 - **No API-level runtime fallback:** extraction failures surface through their typed HTTP error
-  mapping; the API does not silently retry with the offline extractor.
+  mapping; the API does not silently retry with another backend.
 
 ## Golden dataset v2
 
@@ -71,63 +72,62 @@ orphan files. There is no tier 3 lane: rule scenarios are distributed in tiers
 - Lane and global lane aggregates are informative; `--no-gates` preserves the
   legacy optional `--min-field-accuracy` and `--min-verdict-agreement` behavior.
 
-### Extractor offline baseline
+### Extractor baseline (credential-free OCR floor)
 
-Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03`:
+Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03` (the OCR floor is now the
+default lane, so scanned PDFs are read by local RapidOCR instead of being a counted miss):
 
-| Slice | Field accuracy | Verdict agreement |
+| Slice (lane `ocr`, per tier across txt+pdf+scanned) | Field accuracy | Verdict agreement |
 |---|---:|---:|
-| TXT tier 0 | 100.00% | 100.00% |
-| TXT tier 1 | 68.75% | 31.25% |
-| TXT tier 2 | 44.87% | 38.46% |
-| PDF tier 1 | 79.63% | 44.44% |
-| PDF lane overall | 81.16% | 60.87% |
-| Scanned lane (informative) | 5.56% | 16.67% |
+| Tier 0 (aggregate) | 94.00% | 84.00% |
+| TXT tier 1 | 69.54% | 37.93% |
+| TXT tier 2 | 49.31% | 37.50% |
 
-The scanned lane is the documented offline gap: image-only PDFs have no text layer,
-so the deterministic extractor correctly returns nothing (the expected failure mode,
-not a regression) — closing it is the LLM/vision backend's job, and the fixtures exist
-to measure that.
+Latency per document (measured): text ~0.2 ms (no OCR engine involved), digital-born PDF
+**543–942 ms**, scanned PDF **516–811 ms** — $0/doc.
+The pre-OCR regex floor measured identical txt/pdf accuracy at ~0.2 ms/doc but returned zero
+fields for every scanned PDF (the documented gap this floor closes).
 
 ## Evaluation harness
 
 ```bash
-uv run python -m eval.run --as-of 2026-09-03   # network-free lanes + GATES section
+uv run python -m eval.run --as-of 2026-09-03   # credential-free lanes + GATES section
 # hard gates by tier: tier0 >= 0.95/0.95, tier1 >= 0.60/0.25; tier2 and scenario slices informative
 uv run python -m eval.run --no-gates           # report only
-uv run --extra ocr python -m eval.run --lane offline,ocr --as-of 2026-09-03
+uv run python -m eval.run --lane ocr --as-of 2026-09-03
 uv run python -m eval.run --lane all --live --as-of 2026-09-03
 uv run python -m eval.run --lane all --live --as-of 2026-09-03 --json-out eval/report.json
 ```
 
-The offline extractor runs over the v2.2 golden set (43 txt + 23 digital-born
+The credential-free OCR floor runs over the v2.2 golden set (43 txt + 23 digital-born
 single-page pdf + 12 image-only scanned pdf fixtures across
 tiers 0-2: label/format variants, unlabeled currency, distractor totals, textured
-PDF layouts): the deterministic offline extractor (LLM and recorded-LLM
-backends plug into the same interface), so the comparison is reproducible
-without credentials. Runs are anchored to
+PDF layouts): text documents and digital-born PDFs go through the same deterministic
+regex parser, while scanned PDFs are rasterized and run through local RapidOCR — so
+the comparison is reproducible without credentials and the scanned lane is no longer
+a blind spot. Runs are anchored to
 `--as-of` (default 2026-09-03) so age-rule expectations never rot with
 wall-clock time. Known extractor misses at tier 1-2 (see the measured table
 above): spelled-out dates, GB-format VAT ids, and rare label variants — the
 dataset isolates them; closing the gap is the LLM backend's job.
 
 The v2.2 dataset also contains 12 deterministic image-only scanned PDFs
-(4 per tier, 2 per language) with the same truth as their PDF twins. The offline
-lane deliberately cannot read them; `--include-scanned` (default on) reports
-them as a separate `scanned` lane for future VLM/OCR measurements and does not
+(4 per tier, 2 per language) with the same truth as their PDF twins. The regex-only
+floor deliberately cannot read them; `--include-scanned` (default on) reports
+them as a separate `scanned` lane for VLM/OCR measurements and does not
 contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
 
 ### Multi-lane decision table
 
-`--lane` accepts comma-separated engine lanes: `offline`, `slm`, `vlm`, `ocr`,
-`auto`, or `all`. The default is the available network-free set (`offline`, plus
-`ocr` when the optional RapidOCR dependency is installed). `--live` is required for
+`--lane` accepts comma-separated engine lanes: `ocr`, `slm`, `vlm`,
+`auto`, or `all`. The default is the credential-free set (`ocr` — its ONNX
+weights ship in the Docker image, no key needed). `--live` is required for
 `slm`, `vlm`, and `auto`; they are skipped with an explicit message when OpenRouter
 credentials are absent, never crashing the run.
 
-Eligibility: `offline` runs txt + pdf (scanned remains a counted miss),
-`slm` runs txt + pdf via markitdown text, both `vlm` and `ocr` run scanned +
-pdf, and `auto` runs the full matrix (txt + pdf + scanned) through the document-type
+Eligibility: `ocr` runs the full matrix (txt + pdf + scanned; text bypasses the OCR engine),
+`slm` runs txt + pdf via markitdown text, both `vlm` and `ocr` cover scanned + pdf,
+and `auto` runs the full matrix (txt + pdf + scanned) through the document-type
 router — its metadata sub-route (`llm` / `vlm` / `ocr`) is what the table slices
 into the `auto:llm`, `auto:vlm`, and `auto:ocr` rows, so the per-route cost and
 latency of the router's decisions are visible next to the forced lanes.
@@ -163,7 +163,7 @@ writes the full report plus its `decision_table` array.
   - `content_b64` — base64-encoded document bytes (PDF by default; decoded as text when
     `filename` ends in `.txt`) — plus optional `filename`;
   - optional `config` (defaults apply when omitted);
-  - optional `extraction_backend`: `auto` | `offline` | `llm` | `vlm` | `ocr` (default: `auto` with a key, else `offline`).
+  - optional `extraction_backend`: `auto` | `llm` | `vlm` | `ocr` (default: `auto` with a key, else `ocr`).
 
 Responses: `200` with the verdict (see the sample below), `422` with a structured
 `{"error": {"code", "message", "details"}, "request_id"}` body for invalid input or
@@ -181,7 +181,7 @@ flowchart TD
     C -->|txt| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
     C -->|pdf-text| T["markitdown + LLMExtractor"] --> OCR["OcrExtractor"]
     C -->|scanned| E2["VisionExtractor<br/>PDF page image → OpenRouter<br/>z-ai/glm-5.3-flash, reasoning=low"] --> OCR
-    C -->|offline · no-key default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
+    C -->|ocr · no-key default| D["OcrExtractor<br/>local RapidOCR + regex parser, deterministic"]
     D --> G["DocumentExtraction<br/>value + confidence + evidence per field"]
     E --> G
     T --> G
@@ -192,10 +192,10 @@ flowchart TD
 
 Key decisions (full rationale below in Trade-offs):
 
-1. **Auto router, keyed primary, offline floor.** With a key present the LangChain router is the
-   default engine; the deterministic offline extractor stays as the credential-free default, so the
+1. **Auto router, keyed primary, OCR floor.** With a key present the LangChain router is the
+   default engine; the local OCR extractor stays as the credential-free default, so the
    assessment's offline-first requirement is preserved: every lane (API, tests, eval, CI) still runs
-   with zero credentials.
+   with zero credentials — the OCR engine is fully local (ONNX weights in the image).
 2. **REVIEW vs FAIL distinction.** Missing required data ⇒ `REVIEW` (cannot judge); a violated
    rule with data present ⇒ `FAIL` (judged and rejected). Compliance verdicts need this nuance.
 3. **Confidence is evidence-strength, not model probability.** Documented per-field: labeled
@@ -203,7 +203,7 @@ Key decisions (full rationale below in Trade-offs):
 
 ### LLM extraction system prompt
 
-The offline heuristics were specified in [`docs/prompts/`](docs/prompts/) (the executor briefs).
+The regex heuristics were specified in [`docs/prompts/`](docs/prompts/) (the executor briefs).
 The LLM backend's system prompt — the single source of truth lives in
 `src/docvalidator/extraction/llm.py` — is:
 
@@ -295,7 +295,7 @@ curl -s -X POST localhost:8000/v1/validate \
       "currency":       {"value": "EUR",              "confidence": 0.95, "evidence": "Currency: EUR",    "page_hint": null},
       "tax_id":         {"value": "DE123456789",      "confidence": 0.95, "evidence": "VAT: DE123456789", "page_hint": null}
     },
-    "metadata": {"backend": "offline", "duration_ms": 1.711, "model": null, "provider": null, "total_tokens": null}
+    "metadata": {"backend": "ocr", "duration_ms": 1.711, "model": "pp-ocrv5-onnx", "provider": "rapidocr-local", "total_tokens": null}
   },
   "request_id": "a5cb8bb2-8f10-4b02-aa77-be3b8e07d49e"
 }
@@ -306,23 +306,26 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 
 ## Trade-offs consciously made
 
-1. **Auto router, keyed primary, offline floor.** With a key present the auto router is the default
+1. **Auto router, keyed primary, OCR floor.** With a key present the auto router is the default
    backend: text → LLM, selectable-text PDF → markitdown+LLM, scanned PDF → VLM, each with the local
    OCR engine as a structural second echelon (never as a silent format-level retry). Without a key the
-   deterministic offline extractor is the default. Extraction failures surface as typed HTTP errors
+   credential-free OCR floor is the default. Extraction failures surface as typed HTTP errors
    (503 configuration / 502 provider or parsing / 504 timeout) — there is no API-level runtime fallback
    that silently degrades results. Tests and eval stay 100% credential-free, and latency is honest:
-   ~2–5 s/document on the LLM/VLM paths vs ~3.5 ms offline — the client pays the latency only when a
+   ~2–5 s/document on the LLM/VLM paths vs ~1 s on the local OCR floor (the pre-OCR regex floor ran
+   at ~3.5 ms but could not read scanned PDFs at all) — the client pays the latency only when a
    key is configured.
 2. **REVIEW ≠ FAIL.** A rule whose input data is missing is marked `inconclusive` and cannot push the
    verdict to `FAIL`; missing required fields surface as `REVIEW`. Rationale: in compliance workflows,
    "judged and rejected" (FAIL) and "cannot judge, human needed" (REVIEW) have very different operational
    consequences — FAIL may block a supplier, REVIEW queues work. Conflating them would misroute documents.
-3. **Confidence = evidence strength, not model probability.** Offline confidences encode pattern quality
-   (labeled 0.95 / structural 0.7–0.9 / heuristic <0.5); the LLM path reports a fixed 0.75 because
-   model-reported confidence is not calibrated. We prefer an honest constant to a fake decimal.
-4. **Fixtures instead of real OCR.** The scope note says OCR is out of scope; PDFs are supported through
-   the text layer (markitdown) and plain-text fixtures drive the golden set. Scanned-image PDFs fail loudly
+3. **Confidence = evidence strength, not model probability.** Regex-parser confidences encode pattern
+   quality (labeled 0.95 / structural 0.7–0.9 / heuristic <0.5); the LLM path reports 0.75 per parsed
+   value (0.6 for a reported-absent field) because model-reported confidence is not calibrated. We
+   prefer honest evidence tiers to a fake decimal.
+4. **Fixtures instead of real cloud OCR.** The scope note says production OCR is out of scope; PDFs
+   are supported through the text layer (markitdown) plus local RapidOCR for scanned pages, and
+   plain-text fixtures drive the golden set. Scanned-image PDFs that yield no OCR text fail loudly
    with a typed error instead of silently returning empty extractions.
 5. **One document type, extensible seams.** Only `SUPPLIER_INVOICE` is implemented, but the extractor
    interface, rule registry, and config schema are document-type aware; adding `CERTIFICATE` means a new
@@ -332,11 +335,11 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 
 ### OcrExtractor (F2)
 
-`OcrExtractor` is the local OCR path for image-only PDFs. It rasterizes pages with
+`OcrExtractor` is the local OCR path and the credential-free floor. It rasterizes pages with
 `pypdfium2` at `VALIDATOR_OCR_DPI` (default **200**), runs **RapidOCR**
 (PP-OCRv5 detection + recognition models, ONNX Runtime, ~15MB wheel, no torch) locally
-on CPU, joins page text in reading order, and delegates the resulting plain text to the
-existing deterministic `OfflineExtractor`. Plain-text requests skip rasterization/OCR
+on CPU, joins page text in reading order, and parses the resulting plain text with the
+deterministic regex parser (`extraction/parsing.py`). Plain-text requests skip rasterization/OCR
 but retain `metadata.backend="ocr"`. Model/provider metadata are `pp-ocrv5-onnx` and
 `rapidocr-local`; OCR failures and unreadable renders raise the typed extraction errors.
 
@@ -353,8 +356,8 @@ highest-quality scanned extraction the VLM lane (OpenRouter, ~2s, 6/6 fields mea
 remains the primary path.
 
 The default dependency group stays credential-free and testable without the model. The
-OCR stack is in the `ocr` extra (`pypdfium2`, Pillow, `rapidocr-onnxruntime`, numpy) and
-Docker installs it and pre-downloads the ONNX weights during the image build, so
+OCR stack (pypdfium2, Pillow, `rapidocr-onnxruntime`, numpy) is a **main dependency** — it is
+the credential-free floor — and Docker pre-downloads the ONNX weights during the image build, so
 `docker compose up` has no network or API-key dependency at runtime.
 
 Test the real engine explicitly (the default suite remains network-free and model-free):
@@ -372,21 +375,21 @@ RUN_REAL_OCR=1 uv run pytest -m slow -q
   stronger evidence than an LLM's answer.
 - Very high volume of low-value documents where a wrong extraction just routes to review anyway.
 
-The LLM earns its keep on messy OCR text, highly varied layouts, and multi-language suppliers — that's
-why it ships as an opt-in adapter with a recorded stub for offline testing.
+The LLM earns its keep on messy scanned documents, highly varied layouts, and multi-language
+suppliers — that's why it ships as an opt-in adapter with a recorded stub for offline testing.
 
 **What did we measure?**
 
-- Offline path (measured, from the structured request logs): **~3.5 ms** end-to-end per document
-  (extraction + rules), zero marginal cost.
+- OCR floor path (measured, from the structured request logs): **~0.2 ms** per text document,
+  **~0.5–1.0 s** per PDF (render + local RapidOCR), zero marginal cost, zero credentials.
 - LLM path (measured live, model `z-ai/glm-5.3-flash` via OpenRouter, single invoice): **~7.5 s,
   ~300 total tokens** per document → well under a cent per document on an open-weight model.
   Per-document latency and token usage are returned in `extraction.metadata` (`duration_ms`,
   `model`, `provider`, `total_tokens`) and logged per request.
-- Eval harness: offline extraction over the v2.2 golden set (78 fixtures: 43 txt + 23 digital
-  PDF + 12 scanned) — **1.00/1.00 field accuracy / verdict agreement on tier 0** in both txt
-  and pdf lanes, with per-tier hard gates that fail CI on regression; scanned results are
-  reported as a separate informative lane.
+- Eval harness: credential-free OCR floor over the v2.2 golden set (78 fixtures: 43 txt + 23 digital
+  PDF + 12 scanned) — **94% field accuracy / 84% verdict agreement on tier 0** (scanned PDFs now
+  read locally instead of being a counted miss), with per-tier hard gates that fail CI on
+  regression; slice results are reported per format and tier.
 
 **What would we monitor in production?**
 

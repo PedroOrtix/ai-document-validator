@@ -49,7 +49,7 @@ def test_validate_pdf_multipart_returns_pass_verdict() -> None:
     assert fields["total_amount"]["value"] == 1236.0
     assert fields["currency"]["value"] == "EUR"
     assert fields["tax_id"]["value"] == "DE123456789"
-    assert body["extraction"]["metadata"]["backend"] == "offline"
+    assert body["extraction"]["metadata"]["backend"] == "ocr"
 
 
 def test_validate_garbage_pdf_is_a_structured_422() -> None:
@@ -62,7 +62,7 @@ def test_validate_garbage_pdf_is_a_structured_422() -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["error"]["code"] == "invalid_document"
-    assert "unable to read PDF" in body["error"]["message"]
+    assert "unable to render PDF" in body["error"]["message"]
 
 
 def test_validate_blank_pdf_without_text_layer_is_a_structured_422() -> None:
@@ -77,7 +77,7 @@ def test_validate_blank_pdf_without_text_layer_is_a_structured_422() -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["error"]["code"] == "invalid_document"
-    assert "no extractable text layer" in body["error"]["message"]
+    assert "OCR produced no readable text" in body["error"]["message"]
 
 
 def test_extract_pdf_multipart_without_config_uses_defaults() -> None:
@@ -93,7 +93,7 @@ def test_extract_pdf_multipart_without_config_uses_defaults() -> None:
     fields = body["fields"]
     assert fields["supplier_name"]["value"] == "Northwind Supplies GmbH"
     assert fields["invoice_number"]["value"] == "INV-2026-0001"
-    assert body["metadata"]["backend"] == "offline"
+    assert body["metadata"]["backend"] == "ocr"
 
 
 def test_validate_pdf_multipart_without_config_uses_defaults() -> None:

@@ -5,11 +5,12 @@ services:
       - "8000:8000"
     environment:
       # Backend selection is key-presence-driven: without OPENROUTER_API_KEY the
-      # deterministic offline extractor serves every request; with a key the auto
-      # router (txt->LLM, selectable-text PDF->LLM, scanned->VLM, OCR as second
+      # credential-free OCR floor serves every request (RapidOCR weights ship in
+      # the image, no network at runtime); with a key the auto router
+      # (txt->LLM, selectable-text PDF->LLM, scanned->VLM, OCR as second
       # echelon) is the default. This var is not read by the code and only
       # documents the no-key posture of this compose file.
-      - VALIDATOR_EXTRACTION_BACKEND=offline
+      - VALIDATOR_EXTRACTION_BACKEND=ocr
       # - OPENROUTER_API_KEY=...   # only needed for the optional LLM backend
       # - VALIDATOR_VLM_MODEL=z-ai/glm-5.3-flash
       # - VALIDATOR_VLM_REASONING_EFFORT=low

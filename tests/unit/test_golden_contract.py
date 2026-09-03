@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from docvalidator.domain.models import ValidationConfig
-from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
+from docvalidator.extraction import DocumentInput, ExtractionError
+from docvalidator.extraction.ocr import OcrExtractor
 from docvalidator.rules_engine import RulesEngine
 
 ROOT = Path(__file__).parents[2]
@@ -156,7 +157,7 @@ def test_v2_tier0_txt_extracts_and_passes(case_id: str) -> None:
         if expected_fields["invoice_date"] is not None
         else None
     )
-    extraction = OfflineExtractor().extract(
+    extraction = OcrExtractor().extract(
         DocumentInput(text=(GOLDEN / f"{case_id}.txt").read_text(encoding="utf-8"))
     )
     for field_name, field_value in expected_fields.items():
@@ -168,7 +169,7 @@ def test_v2_tier0_txt_extracts_and_passes(case_id: str) -> None:
 @pytest.mark.parametrize("case_id", ["x_txt_empty", "x_txt_garbage"])
 def test_degenerate_txt_has_no_extractable_fields(case_id: str) -> None:
     expected = _expected_file(case_id)
-    extraction = OfflineExtractor().extract(
+    extraction = OcrExtractor().extract(
         DocumentInput(text=(GOLDEN / f"{case_id}.txt").read_text(encoding="utf-8"))
     )
     if case_id.endswith("garbage"):
@@ -181,7 +182,7 @@ def test_degenerate_txt_has_no_extractable_fields(case_id: str) -> None:
 
 def test_txt_no_vat_extracts_optional_tax_id_as_absent() -> None:
     expected = _expected_file("x_txt_no_vat")
-    extraction = OfflineExtractor().extract(
+    extraction = OcrExtractor().extract(
         DocumentInput(text=(GOLDEN / "x_txt_no_vat.txt").read_text(encoding="utf-8"))
     )
     assert extraction.fields["tax_id"].value is None

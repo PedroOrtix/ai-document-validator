@@ -1,17 +1,16 @@
-"""Deterministic offline extraction for supplier invoices."""
+"""Deterministic regex field parsing over plain invoice text.
+
+This is the text-analysis core shared by every local extraction path: the OCR
+floor feeds RapidOCR text into it, and it is unit-tested directly without any
+model dependency. It is not an ``Extractor`` by itself — a text source plus
+timing/metadata is always supplied by the extractor that uses it.
+"""
 
 import re
-import time
 from datetime import date, datetime
 from typing import ClassVar
 
-from docvalidator.domain.models import (
-    DocumentExtraction,
-    ExtractedField,
-    ExtractionMetadata,
-)
-from docvalidator.extraction.base import Extractor
-from docvalidator.extraction.input import DocumentInput
+from docvalidator.domain.models import ExtractedField
 
 
 def _parse_date_candidate(candidate: str, formats: list[str]) -> date | None:
@@ -24,18 +23,14 @@ def _parse_date_candidate(candidate: str, formats: list[str]) -> date | None:
     return None
 
 
-class OfflineExtractor(Extractor):
-    """Extract invoice fields using deterministic, offline regex patterns."""
-
-    backend = "offline"
+class RegexFieldParser:
+    """Extract invoice fields from text using deterministic regex patterns."""
 
     _iso_code_pattern: ClassVar[re.Pattern[str]] = re.compile(
         r"\b(?:EUR|USD|GBP|CHF|JPY|CAD|AUD|SEK|NOK|DKK|PLN)\b"
     )
 
-    def extract(self, document: DocumentInput) -> DocumentExtraction:
-        started_at = time.perf_counter()
-        text = document.to_text()
+    def extract_fields(self, text: str) -> dict[str, ExtractedField]:
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         methods = [
             self._extract_supplier_name,
@@ -45,18 +40,10 @@ class OfflineExtractor(Extractor):
             self._extract_currency,
             self._extract_tax_id,
         ]
-        fields = {
+        return {
             method.__name__.removeprefix("_extract_"): method(text, lines)
             for method in methods
         }
-        duration_ms = (time.perf_counter() - started_at) * 1000
-        return DocumentExtraction(
-            fields=fields,
-            metadata=ExtractionMetadata(backend=self.backend, duration_ms=round(duration_ms, 3)),
-        )
-
-    def _first_match(self, text: str, pattern: re.Pattern[str]) -> re.Match[str] | None:
-        return pattern.search(text)
 
     def _field(
         self,
@@ -71,7 +58,7 @@ class OfflineExtractor(Extractor):
             r"(?:From|Supplier|Issued by)\s*[:#]\s*([^\n]+)",
             re.IGNORECASE,
         )
-        match = self._first_match(text, labeled)
+        match = labeled.search(text)
         if match:
             return self._field(match.group(1).strip(), 0.95, match.group(0).strip())
         if not lines:
@@ -88,12 +75,12 @@ class OfflineExtractor(Extractor):
             r"(?:Invoice\s*(?:No\.?|Number|#)|Factura\s*N[ºo°]|Rechnungsnummer)\s*[:#]?\s*([A-Z0-9][A-Z0-9-/]{1,30})",
             re.IGNORECASE,
         )
-        match = self._first_match(text, labeled)
+        match = labeled.search(text)
         if match:
             return self._field(match.group(1).strip(), 0.95, match.group(0).strip())
 
         fallback = re.compile(r"\bINV-\d{4}-\d{3,8}\b", re.IGNORECASE)
-        match = self._first_match(text, fallback)
+        match = fallback.search(text)
         if match:
             return self._field(match.group(0).upper(), 0.8, match.group(0))
 
@@ -165,7 +152,7 @@ class OfflineExtractor(Extractor):
     def _extract_currency(self, text: str, lines: list[str]) -> ExtractedField:
         del lines
         labeled = re.compile(r"\bCurrency\s*[:#]?\s*([A-Za-z]{3})\b", re.IGNORECASE)
-        match = self._first_match(text, labeled)
+        match = labeled.search(text)
         if match:
             return self._field(match.group(1).upper(), 0.95, match.group(0).strip())
 
@@ -195,7 +182,7 @@ class OfflineExtractor(Extractor):
             r"((?:[A-Z]{2})?[A-Z0-9]{5,14})",
             re.IGNORECASE,
         )
-        match = self._first_match(text, pattern)
+        match = pattern.search(text)
         if match:
             value = match.group(1).upper()
             confidence = 0.95 if re.match(r"^[A-Z]{2}", value) else 0.9

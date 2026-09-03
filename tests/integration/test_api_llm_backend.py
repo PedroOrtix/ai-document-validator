@@ -16,7 +16,7 @@ from docvalidator.extraction.llm import (
     LLMRequestError,
     LLMTimeoutError,
 )
-from docvalidator.extraction.offline import OfflineExtractor
+from docvalidator.extraction.ocr import OcrExtractor
 
 GOLDEN_DIR = Path(__file__).parents[2] / "fixtures" / "golden"
 FULL_DOC_TEXT = (GOLDEN_DIR / "t0_en_0.txt").read_text(encoding="utf-8")
@@ -51,25 +51,25 @@ def _no_key(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestBackendSelection:
     def test_default_backend_selects_llm_only_with_api_key(self) -> None:
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": ""}):
-            assert _default_backend() == "offline"
+            assert _default_backend() == "ocr"
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test-key"}):
             assert _default_backend() == "auto"
 
-    def test_validate_without_key_uses_offline(self, _no_key: None) -> None:
+    def test_validate_without_key_uses_ocr(self, _no_key: None) -> None:
         response = client.post(
             "/v1/validate",
             json={"text": FULL_DOC_TEXT, "config": {}},
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["extraction"]["metadata"]["backend"] == "offline"
+        assert response.json()["extraction"]["metadata"]["backend"] == "ocr"
 
     def test_explicit_backend_override_is_respected(self, _no_key: None) -> None:
         response = client.post(
             "/v1/validate",
-            json={"text": FULL_DOC_TEXT, "extraction_backend": "offline"},
+            json={"text": FULL_DOC_TEXT, "extraction_backend": "ocr"},
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["extraction"]["metadata"]["backend"] == "offline"
+        assert response.json()["extraction"]["metadata"]["backend"] == "ocr"
 
 
 class TestLLMBackendErrors:
@@ -135,7 +135,7 @@ class TestLLMConfiguration:
     def test_llm_configuration_error_returns_503_without_fallback(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Explicit llm backend with a rejected key returns 503, never offline."""
+        """Explicit llm backend with a rejected key returns 503, never ocr."""
         _patch_llm_extract(monkeypatch, LLMConfigurationError("rejected key"))
         monkeypatch.setenv("OPENROUTER_API_KEY", "bad-key")
         response = client.post(
@@ -146,10 +146,10 @@ class TestLLMConfiguration:
         assert response.json()["error"]["code"] == "llm_configuration_error"
 
 
-class TestOfflineExtractorSanity:
-    def test_offline_extractor_reads_golden_fixture(self) -> None:
+class TestOcrExtractorSanity:
+    def test_ocr_extractor_reads_golden_fixture(self) -> None:
         """The credential-free backend extracts from the v2 golden fixture."""
-        extraction = OfflineExtractor().extract(DocumentInput(text=FULL_DOC_TEXT))
-        assert extraction.metadata.backend == "offline"
+        extraction = OcrExtractor().extract(DocumentInput(text=FULL_DOC_TEXT))
+        assert extraction.metadata.backend == "ocr"
         values = {k: f.value for k, f in extraction.fields.items()}
         assert any(v is not None for v in values.values())

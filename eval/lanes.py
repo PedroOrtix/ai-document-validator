@@ -8,7 +8,6 @@ from typing import Any
 
 from docvalidator.domain.models import DocumentExtraction
 from docvalidator.extraction.base import Extractor
-from docvalidator.extraction.offline import OfflineExtractor
 
 from .metrics import confidence_separation
 
@@ -17,12 +16,11 @@ GLM_FLASH_PROMPT_PRICE_PER_TOKEN = 0.000000075
 GLM_FLASH_COMPLETION_PRICE_PER_TOKEN = 0.00000025
 GLM_FLASH_PRICE_PER_TOKEN = GLM_FLASH_PROMPT_PRICE_PER_TOKEN + GLM_FLASH_COMPLETION_PRICE_PER_TOKEN
 
-LANE_NAMES = ("offline", "slm", "vlm", "ocr", "auto")
+LANE_NAMES = ("slm", "vlm", "ocr", "auto")
 LANE_FORMATS: dict[str, tuple[str, ...]] = {
-    "offline": ("txt", "pdf", "scanned"),
     "slm": ("txt", "pdf"),
     "vlm": ("scanned", "pdf"),
-    "ocr": ("scanned", "pdf"),
+    "ocr": ("txt", "pdf", "scanned"),
     "auto": ("txt", "pdf", "scanned"),
 }
 FIELD_NAMES = (
@@ -85,12 +83,13 @@ def resolve_lane_plans(
 
 
 def default_lane_request(*, has_ocr_extra: bool | None = None) -> tuple[str, ...]:
-    """Return the network-free lanes available in this environment."""
+    """Return the credential-free lanes available in this environment.
+
+    The OCR lane is the credential-free floor: it needs no API key (its ONNX
+    weights ship inside the container image), so it is the default engine set.
+    """
     ocr_available = _has_ocr_dependency() if has_ocr_extra is None else has_ocr_extra
-    lanes = ["offline"]
-    if ocr_available:
-        lanes.append("ocr")
-    return tuple(lanes)
+    return ("ocr",) if ocr_available else ()
 
 
 def estimate_cost_usd(total_tokens: float, *, lane: str) -> float:
@@ -242,9 +241,11 @@ def print_decision_table(report: dict[str, Any]) -> None:
         )
 
 
-def make_offline_extractor() -> Extractor:
-    """Production factory for the network-free offline lane."""
-    return OfflineExtractor()
+def make_ocr_extractor() -> Extractor:
+    """Production factory for the credential-free OCR lane."""
+    from docvalidator.extraction.ocr import OcrExtractor
+
+    return OcrExtractor()
 
 
 def make_auto_extractor() -> Extractor:

@@ -1,2 +1,2 @@
-"""Evaluation harness for the offline document validator."""
+"""Evaluation harness for the document validator."""
 

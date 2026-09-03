@@ -95,7 +95,7 @@ def _llm_confidence(value: Any) -> float:
     to calibrate, so confidence reflects the *observable* evidence. A present,
     successfully typed value carries 0.75; an absent field carries 0.6 —
     meaning "the model saw the document and reported this field as absent",
-    which is materially stronger evidence than the offline extractor's 0.0 for
+    which is materially stronger evidence than the local parser's 0.0 for
     a missing field, but weaker than any parsed value.
     """
     return _LLM_CONFIDENCE_PRESENT if value is not None else _LLM_CONFIDENCE_ABSENT
@@ -212,7 +212,7 @@ class LLMExtractor(Extractor):
     def _raise_configuration_error() -> NoReturn:
         raise LLMConfigurationError(
             "OPENROUTER_API_KEY is not configured; "
-            "configure OPENROUTER_API_KEY or use the offline backend"
+            "configure OPENROUTER_API_KEY or use the ocr backend"
         )
 
     def _invoke(self, text: str) -> DocumentExtraction:

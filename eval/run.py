@@ -1,7 +1,7 @@
-"""Golden-set evaluation: offline extraction over the fixed txt + pdf datasets.
+"""Golden-set evaluation: extraction over the fixed txt + pdf datasets.
 
 Reads fixtures/golden/manifest.json (the frozen evaluation contract), runs the
-offline extractor + rules engine over both lanes, reports field-level metrics
+credential-free OCR extractor + rules engine over both lanes, reports field-level metrics
 per slice (language, tier, scenario, verdict) plus the aggregate, and enforces
 the CI quality gates. This is the measurement that tells us whether the
 heuristic solution still earns its keep or it is time to escalate (LLM, OCR).
@@ -30,7 +30,6 @@ from docvalidator.domain.models import (
 from docvalidator.extraction import DocumentInput
 from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.llm import LLMExtractor
-from docvalidator.extraction.ocr import OcrExtractor
 from docvalidator.extraction.vision import VisionExtractor
 from docvalidator.rules_engine import RulesEngine
 
@@ -42,7 +41,7 @@ from .lanes import (
     default_lane_request,
     extraction_telemetry,
     make_auto_extractor,
-    make_offline_extractor,
+    make_ocr_extractor,
     print_decision_table,
     resolve_lane_plans,
 )
@@ -59,10 +58,6 @@ def make_llm_extractor() -> LLMExtractor:
 
 def make_vision_extractor() -> VisionExtractor:
     return VisionExtractor()
-
-
-def make_ocr_extractor() -> OcrExtractor:
-    return OcrExtractor()
 
 
 def load_manifest() -> dict[str, Any]:
@@ -137,9 +132,9 @@ def run_lane(
     cases: list[dict[str, Any]],
     *,
     today: date,
-    lane_name: str = "offline",
+    lane_name: str = "ocr",
     formats: tuple[str, ...] = ("txt", "pdf", "scanned"),
-    extractor_factory: Callable[[], Extractor] = make_offline_extractor,
+    extractor_factory: Callable[[], Extractor] = make_ocr_extractor,
 ) -> dict[str, Any]:
     """Run one engine lane and compute metrics, slices, and telemetry."""
     extractor = extractor_factory()
@@ -260,7 +255,7 @@ def _expected_for(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def prepare_scanned_cases(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    """Prepare the scanned lane separately so offline txt/pdf gates are unchanged."""
+    """Prepare the scanned lane separately so txt/pdf gates are unchanged."""
     return [
         {
             "case_id": entry["case_id"],
@@ -354,12 +349,26 @@ def print_gates(report: dict[str, Any]) -> None:
     for lane_name, lane in report["lanes"].items():
         if lane_name in {"txt", "pdf"}:
             continue
+        for tier in (0, 1, 2):
+            tier_slice = _slice_metrics(lane, f"tier:{tier}")
+            if tier_slice is not None:
+                rows.append(
+                    _gate_row(
+                        f"{lane_name} tier:{tier}",
+                        tier_slice,
+                        thresholds=None,
+                        informative=True,
+                    )
+                )
         rows.append(
             _gate_row(
                 f"{lane_name} overall",
                 {
-                    "field_accuracy": lane["aggregate"]["field_accuracy"],
-                    "verdict_agreement": lane["verdict"]["agreement_rate"],
+                    "field_accuracy": lane.get("aggregate", {}).get(
+                        "field_accuracy",
+                        (lane.get("fields") and lane_field_accuracy(lane)) or 0.0,
+                    ),
+                    "verdict_agreement": lane.get("verdict", {}).get("agreement_rate", 0.0),
                 },
                 thresholds=None,
                 informative=True,
@@ -378,30 +387,30 @@ def format_value(value: Any) -> str:
 
 def print_report(report: dict[str, Any]) -> None:
     print(f"EVALUATION (as-of {report['as_of']})")
-    for lane_name in ("txt", "pdf", "scanned"):
-        lane = report["lanes"].get(lane_name)
-        if lane is None:
-            continue
-        print(f"\nLANE {lane_name}: {lane['case_count']} cases")
-        print(f"{'field':<18} {'exact':>8} {'precision':>10} {'recall':>8}")
-        for field_name in FIELD_NAMES:
-            metrics = lane["fields"][field_name]
+    for lane_name, lane in report["lanes"].items():
+        print(f"\nLANE {lane_name}: {lane.get('case_count', 0)} cases")
+        if lane.get("fields"):
+            print(f"{'field':<18} {'exact':>8} {'precision':>10} {'recall':>8}")
+            for field_name in FIELD_NAMES:
+                if field_name in lane["fields"]:
+                    metrics = lane["fields"][field_name]
+                    print(
+                        f"{field_name:<18} {metrics['exact_match_rate']:>8.2%} "
+                        f"{metrics['precision']:>10.2%} {metrics['recall']:>8.2%}"
+                    )
+        verdict = lane.get("verdict", {})
+        rate = verdict.get("agreement_rate", 0.0)
+        if "agreements" in verdict and "total" in verdict:
             print(
-                f"{field_name:<18} {metrics['exact_match_rate']:>8.2%} "
-                f"{metrics['precision']:>10.2%} {metrics['recall']:>8.2%}"
+                f"verdict agreement: {rate:.2%} "
+                f"({verdict['agreements']}/{verdict['total']})"
             )
-        verdict = lane["verdict"]
-        print(
-            f"verdict agreement: {verdict['agreement_rate']:.2%} "
-            f"({verdict['agreements']}/{verdict['total']})"
-        )
+        else:
+            print(f"verdict agreement: {rate:.2%}")
 
     print("\nSLICES (field_accuracy / verdict_agreement / cases)")
-    for lane_name in ("txt", "pdf", "scanned"):
-        lane = report["lanes"].get(lane_name)
-        if lane is None:
-            continue
-        for key, values in lane["slices"].items():
+    for lane_name, lane in report["lanes"].items():
+        for key, values in lane.get("slices", {}).items():
             print(
                 f"  [{lane_name}] {key:<24} {values['field_accuracy']:>7.2%}  "
                 f"{values['verdict_agreement']:>7.2%}  {values['cases']:>3}"
@@ -409,35 +418,40 @@ def print_report(report: dict[str, Any]) -> None:
 
     print("\nFAILURES")
     any_failures = False
-    for lane_name in ("txt", "pdf", "scanned"):
-        for result in report["lanes"].get(lane_name, {}).get("results", []):
+    for lane_name, lane in report["lanes"].items():
+        for result in lane.get("results", []):
             for field_name in FIELD_NAMES:
-                predicted = result["predicted_fields"][field_name]
-                if predicted != result["expected_fields"].get(field_name):
+                predicted = result.get("predicted_fields", {}).get(field_name)
+                expected = result.get("expected_fields", {}).get(field_name)
+                if predicted != expected:
                     any_failures = True
                     print(
                         f"[{lane_name}][field] {result['case_id']} :: {field_name}: "
-                        f"expected={format_value(result['expected_fields'].get(field_name))!r} "
-                        f"got={format_value(result['predicted_fields'][field_name])!r} "
-                        f"evidence={result['field_evidence'][field_name]!r}"
+                        f"expected={format_value(expected)!r} "
+                        f"got={format_value(predicted)!r} "
+                        f"evidence={result.get('field_evidence', {}).get(field_name, '')!r}"
                     )
-            if result["predicted_verdict"] != result["expected_verdict"]:
+            if result.get("predicted_verdict") != result.get("expected_verdict"):
                 any_failures = True
+                expected_v = result.get("expected_verdict")
+                predicted_v = result.get("predicted_verdict")
                 print(
                     f"[{lane_name}][verdict] {result['case_id']}: "
-                    f"expected={result['expected_verdict']} got={result['predicted_verdict']}"
+                    f"expected={expected_v} got={predicted_v}"
                 )
     if not any_failures:
         print("none")
 
     print("\nOVERALL")
-    for lane_name in ("txt", "pdf", "scanned"):
-        lane = report["lanes"].get(lane_name)
-        if lane is None:
-            continue
+    for lane_name, lane in report["lanes"].items():
+        accuracy = lane.get("aggregate", {}).get("field_accuracy")
+        if accuracy is None and lane.get("fields"):
+            accuracy = lane_field_accuracy(lane)
+        accuracy_val = accuracy if accuracy is not None else 0.0
+        agreement = lane.get("verdict", {}).get("agreement_rate", 0.0)
         print(
-            f"{lane_name:<10} field_accuracy={lane_field_accuracy(lane):.4f} "
-            f"verdict_agreement={lane['verdict']['agreement_rate']:.4f}"
+            f"{lane_name:<10} field_accuracy={accuracy_val:.4f} "
+            f"verdict_agreement={agreement:.4f}"
         )
 
 
@@ -462,7 +476,7 @@ def parse_args() -> argparse.Namespace:
         action="append",
         default=None,
         metavar="LANE[,LANE...]",
-        help="offline, slm, vlm, ocr, or all; repeatable (default: available offline/ocr)",
+        help="ocr, slm, vlm, auto, or all; repeatable (default: credential-free ocr)",
     )
     parser.add_argument(
         "--live",
@@ -513,7 +527,6 @@ def main() -> None:
         raise SystemExit(str(exc)) from exc
 
     factories: dict[str, ExtractorFactory] = {
-        "offline": make_offline_extractor,
         "slm": make_llm_extractor,
         "vlm": make_vision_extractor,
         "ocr": make_ocr_extractor,

@@ -15,7 +15,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from docvalidator.api.logging_setup import configure_logging
 from docvalidator.domain.models import DocumentExtraction, ValidationConfig, Verdict
-from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
+from docvalidator.extraction import DocumentInput, ExtractionError
 from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.llm import (
     LLMConfigurationError,
@@ -44,7 +44,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["auto", "offline", "llm", "vlm", "ocr"] | None = None
+    extraction_backend: Literal["auto", "ocr", "llm", "vlm"] | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":
@@ -99,7 +99,7 @@ def _error_response(
 
 
 def _default_backend() -> str:
-    return "auto" if os.environ.get("OPENROUTER_API_KEY") else "offline"
+    return "auto" if os.environ.get("OPENROUTER_API_KEY") else "ocr"
 
 
 def _validation_error(
@@ -214,7 +214,7 @@ async def extraction_error_handler(
             "llm_configuration_error",
             str(exc),
             request.state.request_id,
-            {"hint": "configure OPENROUTER_API_KEY or use the offline backend"},
+            {"hint": "configure OPENROUTER_API_KEY or use the ocr backend"},
         )
     if isinstance(exc, (LLMParsingError, LLMRequestError)):
         return _error_response(502, "llm_response_error", str(exc), request.state.request_id)
@@ -312,7 +312,7 @@ def _run_pipeline(
 
 def _select_backend(requested: str | None) -> str:
     backend = requested or _default_backend()
-    if backend not in {"auto", "offline", "llm", "vlm", "ocr"}:
+    if backend not in {"auto", "ocr", "llm", "vlm"}:
         raise APIError("unsupported_backend", f"unknown extraction backend: {backend}")
     return backend
 
@@ -337,9 +337,7 @@ def _build_extractor(backend: str) -> Extractor:
         from docvalidator.settings import LLMSettings
 
         return VisionExtractor(LLMSettings(openrouter_api_key=_llm_api_key()))
-    if backend == "ocr":
-        return OcrExtractor()
-    return OfflineExtractor()
+    return OcrExtractor()
 
 
 def _extract(document: DocumentInput, backend: str) -> DocumentExtraction:

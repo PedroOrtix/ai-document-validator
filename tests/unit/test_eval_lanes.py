@@ -81,15 +81,13 @@ def _case(case_id: str = "case", format_name: str = "txt", tier: int = 0) -> dic
 @pytest.mark.parametrize(
     ("requested", "live", "has_key", "expected"),
     [
-        (("offline",), False, False, ["offline"]),
         (("ocr",), False, False, ["ocr"]),
-        (("offline", "ocr"), False, False, ["offline", "ocr"]),
         (("slm",), False, True, []),
         (("vlm",), True, False, []),
         (("slm",), True, True, ["slm"]),
         (("vlm",), True, True, ["vlm"]),
-        (("all",), False, False, ["offline", "ocr"]),
-        (("all",), True, True, ["offline", "slm", "vlm", "ocr", "auto"]),
+        (("all",), False, False, ["ocr"]),
+        (("all",), True, True, ["slm", "vlm", "ocr", "auto"]),
     ],
 )
 def test_lane_plans_availability(
@@ -104,10 +102,9 @@ def test_lane_plans_availability(
 
 
 def test_lane_plan_eligibility_matrix() -> None:
-    assert LANE_FORMATS["offline"] == ("txt", "pdf", "scanned")
     assert LANE_FORMATS["slm"] == ("txt", "pdf")
     assert LANE_FORMATS["vlm"] == ("scanned", "pdf")
-    assert LANE_FORMATS["ocr"] == ("scanned", "pdf")
+    assert LANE_FORMATS["ocr"] == ("txt", "pdf", "scanned")
     assert LANE_FORMATS["auto"] == ("txt", "pdf", "scanned")
 
 
@@ -118,7 +115,6 @@ def test_resolve_lane_plans_rejects_unknown_lane() -> None:
 
 def test_cost_estimation_constants_and_local_lanes() -> None:
     assert pytest.approx(0.000000325) == GLM_FLASH_PRICE_PER_TOKEN
-    assert estimate_cost_usd(1000, lane="offline") == 0.0
     assert estimate_cost_usd(1000, lane="ocr") == 0.0
     assert estimate_cost_usd(1000, lane="slm") == pytest.approx(0.000325)
     assert estimate_cost_usd(2825, lane="vlm") == pytest.approx(0.000918125)
@@ -131,13 +127,20 @@ def test_auto_lane_plan_and_cost() -> None:
     assert available[0].skip_reason is None
     assert available[0].formats == ("txt", "pdf", "scanned")
 
-    offline = resolve_lane_plans(("auto",), live=False, has_api_key=True)
-    assert len(offline) == 1
-    assert offline[0].available is False
-    assert offline[0].skip_reason == "requires --live"
+    unlive = resolve_lane_plans(("auto",), live=False, has_api_key=True)
+    assert len(unlive) == 1
+    assert unlive[0].available is False
+    assert unlive[0].skip_reason == "requires --live"
 
     assert estimate_cost_usd(1000, lane="auto") > 0.0
     assert estimate_cost_usd(1000, lane="auto") == pytest.approx(1000 * GLM_FLASH_PRICE_PER_TOKEN)
+
+
+def test_default_lane_request_includes_ocr_when_importable() -> None:
+    with_ocr = default_lane_request(has_ocr_extra=True)
+    without_ocr = default_lane_request(has_ocr_extra=False)
+    assert with_ocr == ("ocr",)
+    assert without_ocr == ()
 
 
 def test_extraction_telemetry_reads_metadata() -> None:
@@ -350,10 +353,3 @@ def test_decision_table_auto_lane_emits_per_route_rows() -> None:
     )
     assert route_row["avg_tokens"] == 300
     assert route_row["est_cost_per_doc"] == pytest.approx(300 * GLM_FLASH_PRICE_PER_TOKEN)
-
-
-def test_default_lane_request_includes_ocr_when_importable() -> None:
-    with_ocr = default_lane_request(has_ocr_extra=True)
-    without_ocr = default_lane_request(has_ocr_extra=False)
-    assert with_ocr == ("offline", "ocr")
-    assert without_ocr == ("offline",)

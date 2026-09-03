@@ -151,7 +151,7 @@ def test_auto_backend_routes_scanned_pdf_to_vlm(
     assert metadata["model"] == "vlm"
 
 
-def test_multipart_txt_uses_offline_without_key(
+def test_multipart_txt_uses_ocr_without_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
@@ -162,4 +162,4 @@ def test_multipart_txt_uses_offline_without_key(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["metadata"]["backend"] == "offline"
+    assert response.json()["metadata"]["backend"] == "ocr"

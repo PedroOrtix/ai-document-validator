@@ -1,13 +1,18 @@
-"""Local document OCR using RapidOCR (PP-OCRv5, ONNX) and the regex extractor."""
+"""Local document OCR using RapidOCR (PP-OCRv5, ONNX) and the regex parser.
+
+This extractor is the credential-free floor of the system: it needs no API
+key and no network (ONNX weights ship in the container image), so reviewers
+can run every lane without paid credentials.
+"""
 
 import time
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from docvalidator.domain.models import DocumentExtraction
+from docvalidator.domain.models import DocumentExtraction, ExtractionMetadata
 from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.input import DocumentInput, ExtractionError
-from docvalidator.extraction.offline import OfflineExtractor
+from docvalidator.extraction.parsing import RegexFieldParser
 from docvalidator.settings import ValidatorOcrSettings
 
 
@@ -84,7 +89,12 @@ def _rapidocr_fn(pages: list[RenderedPage]) -> str:
 
 
 class OcrExtractor(Extractor):
-    """Extract scanned documents through local RapidOCR, then regex."""
+    """Extract invoice fields from document text or OCR'ed page bitmaps.
+
+    Plain text bypasses the OCR engine and goes straight to the deterministic
+    regex parser (the text is already machine-readable). PDFs are rasterized,
+    run through local RapidOCR, and the OCR text is parsed the same way.
+    """
 
     backend = "ocr"
     model_name = "pp-ocrv5-onnx"
@@ -96,28 +106,26 @@ class OcrExtractor(Extractor):
     ) -> None:
         self.settings = settings or ValidatorOcrSettings()
         self.ocr_fn = ocr_fn or _rapidocr_fn
+        self._parser = RegexFieldParser()
 
     def extract(self, document: DocumentInput) -> DocumentExtraction:
         started_at = time.perf_counter()
         if document.text is not None:
-            extraction = OfflineExtractor().extract(document)
+            fields = self._parser.extract_fields(document.to_text())
         else:
             pages = _render_page_bitmaps(document, self.settings.validator_ocr_dpi)
             ocr_text = self.ocr_fn(pages)
             if not ocr_text.strip():
                 raise ExtractionError("OCR produced no readable text")
-            extraction = OfflineExtractor().extract(DocumentInput(text=ocr_text))
+            fields = self._parser.extract_fields(ocr_text)
 
         duration_ms = (time.perf_counter() - started_at) * 1000
-        return extraction.model_copy(
-            update={
-                "metadata": extraction.metadata.model_copy(
-                    update={
-                        "backend": self.backend,
-                        "model": self.model_name,
-                        "provider": "rapidocr-local",
-                        "duration_ms": round(duration_ms, 3),
-                    }
-                )
-            }
+        return DocumentExtraction(
+            fields=fields,
+            metadata=ExtractionMetadata(
+                backend=self.backend,
+                model=self.model_name,
+                provider="rapidocr-local",
+                duration_ms=round(duration_ms, 3),
+            ),
         )

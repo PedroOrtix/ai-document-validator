@@ -1,4 +1,4 @@
-"""Unit tests for deterministic extraction."""
+"""Unit tests for deterministic regex-based extraction (the OCR floor's parser)."""
 
 import json
 from datetime import date
@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 from fpdf import FPDF
 
-from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
+from docvalidator.extraction import DocumentInput, ExtractionError
+from docvalidator.extraction.ocr import OcrExtractor
 
 GOLDEN_DIR = Path(__file__).parents[2] / "fixtures" / "golden"
 TXT_MANIFEST = json.loads((GOLDEN_DIR / "manifest_txt.json").read_text(encoding="utf-8"))
@@ -15,8 +16,9 @@ TXT_CASE_IDS = [case["case_id"] for case in TXT_MANIFEST["cases"]]
 
 
 @pytest.fixture
-def extractor() -> OfflineExtractor:
-    return OfflineExtractor()
+def extractor() -> OcrExtractor:
+    """OcrExtractor without the OCR engine: text input bypasses RapidOCR."""
+    return OcrExtractor(ocr_fn=lambda pages: "")
 
 
 def load_fixture(name: str) -> tuple[str, dict[str, object]]:
@@ -82,7 +84,7 @@ def test_pdf_without_text_layer_raises_typed_error() -> None:
     ],
 )
 def test_invoice_number_patterns(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_number: str,
     confidence_floor: float,
@@ -104,7 +106,7 @@ def test_invoice_number_patterns(
     ],
 )
 def test_invoice_date_formats(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_date: date,
 ) -> None:
@@ -112,7 +114,7 @@ def test_invoice_date_formats(
     assert extraction.fields["invoice_date"].value == expected_date
 
 
-def test_invoice_date_missing_or_invalid_is_not_extracted(extractor: OfflineExtractor) -> None:
+def test_invoice_date_missing_or_invalid_is_not_extracted(extractor: OcrExtractor) -> None:
     extraction = extractor.extract(DocumentInput(text="Date: 31/02/2026"))
     field = extraction.fields["invoice_date"]
     assert field.value is None
@@ -131,7 +133,7 @@ def test_invoice_date_missing_or_invalid_is_not_extracted(extractor: OfflineExtr
     ],
 )
 def test_total_amount_formats(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_amount: float,
 ) -> None:
@@ -150,7 +152,7 @@ def test_total_amount_formats(
     ],
 )
 def test_currency_detection(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_currency: str,
     minimum_confidence: float,
@@ -169,7 +171,7 @@ def test_currency_detection(
     ],
 )
 def test_supplier_name_detection(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_name: str,
 ) -> None:
@@ -177,7 +179,7 @@ def test_supplier_name_detection(
     assert extraction.fields["supplier_name"].value == expected_name
 
 
-def test_long_first_line_is_not_a_supplier_name(extractor: OfflineExtractor) -> None:
+def test_long_first_line_is_not_a_supplier_name(extractor: OcrExtractor) -> None:
     text = "A" * 101
     extraction = extractor.extract(DocumentInput(text=text))
     assert extraction.fields["supplier_name"].value is None
@@ -192,7 +194,7 @@ def test_long_first_line_is_not_a_supplier_name(extractor: OfflineExtractor) -> 
     ],
 )
 def test_tax_id_patterns(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     text: str,
     expected_tax_id: str,
 ) -> None:
@@ -200,28 +202,28 @@ def test_tax_id_patterns(
     assert extraction.fields["tax_id"].value == expected_tax_id
 
 
-def test_last_total_row_wins_over_subtotal(extractor: OfflineExtractor) -> None:
+def test_last_total_row_wins_over_subtotal(extractor: OcrExtractor) -> None:
     """Regression: among several Total rows, the grand total is the last one."""
     text = "Helios Ltd\nTotal (excl. VAT)  1,000.00\nTotal               1,210.00"
     extraction = extractor.extract(DocumentInput(text=text))
     assert extraction.fields["total_amount"].value == 1210.0
 
 
-def test_unlabeled_german_total_is_found(extractor: OfflineExtractor) -> None:
+def test_unlabeled_german_total_is_found(extractor: OcrExtractor) -> None:
     extraction = extractor.extract(
         DocumentInput(text="Kraft GmbH\nDatum: 2026-08-15\nGesamtbetrag 2.500,00")
     )
     assert extraction.fields["total_amount"].value == 2500.0
 
 
-def test_unparseable_labeled_date_beats_later_unlabeled_token(extractor: OfflineExtractor) -> None:
+def test_unparseable_labeled_date_beats_later_unlabeled_token(extractor: OcrExtractor) -> None:
     """Regression: a label match must not silently fall through to a later token."""
     extraction = extractor.extract(DocumentInput(text="Invoice Date: not-a-date\n31/01/2026"))
     field = extraction.fields["invoice_date"]
     assert field.value is None
 
 
-def test_non_letter_first_line_is_not_a_supplier_name(extractor: OfflineExtractor) -> None:
+def test_non_letter_first_line_is_not_a_supplier_name(extractor: OcrExtractor) -> None:
     extraction = extractor.extract(DocumentInput(text="@@@@ ####\nrandom note"))
     assert extraction.fields["supplier_name"].value is None
 
@@ -236,7 +238,7 @@ def test_non_letter_first_line_is_not_a_supplier_name(extractor: OfflineExtracto
                 marks=(
                     pytest.mark.xfail(
                         reason=(
-                            "known offline-extractor gap at tier>=1 "
+                            "known regex-parser gap at tier>=1 "
                             "(spelled dates, GB VAT ids, rare label variants); "
                             "tracked for the LLM backend"
                         ),
@@ -252,7 +254,7 @@ def test_non_letter_first_line_is_not_a_supplier_name(extractor: OfflineExtracto
     ],
 )
 def test_fixture_expected_fields(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
     fixture_name: str,
     tier: int,
 ) -> None:
@@ -265,7 +267,7 @@ def test_fixture_expected_fields(
 
 
 def test_missing_fields_are_zero_confidence_without_exception(
-    extractor: OfflineExtractor,
+    extractor: OcrExtractor,
 ) -> None:
     extraction = extractor.extract(DocumentInput(text="no structured data"))
     for field in extraction.fields.values():
@@ -285,7 +287,7 @@ def test_missing_fields_are_zero_confidence_without_exception(
     ],
 )
 def test_amounts_without_thousands_separator_are_not_truncated(
-    extractor: OfflineExtractor, line: str, expected_amount: float
+    extractor: OcrExtractor, line: str, expected_amount: float
 ) -> None:
     """Regression: 4+ digit integers with no grouping must parse in full."""
     extraction = extractor.extract(DocumentInput(text=f"ACME Ltd\n{line}"))
