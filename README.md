@@ -133,10 +133,14 @@ into the `auto:llm`, `auto:vlm`, and `auto:ocr` rows, so the per-route cost and
 latency of the router's decisions are visible next to the forced lanes.
 
 The decision table reports one row per lane x format x tier with field
-accuracy, verdict agreement, average measured milliseconds, average provider
+accuracy, verdict agreement, mean confidence on exact-match cells (`conf-ok`)
+vs mismatched cells (`conf-bad`), average measured milliseconds, average provider
 total tokens for LLM lanes, and an estimated per-document cost for
 `z-ai/glm-5.3-flash` (USD $0.000000075/prompt token + $0.00000025/completion
-token; blended against recorded total tokens). Local lanes are $0. Extraction
+token; blended against recorded total tokens). Local lanes are $0. The two
+confidence columns are the honesty check on the confidence system: when they
+converge, confidence does not separate right from wrong and must not gate
+automation. Extraction
 and API failures count as field/verdict misses. `--json-out eval/report.json`
 writes the full report plus its `decision_table` array.
 
@@ -240,7 +244,18 @@ phase F3).
 ## Verdict contract
 
 `PASS` — all rules evaluated and passed · `FAIL` — at least one rule failed with data present ·
-`REVIEW` — required data missing, human should look at the document.
+`REVIEW` — required data missing, or a `severity="review"` rule flagged a quality concern;
+a human should look at the document.
+
+Every response also carries `verdict_confidence` (`0.0`–`1.0`), the engine's confidence in a
+`PASS`: the **minimum evidence strength** among the fields that decided the verdict (all
+`required_fields` when passing; only the failed/inconclusive rules' `deciding_fields`
+otherwise). `FAIL` and `REVIEW` are pinned to `0.0` — they carry their rule evidence in
+`rule_results` instead of a decision confidence. Confidence itself is **evidence strength,
+not a model probability**: regex over an explicit label scores 0.95, structural patterns
+0.8–0.9, and the LLM path scores 0.75 per parsed value (0.6 for a reported-absent field) —
+the LLM is a black-box call, so its confidence reflects observable evidence, not self-reported
+certainty.
 
 <!-- Sample request/response: filled in the final phase -->
 
@@ -262,11 +277,13 @@ curl -s -X POST localhost:8000/v1/validate \
 ```json
 {
   "status": "PASS",
+  "verdict_confidence": 0.8,
   "rule_results": [
-    {"rule_id": "invoice_date_present_and_fresh", "passed": true, "message": "invoice date is present and fresh", "inconclusive": false},
-    {"rule_id": "total_amount_present_and_positive", "passed": true, "message": "total amount is present and positive", "inconclusive": false},
-    {"rule_id": "supplier_name_present", "passed": true, "message": "supplier name is present", "inconclusive": false},
-    {"rule_id": "currency_allowed", "passed": true, "message": "currency is allowed", "inconclusive": false}
+    {"rule_id": "invoice_date_present_and_fresh", "passed": true, "message": "invoice date is present and fresh", "inconclusive": false, "severity": "reject", "deciding_fields": []},
+    {"rule_id": "total_amount_present_and_positive", "passed": true, "message": "total amount is present and positive", "inconclusive": false, "severity": "reject", "deciding_fields": []},
+    {"rule_id": "supplier_name_present", "passed": true, "message": "supplier name is present", "inconclusive": false, "severity": "reject", "deciding_fields": []},
+    {"rule_id": "currency_allowed", "passed": true, "message": "currency is allowed", "inconclusive": false, "severity": "reject", "deciding_fields": []},
+    {"rule_id": "low_confidence_fields_review_0_5", "passed": true, "message": "all extracted fields have confidence >= 0.5", "inconclusive": false, "severity": "reject", "deciding_fields": []}
   ],
   "extraction": {
     "document_type": "SUPPLIER_INVOICE",

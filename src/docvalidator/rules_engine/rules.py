@@ -144,11 +144,57 @@ class CurrencyAllowed:
         return RuleResult(rule_id=self.rule_id, passed=True, message="currency is allowed")
 
 
+class LowConfidenceFieldsReview:
+    """Flag fields whose extraction evidence is too weak to auto-trust.
+
+    ``deciding_fields`` is dynamic: it names exactly the fields below the
+    threshold in this document, so the engine's verdict-confidence aggregation
+    sees the right inputs. Severity ``review`` keeps this a quality signal for
+    a human — low confidence never auto-rejects an invoice.
+    """
+
+    rule_id = "low_confidence_fields_review"
+
+    def __init__(self, threshold: float = 0.5) -> None:
+        self.threshold = threshold
+        self.rule_id = f"low_confidence_fields_review_{str(threshold).replace('.', '_')}"
+
+    def evaluate(
+        self,
+        extraction: DocumentExtraction,
+        config: ValidationConfig,
+        *,
+        today: date | None = None,
+    ) -> RuleResult:
+        del config, today
+        low_fields = [
+            name
+            for name in sorted(extraction.fields)
+            if extraction.fields[name].value is not None
+            and extraction.fields[name].confidence < self.threshold
+        ]
+        if not low_fields:
+            return RuleResult(
+                rule_id=self.rule_id,
+                passed=True,
+                message=f"all extracted fields have confidence >= {self.threshold}",
+                deciding_fields=tuple(low_fields),
+            )
+        return RuleResult(
+            rule_id=self.rule_id,
+            passed=False,
+            message=f"low-confidence fields need human review: {', '.join(low_fields)}",
+            severity="review",
+            deciding_fields=tuple(low_fields),
+        )
+
+
 DEFAULT_RULES: tuple[object, ...] = (
     InvoiceDatePresentAndFresh(),
     TotalAmountPresentAndPositive(),
     SupplierNamePresent(),
     CurrencyAllowed(),
+    LowConfidenceFieldsReview(),
 )
 
 registry = RuleRegistry()

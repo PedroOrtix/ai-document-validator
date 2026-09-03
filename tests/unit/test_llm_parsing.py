@@ -53,6 +53,11 @@ class TestParseStructuredExtraction:
         assert extraction.metadata.model == "m"
         assert all(f.confidence == 0.75 for f in extraction.fields.values())
 
+    def test_absent_fields_carry_presence_based_confidence(self) -> None:
+        null_payload = {name: None for name in _VALID_PAYLOAD}
+        null_extraction = parse_structured_extraction(null_payload, None, "m")
+        assert {f.confidence for f in null_extraction.fields.values()} == {0.6}
+
     def test_dict_payload_with_exact_fields_is_accepted(self) -> None:
         extraction = parse_structured_extraction(_VALID_PAYLOAD, None, "m")
         assert extraction.fields["total_amount"].value == 123.45

@@ -56,7 +56,8 @@ _FIELD_NAMES = {
     "currency",
     "tax_id",
 }
-_LLM_CONFIDENCE = 0.75
+_LLM_CONFIDENCE_PRESENT = 0.75
+_LLM_CONFIDENCE_ABSENT = 0.6
 _StructuredResponse = dict[str, AIMessage | InvoiceExtraction | None]
 
 
@@ -87,6 +88,19 @@ def _coerce_field_value(name: str, raw: Any) -> Any:
     return str(raw)
 
 
+def _llm_confidence(value: Any) -> float:
+    """Evidence strength for one LLM-extracted field.
+
+    The LLM is a single black-box call: there is no per-field internal signal
+    to calibrate, so confidence reflects the *observable* evidence. A present,
+    successfully typed value carries 0.75; an absent field carries 0.6 —
+    meaning "the model saw the document and reported this field as absent",
+    which is materially stronger evidence than the offline extractor's 0.0 for
+    a missing field, but weaker than any parsed value.
+    """
+    return _LLM_CONFIDENCE_PRESENT if value is not None else _LLM_CONFIDENCE_ABSENT
+
+
 def _build_extraction(
     fields_payload: dict[str, Any],
     total_tokens: int | None,
@@ -100,7 +114,7 @@ def _build_extraction(
         fields = {
             name: ExtractedField(
                 value=_coerce_field_value(name, fields_payload[name]),
-                confidence=_LLM_CONFIDENCE,
+                confidence=_llm_confidence(fields_payload[name]),
                 evidence=(
                     str(fields_payload[name])
                     if fields_payload[name] is not None

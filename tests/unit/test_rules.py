@@ -13,6 +13,7 @@ from docvalidator.domain.models import (
 from docvalidator.rules_engine import (
     CurrencyAllowed,
     InvoiceDatePresentAndFresh,
+    LowConfidenceFieldsReview,
     RulesEngine,
     SupplierNamePresent,
     TotalAmountPresentAndPositive,
@@ -176,3 +177,69 @@ def test_engine_rule_fail_takes_priority_over_review() -> None:
     config = ValidationConfig()
     verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 1))
     assert verdict.status == "FAIL"
+
+
+def test_pass_verdict_confidence_is_min_required_field_confidence() -> None:
+    """PASS carries the weakest evidence among the deciding fields."""
+    extraction = make_extraction(
+        invoice_date=make_field(date(2026, 1, 1)),
+        total_amount=make_field(100.0),
+        supplier_name=make_field("Acme"),
+        invoice_number=ExtractedField(value="INV-1", confidence=0.6, evidence="x"),
+    )
+    verdict = RulesEngine().evaluate(extraction, ValidationConfig(), today=date(2026, 1, 15))
+    assert verdict.status == "PASS"
+    assert verdict.verdict_confidence == pytest.approx(0.6)
+
+
+def test_fail_and_review_verdicts_pin_confidence_to_zero() -> None:
+    """FAIL/REVIEW carry rule evidence, not decision confidence."""
+    fail_extraction = make_extraction(total_amount=make_field(-5.0))
+    verdict = RulesEngine().evaluate(fail_extraction, ValidationConfig(), today=date(2026, 1, 15))
+    assert verdict.status == "FAIL"
+    assert verdict.verdict_confidence == 0.0
+    review_verdict = RulesEngine().evaluate(make_extraction(), ValidationConfig())
+    assert review_verdict.status == "REVIEW"
+    assert review_verdict.verdict_confidence == 0.0
+
+
+def test_low_confidence_rule_flags_below_threshold_and_reviews() -> None:
+    """Low confidence is a review signal, never an auto-reject."""
+    rule = LowConfidenceFieldsReview()
+    extraction = make_extraction(
+        total_amount=ExtractedField(value=10.0, confidence=0.3, evidence="x"),
+    )
+    result = rule.evaluate(extraction, ValidationConfig())
+    assert result.passed is False
+    assert result.severity == "review"
+    assert result.deciding_fields == ("total_amount",)
+    verdict = RulesEngine().evaluate(extraction, ValidationConfig())
+    assert verdict.status == "REVIEW"
+    flagged = next(
+        r for r in verdict.rule_results if r.rule_id == rule.rule_id
+    )
+    assert flagged.passed is False and flagged.severity == "review"
+
+
+def test_strong_fields_pass_confidence_rule_and_keep_pass_verdict() -> None:
+    rule = LowConfidenceFieldsReview()
+    extraction = make_extraction(
+        invoice_date=make_field(date(2026, 1, 1)),
+        total_amount=make_field(100.0),
+        supplier_name=make_field("Acme"),
+        invoice_number=make_field("INV-1"),
+    )
+    result = rule.evaluate(extraction, ValidationConfig())
+    assert result.passed is True
+    assert result.deciding_fields == ()
+    verdict = RulesEngine().evaluate(extraction, ValidationConfig(), today=date(2026, 1, 15))
+    assert verdict.status == "PASS"
+    assert verdict.verdict_confidence == pytest.approx(0.9)
+
+
+def test_missing_fields_do_not_trigger_confidence_rule() -> None:
+    """Absent fields are the required-field check's job, not this rule's."""
+    rule = LowConfidenceFieldsReview()
+    result = rule.evaluate(make_extraction(), ValidationConfig())
+    assert result.passed is True
+    assert result.deciding_fields == ()

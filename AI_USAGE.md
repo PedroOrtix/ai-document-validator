@@ -39,6 +39,15 @@ fixed directly rather than re-dispatched.
    an ISO *string* — which the freshness rule would classify as invalid. Found by running
    the extractor against the real OpenRouter API during review; fixed with typed coercion
    in the parser (`date.fromisoformat` / `float`, garbage raises a typed parsing error).
+5. **Rejected: asking the LLM to self-report its confidence.** When designing the confidence
+   system, the obvious AI-suggested pattern is to have the model emit a confidence per field.
+   Rejected: a model grading itself is not calibrated — the score would be decoration, not
+   measurement. Confidence is instead **evidence strength**: deterministic pattern tiers for
+   the offline extractor, and for the LLM path a presence/evidence-based score (0.75 parsed /
+   0.6 reported-absent) documented as not self-assessed. Whether that score means anything is
+   then *measured*, not asserted: the eval decision table reports mean confidence on
+   exact-match cells vs mismatched cells (`conf-ok` / `conf-bad`), and converging columns are
+   the documented signal that confidence must not gate automation.
 
 Also caught in orchestrator review and fixed before merge: an amount regex that truncated
 4+ digit integers without thousands separators (`1250.00 → 125.0`), a duplicated request

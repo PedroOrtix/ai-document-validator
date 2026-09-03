@@ -253,10 +253,17 @@ def test_decision_table_row_shape_and_costs() -> None:
         "avg_ms",
         "avg_tokens",
         "est_cost_per_doc",
+        "mean_confidence_matched",
+        "mean_confidence_mismatched",
     }
     assert first["avg_ms"] == 10.0
     assert first["avg_tokens"] == 100
     assert first["est_cost_per_doc"] == pytest.approx(0.0000325)
+    # The FakeExtractor reports confidence=1.0 everywhere, so matched and
+    # mismatched cells carry the same confidence: no separation, by design of
+    # the fake — this asserts the columns are wired, not calibrated.
+    assert first["mean_confidence_matched"] == pytest.approx(1.0)
+    assert first["mean_confidence_mismatched"] == pytest.approx(1.0)
 
 
 def test_decision_table_auto_lane_emits_per_route_rows() -> None:
@@ -265,6 +272,7 @@ def test_decision_table_auto_lane_emits_per_route_rows() -> None:
         "predicted_verdict": "REJECTED",
         "expected_fields": {},
         "predicted_fields": {name: "ACME" for name in FIELD_NAMES},
+        "field_confidences": {name: 1.0 for name in FIELD_NAMES},
         "field_evidence": {},
         "rule_results": [],
     }

@@ -35,6 +35,7 @@ from docvalidator.extraction.vision import VisionExtractor
 from docvalidator.rules_engine import RulesEngine
 
 from .lanes import (
+    FIELD_NAMES,
     LANE_NAMES,
     LanePlan,
     decision_table,
@@ -45,16 +46,8 @@ from .lanes import (
     print_decision_table,
     resolve_lane_plans,
 )
-from .metrics import field_metrics, verdict_metrics
+from .metrics import confidence_separation, field_metrics, verdict_metrics
 
-FIELD_NAMES = (
-    "supplier_name",
-    "invoice_number",
-    "invoice_date",
-    "total_amount",
-    "currency",
-    "tax_id",
-)
 GOLDEN_DIR = Path("fixtures/golden")
 DEFAULT_AS_OF = date(2026, 9, 3)
 ExtractorFactory = Callable[[], Extractor]
@@ -105,8 +98,10 @@ def run_case(
         "case_id": case_id,
         "expected_verdict": expected["expected_verdict_status"],
         "predicted_verdict": verdict.status,
+        "predicted_verdict_confidence": verdict.verdict_confidence,
         "expected_fields": expected["expected_fields"],
         "predicted_fields": {name: _field_value(extraction, name) for name in FIELD_NAMES},
+        "field_confidences": {name: _field_confidence(extraction, name) for name in FIELD_NAMES},
         "field_evidence": {name: _field_evidence(extraction, name) for name in FIELD_NAMES},
         "rule_results": [
             {"rule_id": r.rule_id, "passed": r.passed, "message": r.message}
@@ -131,6 +126,11 @@ def _field_value(extraction: DocumentExtraction, field_name: str) -> Any:
 def _field_evidence(extraction: DocumentExtraction, field_name: str) -> str:
     field = extraction.get_field(field_name)
     return "" if field is None or field.evidence is None else field.evidence
+
+
+def _field_confidence(extraction: DocumentExtraction, field_name: str) -> float:
+    field = extraction.get_field(field_name)
+    return 0.0 if field is None else field.confidence
 
 
 def run_lane(
@@ -169,6 +169,14 @@ def run_lane(
     verdict_records = [(r["predicted_verdict"], r["expected_verdict"]) for r in results]
     fields = field_metrics(field_records, field_names=FIELD_NAMES)
     verdict = verdict_metrics(verdict_records)
+    confidence_records = [
+        (
+            result["predicted_fields"][field_name] == result["expected_fields"].get(field_name),
+            result["field_confidences"][field_name],
+        )
+        for result in results
+        for field_name in FIELD_NAMES
+    ]
     aggregate = {
         "field_accuracy": lane_field_accuracy({"case_count": len(results), "fields": fields}),
         "verdict_agreement": verdict["agreement_rate"],
@@ -179,6 +187,7 @@ def run_lane(
         "case_count": len(results),
         "fields": fields,
         "verdict": verdict,
+        "confidence": confidence_separation(confidence_records),
         "slices": slice_metrics(results),
         "results": results,
         "aggregate": aggregate,

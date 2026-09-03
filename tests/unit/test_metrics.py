@@ -1,4 +1,10 @@
-from eval.metrics import field_metrics, verdict_agreement, verdict_metrics
+import pytest
+from eval.metrics import (
+    confidence_separation,
+    field_metrics,
+    verdict_agreement,
+    verdict_metrics,
+)
 
 
 def test_exact_match_counting_and_none_handling() -> None:
@@ -40,3 +46,30 @@ def test_verdict_agreement() -> None:
 
     metrics = verdict_metrics([("PASS", "PASS"), ("PASS", "FAIL")])
     assert metrics == {"agreements": 1, "total": 2, "agreement_rate": 0.5}
+
+
+def test_confidence_separation_splits_matched_from_mismatched() -> None:
+    records = [
+        (True, 0.95),
+        (True, 0.8),
+        (False, 0.3),
+        (False, 0.1),
+        (True, None),  # None confidence counts as 0.0 on a matched cell
+    ]
+    metrics = confidence_separation(records)
+    assert metrics["mean_confidence_matched"] == pytest.approx(
+        round((0.95 + 0.8 + 0.0) / 3, 4)
+    )
+    assert metrics["mean_confidence_mismatched"] == pytest.approx(0.2)
+    assert metrics["matched_cells"] == 3
+    assert metrics["mismatched_cells"] == 2
+
+
+def test_confidence_separation_empty_is_zeroed() -> None:
+    metrics = confidence_separation([])
+    assert metrics == {
+        "mean_confidence_matched": 0.0,
+        "mean_confidence_mismatched": 0.0,
+        "matched_cells": 0,
+        "mismatched_cells": 0,
+    }

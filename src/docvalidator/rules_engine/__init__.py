@@ -5,6 +5,7 @@ from .engine import RulesEngine
 from .rules import (
     CurrencyAllowed,
     InvoiceDatePresentAndFresh,
+    LowConfidenceFieldsReview,
     SupplierNamePresent,
     TotalAmountPresentAndPositive,
 )
@@ -12,6 +13,7 @@ from .rules import (
 __all__ = [
     "CurrencyAllowed",
     "InvoiceDatePresentAndFresh",
+    "LowConfidenceFieldsReview",
     "Rule",
     "RuleRegistry",
     "RulesEngine",

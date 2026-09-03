@@ -67,6 +67,33 @@ def verdict_agreement(
     return {"agreements": 1 if predicted == expected else 0, "total": total}
 
 
+def confidence_separation(records: Iterable[tuple[bool, float]]) -> dict[str, float | int]:
+    """Mean confidence on matched cells vs mismatched cells.
+
+    Honest confidence is *separating*: matched cells should carry clearly
+    higher confidence than mismatches. When both means are close, confidence
+    does not distinguish right from wrong and must not gate automation — this
+    metric makes that visible instead of hiding it. Records are
+    ``(is_match, confidence)`` pairs; ``None`` confidences count as ``0.0``.
+    """
+    matched: list[float] = []
+    mismatched: list[float] = []
+    for is_match, confidence in records:
+        value = 0.0 if confidence is None else float(confidence)
+        if is_match:
+            matched.append(value)
+        else:
+            mismatched.append(value)
+    matched_mean = sum(matched) / len(matched) if matched else 0.0
+    mismatched_mean = sum(mismatched) / len(mismatched) if mismatched else 0.0
+    return {
+        "mean_confidence_matched": round(matched_mean, 4),
+        "mean_confidence_mismatched": round(mismatched_mean, 4),
+        "matched_cells": len(matched),
+        "mismatched_cells": len(mismatched),
+    }
+
+
 def verdict_metrics(
     records: Iterable[tuple[str, str]],
 ) -> dict[str, float | int]:

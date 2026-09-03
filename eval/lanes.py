@@ -10,6 +10,8 @@ from docvalidator.domain.models import DocumentExtraction
 from docvalidator.extraction.base import Extractor
 from docvalidator.extraction.offline import OfflineExtractor
 
+from .metrics import confidence_separation
+
 # Published z-ai/glm-5.3-flash OpenRouter prices, USD per token.
 GLM_FLASH_PROMPT_PRICE_PER_TOKEN = 0.000000075
 GLM_FLASH_COMPLETION_PRICE_PER_TOKEN = 0.00000025
@@ -23,6 +25,14 @@ LANE_FORMATS: dict[str, tuple[str, ...]] = {
     "ocr": ("scanned", "pdf"),
     "auto": ("txt", "pdf", "scanned"),
 }
+FIELD_NAMES = (
+    "supplier_name",
+    "invoice_number",
+    "invoice_date",
+    "total_amount",
+    "currency",
+    "tax_id",
+)
 
 
 @dataclass(frozen=True)
@@ -103,6 +113,18 @@ def extraction_telemetry(extraction: DocumentExtraction) -> dict[str, float | in
     }
 
 
+def _confidences(results: list[dict[str, Any]]) -> list[tuple[bool, float]]:
+    """(is_match, confidence) records per field cell for a group of results."""
+    return [
+        (
+            result["predicted_fields"][field_name] == result["expected_fields"].get(field_name),
+            result["field_confidences"][field_name],
+        )
+        for result in results
+        for field_name in FIELD_NAMES
+    ]
+
+
 def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
     """Build one compact row per lane, format, and tier from prepared report lanes."""
     rows: list[dict[str, Any]] = []
@@ -112,20 +134,21 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                 metrics = engine_lane["slices"].get(f"tier:{tier}")
                 if metrics is None:
                     continue
-                tokens = [
-                    result["total_tokens"]
+                tier_results = [
+                    result
                     for result in engine_lane["results"]
                     if result["slices"].get("format") == format_name
                     and result["slices"].get("tier") == tier
-                    and result["total_tokens"] is not None
+                ]
+                tokens = [
+                    result["total_tokens"] for result in tier_results if result["total_tokens"]
+                    is not None
                 ]
                 durations = [
-                    result["duration_ms"]
-                    for result in engine_lane["results"]
-                    if result["slices"].get("format") == format_name
-                    and result["slices"].get("tier") == tier
-                    and result["duration_ms"] is not None
+                    result["duration_ms"] for result in tier_results if result["duration_ms"]
+                    is not None
                 ]
+                separation = confidence_separation(_confidences(tier_results))
                 rows.append(
                     {
                         "lane": engine_lane["lane"],
@@ -140,6 +163,8 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                             if tokens
                             else 0.0
                         ),
+                        "mean_confidence_matched": separation["mean_confidence_matched"],
+                        "mean_confidence_mismatched": separation["mean_confidence_mismatched"],
                     }
                 )
                 if engine_lane["lane"] == "auto":
@@ -161,6 +186,7 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                             for result in route_results
                             if result["duration_ms"] is not None
                         ]
+                        route_separation = confidence_separation(_confidences(route_results))
                         rows.append(
                             {
                                 "lane": f"auto:{sub_route}",
@@ -175,6 +201,12 @@ def decision_table(report: dict[str, Any]) -> list[dict[str, Any]]:
                                     if tokens
                                     else 0.0
                                 ),
+                                "mean_confidence_matched": route_separation[
+                                    "mean_confidence_matched"
+                                ],
+                                "mean_confidence_mismatched": route_separation[
+                                    "mean_confidence_mismatched"
+                                ],
                             }
                         )
     return rows
@@ -186,15 +218,18 @@ def print_decision_table(report: dict[str, Any]) -> None:
     print("\nDECISION TABLE")
     print(
         f"{'lane':<8} {'format':<8} {'tier':>4} {'fields':>8} {'verdict':>8} "
-        f"{'avg_ms':>9} {'tokens':>9} {'cost/doc':>11}"
+        f"{'conf-ok':>8} {'conf-bad':>8} {'avg_ms':>9} {'tokens':>9} {'cost/doc':>11}"
     )
     for row in rows:
         duration = "-" if row["avg_ms"] is None else f"{row['avg_ms']:.1f}"
         tokens = "-" if row["avg_tokens"] is None else f"{row['avg_tokens']:.0f}"
         cost = f"${row['est_cost_per_doc']:.8f}"
+        conf_ok = f"{row['mean_confidence_matched']:.2f}"
+        conf_bad = f"{row['mean_confidence_mismatched']:.2f}"
         print(
             f"{row['lane']:<8} {row['format']:<8} {row['tier']:>4} "
             f"{row['field_accuracy']:>8.2%} {row['verdict_agreement']:>8.2%} "
+            f"{conf_ok:>8} {conf_bad:>8} "
             f"{duration:>9} {tokens:>9} {cost:>11}"
         )
 

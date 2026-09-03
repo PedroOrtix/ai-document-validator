@@ -31,6 +31,7 @@ def test_validate_json_text_returns_pass_verdict() -> None:
     assert body["status"] == "PASS"
     assert body["extraction"]["fields"]["supplier_name"]["value"] == "Oakbridge Logistics Ltd"
     assert body["request_id"]
+    assert 0.0 <= body["verdict_confidence"] <= 1.0
 
 
 def test_validate_multipart_txt_returns_pass_verdict() -> None:
