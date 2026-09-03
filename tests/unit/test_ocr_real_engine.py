@@ -12,7 +12,7 @@ GOLDEN = Path(__file__).parents[2] / "fixtures" / "golden"
 CASE_IDS = ["scan_pdf_en_t0_0", "scan_pdf_es_t0_0"]
 
 try:
-    import rapidocr_onnxruntime  # noqa: F401
+    import rapidocr_onnxruntime
 
     rapidocr = rapidocr_onnxruntime
 except ImportError:
