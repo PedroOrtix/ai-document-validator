@@ -1,8 +1,8 @@
 # docvalidator — AI document validator (production-shaped slice)
 
 Structured field extraction + configurable business-rule verdicts for `SUPPLIER_INVOICE`
-documents, exposed as a thin FastAPI service, with an LLM-primary / offline-fallback extraction
-design and a measurable evaluation harness.
+documents, exposed as a thin FastAPI service, with a document-type auto router over LLM/VLM/OCR
+extraction paths and a measurable evaluation harness.
 
 > Status: work in progress (24h technical assessment). This README is completed in the final phase.
 
@@ -188,10 +188,10 @@ flowchart TD
 
 Key decisions (full rationale below in Trade-offs):
 
-1. **LLM-primary with an honest offline floor.** With a key present the LangChain extractor is the
-   default engine; the deterministic offline extractor stays as the credential-free default AND the
-   automatic runtime fallback, so the assessment's offline-first requirement is preserved: every
-   lane (API, tests, eval, CI) still runs with zero credentials.
+1. **Auto router, keyed primary, offline floor.** With a key present the LangChain router is the
+   default engine; the deterministic offline extractor stays as the credential-free default, so the
+   assessment's offline-first requirement is preserved: every lane (API, tests, eval, CI) still runs
+   with zero credentials.
 2. **REVIEW vs FAIL distinction.** Missing required data ⇒ `REVIEW` (cannot judge); a violated
    rule with data present ⇒ `FAIL` (judged and rejected). Compliance verdicts need this nuance.
 3. **Confidence is evidence-strength, not model probability.** Documented per-field: labeled
@@ -289,13 +289,14 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 
 ## Trade-offs consciously made
 
-1. **LLM-primary, offline-fallback (flipped from the original offline-first).** Rationale: an
-   examiner-only key (delivered out-of-band, $1 budget, one-week expiry) removes the credential
-   barrier for the reviewer, so the higher-quality engine leads. The offline extractor remains the
-   no-key default and the runtime fallback (never masked: a degraded result is always flagged with
-   `backend="offline-fallback"` + `fallback_reason`), tests and eval stay 100% credential-free, and
-   latency is honest: ~7 s/document on the LLM path vs ~3.5 ms offline — the client pays the latency
-   only when a key is configured.
+1. **Auto router, keyed primary, offline floor.** With a key present the auto router is the default
+   backend: text → LLM, selectable-text PDF → markitdown+LLM, scanned PDF → VLM, each with the local
+   OCR engine as a structural second echelon (never as a silent format-level retry). Without a key the
+   deterministic offline extractor is the default. Extraction failures surface as typed HTTP errors
+   (503 configuration / 502 provider or parsing / 504 timeout) — there is no API-level runtime fallback
+   that silently degrades results. Tests and eval stay 100% credential-free, and latency is honest:
+   ~2–5 s/document on the LLM/VLM paths vs ~3.5 ms offline — the client pays the latency only when a
+   key is configured.
 2. **REVIEW ≠ FAIL.** A rule whose input data is missing is marked `inconclusive` and cannot push the
    verdict to `FAIL`; missing required fields surface as `REVIEW`. Rationale: in compliance workflows,
    "judged and rejected" (FAIL) and "cannot judge, human needed" (REVIEW) have very different operational
