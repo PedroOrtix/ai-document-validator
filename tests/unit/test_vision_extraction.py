@@ -5,9 +5,10 @@ from typing import Any
 
 import pytest
 from fpdf import FPDF
+from langchain_core.exceptions import OutputParserException
 
 from docvalidator.extraction.input import DocumentInput, ExtractionError
-from docvalidator.extraction.llm import InvoiceExtraction, LLMTimeoutError
+from docvalidator.extraction.llm import InvoiceExtraction, LLMParsingError, LLMTimeoutError
 from docvalidator.extraction.rendering import render_pdf_pages_to_png
 from docvalidator.extraction.vision import VisionExtractor
 from docvalidator.settings import LLMSettings
@@ -91,4 +92,22 @@ def test_vision_extractor_propagates_timeout() -> None:
     )
 
     with pytest.raises(LLMTimeoutError, match="slow"):
+        extractor.extract(DocumentInput(pdf_bytes=_single_page_pdf()))
+
+
+def test_vision_extractor_propagates_structured_parse_failure() -> None:
+    class _FailingChain:
+        def invoke(self, messages: Any) -> Any:
+            raise OutputParserException("Failed to parse")
+
+    class _FailingModel:
+        def with_structured_output(self, *args: object, **kwargs: object) -> _FailingChain:
+            return _FailingChain()
+
+    extractor = VisionExtractor(
+        LLMSettings(openrouter_api_key="test-key"),
+        model=_FailingModel(),
+    )
+
+    with pytest.raises(LLMParsingError, match="invalid field values"):
         extractor.extract(DocumentInput(pdf_bytes=_single_page_pdf()))

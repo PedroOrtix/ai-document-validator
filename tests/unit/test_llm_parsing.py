@@ -4,12 +4,14 @@ from datetime import date
 from typing import Any
 
 import pytest
+from langchain_core.exceptions import OutputParserException
+from langchain_core.messages import AIMessage
 
 from docvalidator.extraction.input import DocumentInput
 from docvalidator.extraction.llm import (
     InvoiceExtraction,
+    LLMExtractor,
     LLMParsingError,
-    parse_llm_response,
     parse_structured_extraction,
 )
 from docvalidator.settings import LLMSettings
@@ -71,31 +73,6 @@ class TestParseStructuredExtraction:
             parse_structured_extraction(payload, None, "m")
 
 
-class TestParseLlmResponse:
-    def test_raw_json_is_parsed_defensively(self) -> None:
-        extraction = parse_llm_response(
-            '{"supplier_name":"A","invoice_number":"I","invoice_date":"2026-01-02",'
-            '"total_amount":1.0,"currency":"EUR","tax_id":null}',
-            {"usage": {"total_tokens": 42}},
-            "m",
-        )
-        assert extraction.fields["tax_id"].value is None
-        assert extraction.metadata.total_tokens == 42
-
-    def test_fenced_json_is_unwrapped(self) -> None:
-        extraction = parse_llm_response(
-            '```json\n{"supplier_name":null,"invoice_number":null,"invoice_date":null,'
-            '"total_amount":null,"currency":null,"tax_id":null}\n```',
-            {},
-            "m",
-        )
-        assert extraction.fields["supplier_name"].value is None
-
-    def test_non_json_raises(self) -> None:
-        with pytest.raises(LLMParsingError):
-            parse_llm_response("the answer is 42", {}, "m")
-
-
 class TestSettings:
     def test_defaults(self) -> None:
         settings = LLMSettings()
@@ -145,6 +122,47 @@ class TestReasoningEffortWiring:
         )
         extractor.extract(DocumentInput(text="ACME"))
         assert "extra_body" not in captured
+
+
+class TestStructuredOutputContract:
+    def test_output_parser_error_is_typed_and_not_retried(self) -> None:
+        class _FailingChain:
+            def invoke(self, messages: Any) -> Any:
+                raise OutputParserException("Failed to parse")
+
+        class _FailingModel:
+            def with_structured_output(self, *args: object, **kwargs: object) -> _FailingChain:
+                return _FailingChain()
+
+        extractor = LLMExtractor(
+            LLMSettings(openrouter_api_key="k"),
+            model=_FailingModel(),
+        )
+
+        with pytest.raises(LLMParsingError, match="invalid field values"):
+            extractor.extract(DocumentInput(text="ACME"))
+
+    def test_null_parsed_response_raises_parsing_error(self) -> None:
+        raw = AIMessage(
+            content="",
+            usage_metadata={"input_tokens": 0, "output_tokens": 0, "total_tokens": 42},
+        )
+
+        class _NullChain:
+            def invoke(self, messages: Any) -> Any:
+                return {"parsed": None, "raw": raw}
+
+        class _NullModel:
+            def with_structured_output(self, *args: object, **kwargs: object) -> _NullChain:
+                return _NullChain()
+
+        extractor = LLMExtractor(
+            LLMSettings(openrouter_api_key="k"),
+            model=_NullModel(),
+        )
+
+        with pytest.raises(LLMParsingError, match="unparseable"):
+            extractor.extract(DocumentInput(text="ACME"))
 
 
 class _StructuredStub:
