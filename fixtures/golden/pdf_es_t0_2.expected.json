@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Textiles Industria S.A.",
+    "invoice_number": "FAC-2024-7726",
+    "invoice_date": "2026-02-05",
+    "total_amount": 285439.0,
+    "currency": "EUR",
+    "tax_id": "ES53375906"
+  },
+  "expected_verdict_status": "FAIL",
+  "slices": {
+    "language": "ES",
+    "tier": 0,
+    "amount_style": "grouped_eu",
+    "date_style": "iso",
+    "scenario": "stale",
+    "format": "pdf",
+    "pages": 1
+  }
+}

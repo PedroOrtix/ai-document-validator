@@ -1,0 +1,20 @@
+{
+  "expected_fields": {
+    "supplier_name": "Falcon Freight B.V.",
+    "invoice_number": "FT4651",
+    "invoice_date": "2026-08-09",
+    "total_amount": 432120.0,
+    "currency": "EUR",
+    "tax_id": "GB6601896205"
+  },
+  "expected_verdict_status": "PASS",
+  "slices": {
+    "language": "EN",
+    "tier": 1,
+    "amount_style": "grouped_en",
+    "date_style": "abbrev",
+    "scenario": "clean",
+    "format": "pdf",
+    "pages": 1
+  }
+}
