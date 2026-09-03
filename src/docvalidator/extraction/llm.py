@@ -228,6 +228,15 @@ class LLMExtractor(Extractor):
             temperature=0,
             timeout=self.settings.validator_llm_timeout_seconds,
             max_retries=0,
+            **(
+                {
+                    "extra_body": {
+                        "reasoning": {"effort": self.settings.validator_llm_reasoning_effort}
+                    }
+                }
+            if self.settings.validator_llm_reasoning_effort
+            else {}
+        ),
         )
 
     def _invoke(self, text: str) -> DocumentExtraction:

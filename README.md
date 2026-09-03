@@ -1,8 +1,8 @@
 # docvalidator — AI document validator (production-shaped slice)
 
 Structured field extraction + configurable business-rule verdicts for `SUPPLIER_INVOICE`
-documents, exposed as a thin FastAPI service, with an offline-first extraction design
-and a measurable evaluation harness.
+documents, exposed as a thin FastAPI service, with an LLM-primary / offline-fallback extraction
+design and a measurable evaluation harness.
 
 > Status: work in progress (24h technical assessment). This README is completed in the final phase.
 
@@ -15,7 +15,26 @@ uv run uvicorn docvalidator.api.main:app --reload --port 8000
 curl -s localhost:8000/health
 ```
 
-No API keys required — the default extraction backend is a deterministic offline extractor.
+The service runs with **zero configuration**: without an `OPENROUTER_API_KEY` the default
+extraction backend is the deterministic offline extractor; with a key present, the LangChain
+LLM extractor becomes the primary engine and the offline extractor becomes its runtime
+fallback. An examiner-only API key (budget-capped at **$1 USD**, expiring **one week** after
+the submission date) is delivered out-of-band with the submission — paste it into `.env`
+(see `.env.example`) to run the LLM path; the repo itself never contains any key.
+
+### Backend selection contract
+
+| Condition | Default backend |
+|---|---|
+| `OPENROUTER_API_KEY` present | `llm` (LangChain → OpenRouter, `z-ai/glm-5.3-flash` @ reasoning effort `low`) |
+| No key (or key expired) | `offline` (regex/heuristics, deterministic, ~ms) |
+
+- Every request can still override this with `extraction_backend: "offline" | "llm"`.
+- **Runtime fallback:** if the LLM lane fails mid-request (timeout, provider error, unparseable
+  response), the same document is retried once with the offline extractor. The result carries
+  `metadata.backend = "offline-fallback"` and `metadata.fallback_reason`
+  (`llm_timeout` | `llm_request_error` | `llm_parsing_error`), plus a structured warning in the
+  logs. A misconfigured key is NOT masked this way — it returns `503` as before.
 
 ## Golden dataset v2
 
@@ -104,7 +123,7 @@ dataset isolates them; closing the gap is the LLM backend's job.
   - `content_b64` — base64-encoded document bytes (PDF by default; decoded as text when
     `filename` ends in `.txt`) — plus optional `filename`;
   - optional `config` (defaults apply when omitted);
-  - optional `extraction_backend`: `offline` (default) | `llm` | `llm-recorded`.
+  - optional `extraction_backend`: `offline` | `llm` (default: `llm` with a key, else `offline`).
 
 Responses: `200` with the verdict (see the sample below), `422` with a structured
 `{"error": {"code", "message", "details"}, "request_id"}` body for invalid input or
@@ -119,8 +138,9 @@ unreadable documents, `5xx` only for upstream LLM failures. Every response echoe
 flowchart TD
     A["document (PDF bytes / text) + rule config"] --> B["POST /v1/validate · POST /v1/extract<br/>(FastAPI, structured JSON logs)"]
     B --> C{extraction backend}
-    C -->|offline · default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
-    C -->|llm · optional| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter"]
+    C -->|llm · primary with key| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter, reasoning=low"]
+    C -->|offline · no-key default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
+    E -->|on LLM failure| D2["offline-fallback<br/>retry once + fallback_reason"]
     C -->|llm-recorded| F["RecordedLLMExtractor<br/>recorded responses for tests"]
     D --> G["DocumentExtraction<br/>value + confidence + evidence per field"]
     E --> G
@@ -131,8 +151,10 @@ flowchart TD
 
 Key decisions (full rationale below in Trade-offs):
 
-1. **Offline-first.** The deterministic extractor is the default backend; reviewers can run
-   everything without paid credentials. The LLM path is an interchangeable adapter, not a dependency.
+1. **LLM-primary with an honest offline floor.** With a key present the LangChain extractor is the
+   default engine; the deterministic offline extractor stays as the credential-free default AND the
+   automatic runtime fallback, so the assessment's offline-first requirement is preserved: every
+   lane (API, tests, eval, CI) still runs with zero credentials.
 2. **REVIEW vs FAIL distinction.** Missing required data ⇒ `REVIEW` (cannot judge); a violated
    rule with data present ⇒ `FAIL` (judged and rejected). Compliance verdicts need this nuance.
 3. **Confidence is evidence-strength, not model probability.** Documented per-field: labeled
@@ -210,10 +232,13 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 
 ## Trade-offs consciously made
 
-1. **Offline-first over LLM-first.** The deterministic extractor is the default backend. Rationale:
-   reviewers run everything without credentials, behavior is 100% testable and replayable, per-document
-   latency is single-digit milliseconds, and cost is zero. The LLM path exists as a swappable adapter
-   for layouts the heuristics can't handle. The eval harness makes the quality of either path measurable.
+1. **LLM-primary, offline-fallback (flipped from the original offline-first).** Rationale: an
+   examiner-only key (delivered out-of-band, $1 budget, one-week expiry) removes the credential
+   barrier for the reviewer, so the higher-quality engine leads. The offline extractor remains the
+   no-key default and the runtime fallback (never masked: a degraded result is always flagged with
+   `backend="offline-fallback"` + `fallback_reason`), tests and eval stay 100% credential-free, and
+   latency is honest: ~7 s/document on the LLM path vs ~3.5 ms offline — the client pays the latency
+   only when a key is configured.
 2. **REVIEW ≠ FAIL.** A rule whose input data is missing is marked `inconclusive` and cannot push the
    verdict to `FAIL`; missing required fields surface as `REVIEW`. Rationale: in compliance workflows,
    "judged and rejected" (FAIL) and "cannot judge, human needed" (REVIEW) have very different operational
@@ -279,9 +304,14 @@ page-extraction code; the trade-off is a larger dependency footprint and less di
 page-level parsing than pypdf. For this project, the typed empty-text and unreadable-PDF failures
 are unchanged, and the simpler adapter wins.
 
-1. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
+1. **VisionExtractor**: same `Extractor` interface, but sends the PDF **page images** to a
+   vision-capable LLM (e.g. GLM-5.3-Flash's vision variant at reasoning effort `low`) instead of
+   markitdown text — native layout understanding without a text layer, and the natural upgrade
+   path for scanned documents. The current LangChain lane already carries the reasoning-effort
+   plumbing this adapter would reuse.
+2. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
    always reading `03/07/2026` day-first.
-2. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
-3. Page-level evidence spans and a debug endpoint returning per-field extractor traces.
-4. Second document type (`CERTIFICATE_OF_INCORPORATION`) to pressure-test the extensibility claim.
-5. Optional live LLM lane in the eval harness (real API, gated behind a key) next to the recorded one.
+3. Real OCR adapter (Azure Document Intelligence) behind the same `Extractor` interface for scanned PDFs.
+4. Page-level evidence spans and a debug endpoint returning per-field extractor traces.
+5. Second document type (`CERTIFICATE_OF_INCORPORATION`) to pressure-test the extensibility claim.
+6. Optional live LLM lane in the eval harness (real API, gated behind a key) next to the recorded one.

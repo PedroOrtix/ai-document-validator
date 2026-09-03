@@ -93,3 +93,14 @@ Final state at submission: 101 tests green (`uv run pytest`), ruff clean, eval h
 20-fixture golden set (offline 0.99 field accuracy / 1.00 verdict agreement; recorded-LLM
 1.00 / 1.00) wired into CI as a regression gate, Docker image built and smoke-tested
 end-to-end, and one live OpenRouter call verified the LLM path.
+
+## Backend flip: LLM-primary with offline runtime fallback
+
+The backend-priority flip (LLM primary when a key is present, offline as no-key default and
+runtime fallback, `fallback_reason` metadata, OpenRouter reasoning-effort `low` plumbing) was
+delegated to Codex (unit `llm-first-fallback`, brief in
+`docs/prompts/2026-09-03_phase9_backend_flip.md`). The dispatch wrapper died to a terminal
+timeout after Codex had finished the code and test surfaces; the owner completed the close-out
+(ruff fixes, README/.env.example/this section, committed brief) and re-verified every gate.
+Attribution: code + tests = Codex; close-out + verification = owner. The examiner-only API key
+($1 budget, one-week expiry) is delivered out-of-band and never enters this repository.
