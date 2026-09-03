@@ -1,7 +1,6 @@
 """LLM-backed extraction with LangChain structured output via OpenRouter."""
 
 import json
-import re
 import time
 from datetime import date
 from typing import Any, NoReturn
@@ -58,9 +57,7 @@ _FIELD_NAMES = {
     "tax_id",
 }
 _LLM_CONFIDENCE = 0.75
-_FENCE_PATTERN = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
-_StructuredResponse = dict[str, Any] | InvoiceExtraction | AIMessage | DocumentExtraction
-_StructuredModel = Runnable[Any, _StructuredResponse]
+_StructuredResponse = dict[str, AIMessage | InvoiceExtraction | None]
 
 
 class LLMConfigurationError(ExtractionError):
@@ -77,17 +74,6 @@ class LLMParsingError(ExtractionError):
 
 class LLMTimeoutError(ExtractionError):
     """Raised when the LLM backend does not respond before the timeout."""
-
-
-class _UnsupportedResponseFormat(Exception):
-    """Internal signal used to select the next structured-output strategy."""
-
-
-def _strip_markdown_fences(content: str) -> str:
-    stripped = content.strip()
-    if not stripped.startswith("```"):
-        return stripped
-    return _FENCE_PATTERN.sub("", stripped).strip()
 
 
 def _coerce_field_value(name: str, raw: Any) -> Any:
@@ -170,30 +156,6 @@ def parse_structured_extraction(
     return _build_extraction(fields_payload, _total_tokens(response), model, context)
 
 
-def parse_llm_response(
-    raw_content: str,
-    response_payload: dict[str, Any],
-    model: str,
-) -> DocumentExtraction:
-    """Defensively parse one JSON completion; retained for raw fallback and replay."""
-    try:
-        fields_payload = json.loads(raw_content)
-    except (json.JSONDecodeError, TypeError):
-        try:
-            fields_payload = json.loads(_strip_markdown_fences(raw_content))
-        except (json.JSONDecodeError, TypeError) as exc:
-            raise LLMParsingError("LLM response is not valid JSON") from exc
-
-    if not isinstance(fields_payload, dict):
-        raise LLMParsingError("LLM response must contain exactly the six required fields")
-    return _build_extraction(fields_payload, _total_tokens(response_payload), model, raw_content)
-
-
-def _message_text(message: BaseMessage) -> str:
-    content = message.content
-    return content if isinstance(content, str) else json.dumps(content)
-
-
 class LLMExtractor(Extractor):
     """Extract invoice fields through a LangChain-compatible OpenRouter model."""
 
@@ -206,7 +168,6 @@ class LLMExtractor(Extractor):
         self.settings = settings or LLMSettings()
         self._model = model
         self._structured_model = structured_model
-        self._method = "json_schema"
 
     def extract(self, document: DocumentInput) -> DocumentExtraction:
         if not self.settings.openrouter_api_key:
@@ -245,99 +206,45 @@ class LLMExtractor(Extractor):
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=text),
         ]
+        return self._invoke_messages(messages)
+
+    def _invoke_messages(self, messages: list[BaseMessage]) -> DocumentExtraction:
         model = self._build_model()
-        output = self._invoke_structured_output(model, messages)
-        return self._parse_structured_output(output)
-
-    def _invoke_structured_output(
-        self,
-        model: BaseChatModel,
-        messages: list[BaseMessage],
-    ) -> _StructuredResponse:
-        try:
-            output = self._invoke_structured(model, messages)
-        except _UnsupportedResponseFormat:
-            if self._method != "json_schema":
-                self._method = "raw"
-                return self._extract_raw(model, messages)
-            self._method = "json_mode"
-            try:
-                output = self._invoke_structured(model, messages)
-            except _UnsupportedResponseFormat:
-                self._method = "raw"
-                return self._extract_raw(model, messages)
-        return output
-
-    def _parse_structured_output(
-        self,
-        output: _StructuredResponse,
-    ) -> DocumentExtraction:
-        if isinstance(output, DocumentExtraction):
-            # raw-cascade step already produced the canonical extraction
-            return output
-        if isinstance(output, AIMessage):
-            return parse_llm_response(
-                _message_text(output),
-                output.response_metadata,
-                self.settings.validator_llm_model,
-            )
-        if isinstance(output, InvoiceExtraction):
-            output = {"parsed": output, "raw": None}
-        if not isinstance(output, dict) or "parsed" not in output:
-            raise LLMParsingError("LLM structured output has an unexpected shape")
-        parsed = output["parsed"]
-        if not isinstance(parsed, InvoiceExtraction | dict):
-            raise LLMParsingError("LLM structured output has an unexpected type")
-        return parse_structured_extraction(
-            parsed,
-            output.get("raw"),
-            self.settings.validator_llm_model,
-        )
-
-    def _invoke_structured(
-        self,
-        model: BaseChatModel,
-        messages: list[BaseMessage],
-    ) -> _StructuredResponse:
         chain = self._structured_model
-        if chain is None or self._method != "json_schema":
+        if chain is None:
             try:
                 chain = model.with_structured_output(  # type: ignore[assignment,return-value]
                     InvoiceExtraction,
-                    method=self._method,
                     include_raw=True,
                 )
             except Exception as exc:
                 raise self._classify_error(exc) from exc
         try:
-            return chain.invoke(messages)
-        except Exception as exc:
-            classified = self._classify_error(exc)
-            raise classified from exc
-
-    def _extract_raw(
-        self,
-        model: BaseChatModel,
-        messages: list[BaseMessage],
-    ) -> DocumentExtraction:
-        """Last cascade step: plain invoke + defensive JSON parsing."""
-        try:
-            response = model.invoke(messages)
+            output = chain.invoke(messages)
         except Exception as exc:
             raise self._classify_error(exc) from exc
-        if not isinstance(response, AIMessage):
-            raise LLMParsingError("LLM provider returned an invalid completion response")
-        return parse_llm_response(
-            _message_text(response),
-            response.response_metadata,
+        return self._parse_structured_output(output)
+
+    def _parse_structured_output(
+        self,
+        output: _StructuredResponse,
+    ) -> DocumentExtraction:
+        if not isinstance(output, dict):
+            raise LLMParsingError("LLM structured output has an unexpected shape")
+        if "parsed" not in output or not isinstance(output["parsed"], InvoiceExtraction):
+            raise LLMParsingError("LLM structured output is unparseable")
+        if output.get("raw") is not None and not isinstance(output["raw"], AIMessage):
+            raise LLMParsingError("LLM structured output has an unexpected raw response")
+        return parse_structured_extraction(
+            output["parsed"],
+            output["raw"],
             self.settings.validator_llm_model,
         )
 
     def _classify_error(self, exc: Exception) -> Exception:
         if isinstance(
             exc,
-            _UnsupportedResponseFormat
-            | LLMConfigurationError
+            LLMConfigurationError
             | LLMRequestError
             | LLMParsingError
             | LLMTimeoutError,
@@ -350,25 +257,15 @@ class LLMExtractor(Extractor):
             if exc.status_code in {401, 403}:
                 error = LLMConfigurationError("LLM provider rejected the configured API key")
                 raise error from exc
-            if self._uses_response_format(exc):
-                return _UnsupportedResponseFormat()
             error = LLMRequestError(f"LLM provider returned HTTP {exc.status_code}")
             raise error from exc
         if isinstance(exc, openai.APITimeoutError | TimeoutError):
             error = LLMTimeoutError("LLM extraction timed out")
             raise error from exc
         if isinstance(exc, OutputParserException | ValidationError):
-            # A fenced/markdown-wrapped answer that fails schema validation means
-            # the model is not honouring the structured format (common with
-            # multimodal prompts on some providers) — degrade to raw parsing
-            # instead of failing the request.
-            if "json_invalid" in str(exc) or "Invalid JSON" in str(exc):
-                return _UnsupportedResponseFormat()
             raise LLMParsingError("LLM response has invalid field values") from exc
         if isinstance(exc, openai.APIConnectionError | ConnectionError):
             raise LLMRequestError("unable to reach the LLM provider") from exc
-        if self._uses_response_format(exc):
-            return _UnsupportedResponseFormat()
         if isinstance(exc, ValueError | TypeError | KeyError | IndexError):
             raise LLMParsingError("LLM provider returned an invalid completion response") from exc
         raise LLMRequestError("LLM extraction failed") from exc
@@ -395,7 +292,3 @@ def _build_chat_model(
         max_retries=0,
         **({"extra_body": {"reasoning": {"effort": reasoning_effort}}} if reasoning_effort else {}),
     )
-
-    @staticmethod
-    def _uses_response_format(exc: Exception) -> bool:
-        return "response_format" in str(exc).lower()
