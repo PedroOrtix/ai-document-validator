@@ -201,3 +201,22 @@ def test_missing_fields_are_zero_confidence_without_exception(
     for field in extraction.fields.values():
         if field.value is None:
             assert field.confidence == 0
+
+
+@pytest.mark.parametrize(
+    ("line", "expected_amount"),
+    [
+        ("Total: 1250.00", 1250.0),
+        ("Total: 12500", 12500.0),
+        ("Total: 12,500.00 USD", 12500.0),
+        ("Total: 1.234,56 EUR", 1234.56),
+        ("Amount Due: €9.99", 9.99),
+        ("Grand Total: 9876543.21", 9876543.21),
+    ],
+)
+def test_amounts_without_thousands_separator_are_not_truncated(
+    extractor: OfflineExtractor, line: str, expected_amount: float
+) -> None:
+    """Regression: 4+ digit integers with no grouping must parse in full."""
+    extraction = extractor.extract(DocumentInput(text=f"ACME Ltd\n{line}"))
+    assert extraction.fields["total_amount"].value == expected_amount

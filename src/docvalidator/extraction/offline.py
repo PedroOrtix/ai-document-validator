@@ -20,7 +20,7 @@ class OfflineExtractor(Extractor):
 
     _amount_pattern: ClassVar[re.Pattern[str]] = re.compile(
         r"(?:[$€£]|EUR|USD|GBP)?\s*"
-        r"\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?"
+        r"\d+(?:[.,]\d{3})*(?:[.,]\d{2})?"
     )
     _iso_code_pattern: ClassVar[re.Pattern[str]] = re.compile(
         r"\b(?:EUR|USD|GBP|CHF|JPY|CAD|AUD|SEK|NOK|DKK|PLN)\b"
@@ -187,13 +187,9 @@ class OfflineExtractor(Extractor):
             return self._field(value, confidence, match.group(0).strip())
         return self._field(None, 0.0, None)
 
-    @staticmethod
-    def _parse_amount(candidate: str) -> float | None:
+    def _parse_amount(self, candidate: str) -> float | None:
         candidate = candidate.strip()
-        match = re.search(
-            r"(?:[$€£]|EUR|USD|GBP)?\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?",
-            candidate,
-        )
+        match = self._amount_pattern.search(candidate)
         if not match:
             return None
         raw = match.group(0)
