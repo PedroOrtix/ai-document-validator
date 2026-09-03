@@ -109,7 +109,13 @@ def run_lane(
     engine = RulesEngine()
     config_values = {"max_age_days": 90, "allowed_currencies": ["EUR", "GBP"]}
     results = [
-        run_case(**case, engine=engine, config_values=config_values, extractor=extractor, today=today)
+        run_case(
+            **case,
+            engine=engine,
+            config_values=config_values,
+            extractor=extractor,
+            today=today,
+        )
         for case in cases
     ]
 
@@ -204,6 +210,80 @@ def lane_field_accuracy(report: dict[str, Any]) -> float:
     return matches / total_cells if total_cells else 0.0
 
 
+def _slice_metrics(lane: dict[str, Any], key: str) -> dict[str, Any] | None:
+    return lane["slices"].get(key)
+
+
+def _gate_row(
+    label: str,
+    metrics: dict[str, Any] | None,
+    *,
+    thresholds: tuple[float, float] | None,
+    informative: bool,
+) -> tuple[str, str, str]:
+    if metrics is None:
+        return label, "INFO", "slice absent"
+    accuracy = metrics["field_accuracy"]
+    agreement = metrics["verdict_agreement"]
+    detail = f"field_accuracy={accuracy:.4f} verdict_agreement={agreement:.4f}"
+    if informative or thresholds is None:
+        return label, "INFO", detail
+    minimum_accuracy, minimum_agreement = thresholds
+    status = "PASS" if accuracy >= minimum_accuracy and agreement >= minimum_agreement else "FAIL"
+    thresholds_text = (
+        f"field_accuracy>={minimum_accuracy:.2f} verdict_agreement>={minimum_agreement:.2f}"
+    )
+    return label, status, f"{detail}; {thresholds_text}"
+
+
+def print_gates(report: dict[str, Any]) -> None:
+    """Print hard tier gates and informative slice/overall gates."""
+    print("\nGATES")
+    rows: list[tuple[str, str, str]] = []
+    for lane_name in ("txt", "pdf"):
+        lane = report["lanes"].get(lane_name)
+        if lane is None:
+            continue
+        for tier, thresholds in ((0, (0.95, 0.95)), (1, (0.60, 0.25))):
+            rows.append(
+                _gate_row(
+                    f"{lane_name} tier:{tier}",
+                    _slice_metrics(lane, f"tier:{tier}"),
+                    thresholds=thresholds,
+                    informative=False,
+                )
+            )
+        rows.append(
+            _gate_row(
+                f"{lane_name} tier:2 + scenarios",
+                _slice_metrics(lane, "tier:2"),
+                thresholds=None,
+                informative=True,
+            )
+        )
+        for key, metrics in lane["slices"].items():
+            if key.startswith("scenario:"):
+                rows.append(
+                    _gate_row(f"{lane_name} {key}", metrics, thresholds=None, informative=True)
+                )
+        rows.append(
+            _gate_row(
+                f"{lane_name} overall",
+                {
+                    "field_accuracy": lane_field_accuracy(lane),
+                    "verdict_agreement": lane["verdict"]["agreement_rate"],
+                },
+                thresholds=None,
+                informative=True,
+            )
+        )
+
+    for label, status, detail in rows:
+        print(f"  [{status}] {label:<38} {detail}")
+    if any(row[1] == "FAIL" for row in rows):
+        raise SystemExit(1)
+
+
 def format_value(value: Any) -> str:
     return "<none>" if value is None else str(value)
 
@@ -242,7 +322,8 @@ def print_report(report: dict[str, Any]) -> None:
     for lane_name in ("txt", "pdf"):
         for result in report["lanes"][lane_name]["results"]:
             for field_name in FIELD_NAMES:
-                if result["predicted_fields"][field_name] != result["expected_fields"].get(field_name):
+                predicted = result["predicted_fields"][field_name]
+                if predicted != result["expected_fields"].get(field_name):
                     any_failures = True
                     print(
                         f"[{lane_name}][field] {result['case_id']} :: {field_name}: "
@@ -274,6 +355,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--txt-only", action="store_true")
     parser.add_argument("--pdf-only", action="store_true")
     parser.add_argument("--json", type=Path, help="write the full report dictionary here")
+    parser.add_argument("--gates", dest="gates", action="store_true", default=True)
+    parser.add_argument("--no-gates", dest="gates", action="store_false")
     parser.add_argument("--min-field-accuracy", type=float, default=None)
     parser.add_argument("--min-verdict-agreement", type=float, default=None)
     return parser.parse_args()
@@ -295,20 +378,30 @@ def main() -> None:
 
     report = {"as_of": today.isoformat(), "lanes": lanes}
     print_report(report)
+    if args.gates:
+        print_gates(report)
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
-    worst_accuracy = min(lane_field_accuracy(lane) for lane in lanes.values())
-    worst_agreement = min(lane["verdict"]["agreement_rate"] for lane in lanes.values())
-    failed_gates: list[str] = []
-    if args.min_field_accuracy is not None and worst_accuracy < args.min_field_accuracy:
-        failed_gates.append(f"field_accuracy {worst_accuracy:.4f} < {args.min_field_accuracy}")
-    if args.min_verdict_agreement is not None and worst_agreement < args.min_verdict_agreement:
-        failed_gates.append(f"verdict_agreement {worst_agreement:.4f} < {args.min_verdict_agreement}")
-    if failed_gates:
-        print(f"\nGATE FAILED: {'; '.join(failed_gates)}", file=sys.stderr)
-        raise SystemExit(1)
+    legacy_thresholds = (
+        args.min_field_accuracy is not None or args.min_verdict_agreement is not None
+    )
+    if not args.gates and legacy_thresholds:
+        worst_accuracy = min(lane_field_accuracy(lane) for lane in lanes.values())
+        worst_agreement = min(lane["verdict"]["agreement_rate"] for lane in lanes.values())
+        failed_gates: list[str] = []
+        if args.min_field_accuracy is not None and worst_accuracy < args.min_field_accuracy:
+            failed_gates.append(
+                f"field_accuracy {worst_accuracy:.4f} < {args.min_field_accuracy}"
+            )
+        if args.min_verdict_agreement is not None and worst_agreement < args.min_verdict_agreement:
+            failed_gates.append(
+                f"verdict_agreement {worst_agreement:.4f} < {args.min_verdict_agreement}"
+            )
+        if failed_gates:
+            print(f"\nGATE FAILED: {'; '.join(failed_gates)}", file=sys.stderr)
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

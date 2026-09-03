@@ -17,6 +17,56 @@ curl -s localhost:8000/health
 
 No API keys required — the default extraction backend is a deterministic offline extractor.
 
+## Golden dataset v2
+
+The fixed evaluation set is generated, not hand-maintained. It contains 60
+documents: 40 text cases and 20 single-page PDF cases, split evenly between
+English and Spanish. Tier 0 is canonical, tier 1 adds label and format variants,
+and tier 2 stresses rare labels, mixed formats, and unlabeled/mixed currency.
+Every case carries generated field truth and verdict truth.
+
+| Lane | Tier | Count | Scenarios |
+|---|---:|---:|---|
+| TXT | 0 | 12 | clean, stale |
+| TXT | 1 | 16 | clean, stale variants |
+| TXT | 2 | 12 | missing total, mixed/unlabeled currency |
+| PDF | 0 | 6 | clean, stale |
+| PDF | 1 | 8 | clean, missing date |
+| PDF | 2 | 6 | clean, mixed/unlabeled currency |
+
+Regenerate or verify it with:
+
+```bash
+uv run python -m fixtures.generator.build
+uv run python -m fixtures.generator.build --verify
+```
+
+The build writes `manifest_txt.json` and `manifest_pdf.json` fragments plus the
+merged `manifest.json`; `--verify` re-derives both lanes and checks hashes and
+orphan files. There is no tier 3 lane: rule scenarios are distributed in tiers
+0–2 and remain represented by their expected verdicts.
+
+### Gates policy
+
+`eval.run` prints a `GATES` section by default:
+
+- `tier:0` is hard for each lane: field accuracy and verdict agreement >= `0.95`.
+- `tier:1` is hard for each lane: field accuracy >= `0.60` and verdict agreement >= `0.25`.
+- `tier:2` and scenario slices are informative.
+- Lane and global lane aggregates are informative; `--no-gates` preserves the
+  legacy optional `--min-field-accuracy` and `--min-verdict-agreement` behavior.
+
+### Extractor offline baseline
+
+Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03`:
+
+| Slice | Field accuracy | Verdict agreement |
+|---|---:|---:|
+| TXT tier 0 | 100.00% | 100.00% |
+| TXT tier 1 | 68.75% | 31.25% |
+| TXT tier 2 | 41.67% | 33.33% |
+| PDF lane overall | 80.83% | 60.00% |
+
 ## Evaluation harness
 
 ```bash

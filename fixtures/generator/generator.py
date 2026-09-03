@@ -84,7 +84,9 @@ COUNTRIES: dict[str, dict[str, Any]] = {
         "company_suffixes": ("SARL", "SAS"),
         "cities": ("Lyon", "Nantes", "Lille", "Bordeaux", "Toulouse"),
         "street": "{n} rue {name}",
-        "street_names": ("de la République", "Victor Hugo", "Lafayette", "du Marché", "Jean Jaurès"),
+        "street_names": (
+            "de la République", "Victor Hugo", "Lafayette", "du Marché", "Jean Jaurès",
+        ),
         "date_labels": ("Date", "Date de Facture"),
         "number_labels": ("Facture N°", "N° de Facture", "Facture #", "Pièce N°"),
         "total_labels": ("Total", "Total TTC", "Montant Total", "Total Général"),
@@ -137,10 +139,14 @@ MONTH_NAMES = {
            "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"),
 }
 MONTH_ABBREV = {
-    "EN": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+    "EN": (
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ),
     "ES": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
     "DE": ("Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"),
-    "FR": ("janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"),
+    "FR": (
+        "janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc",
+    ),
     "IT": ("gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"),
 }
 
@@ -276,5 +282,9 @@ def pick_date(rng: random.Random, tier: int) -> tuple[date, str]:
             d = AS_OF - timedelta(days=rng.randrange(MAX_AGE_DAYS + 10, 300))  # stale -> FAIL
         else:
             d = AS_OF - timedelta(days=rng.randrange(5, 80))
-    style = DATE_STYLES[rng.randrange(len(DATE_STYLES))] if tier >= 1 else rng.choice(("iso", "dmy"))
+    style = (
+        DATE_STYLES[rng.randrange(len(DATE_STYLES))]
+        if tier >= 1
+        else rng.choice(("iso", "dmy"))
+    )
     return d, style

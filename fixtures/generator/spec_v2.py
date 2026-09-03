@@ -15,7 +15,7 @@ Lanes:
 from __future__ import annotations
 
 import random
-from datetime import date, timedelta
+from datetime import date
 
 # ---------------------------------------------------------------------------
 # Frozen evaluation constants (mirror the config the rules engine is evaluated with)
@@ -161,9 +161,13 @@ POOLS: dict[str, dict] = {
             "Beacon Manufacturing Inc", "Crestline Software Ltd", "Union Print Works Ltd",
             "Falcon Freight B.V.",
         ),
-        "cities": ("Manchester", "Austin", "Rotterdam", "Dublin", "Cork", "Bristol", "Leeds", "Utrecht"),
+        "cities": (
+            "Manchester", "Austin", "Rotterdam", "Dublin", "Cork", "Bristol", "Leeds", "Utrecht",
+        ),
         "street": "{n} {name} Street",
-        "street_names": ("Oak", "Harbor", "Station", "Market", "Victoria", "Bridge", "Queen", "Park"),
+        "street_names": (
+            "Oak", "Harbor", "Station", "Market", "Victoria", "Bridge", "Queen", "Park",
+        ),
         "date_labels": ("Invoice Date", "Date", "Issue Date"),
         "number_labels": ("Invoice No", "Invoice Number", "Invoice #", "Reference"),
         "total_labels": ("Total Amount", "Total Due", "Amount Due", "Grand Total", "Total"),
@@ -206,12 +210,18 @@ POOLS: dict[str, dict] = {
             "Transportes Ribera S.A.", "Panadería Miralvalle S.L.", "Estudio Jurídico Alcázar S.L.",
             "Viveros Guadiana S.L.",
         ),
-        "cities": ("Valladolid", "Sevilla", "Zaragoza", "Bilbao", "Murcia", "Toledo", "Cáceres", "Logroño"),
+        "cities": (
+            "Valladolid", "Sevilla", "Zaragoza", "Bilbao", "Murcia", "Toledo", "Cáceres", "Logroño",
+        ),
         "street": "Calle {name} {n}",
-        "street_names": ("Mayor", "Alfonso", "Industria", "Sol", "Norte", "Atocha", "Rioja", "Huerta"),
+        "street_names": (
+            "Mayor", "Alfonso", "Industria", "Sol", "Norte", "Atocha", "Rioja", "Huerta",
+        ),
         "date_labels": ("Fecha", "Fecha de Factura", "Fecha Factura"),
         "number_labels": ("Factura Nº", "Número de Factura", "Factura #", "Referencia"),
-        "total_labels": ("Total", "Total Factura", "Importe Total", "Total a Pagar", "Importe Total"),
+        "total_labels": (
+            "Total", "Total Factura", "Importe Total", "Total a Pagar", "Importe Total",
+        ),
         "currency_labels": ("Moneda", "Divisa"),
         "vat_labels": ("NIF", "CIF", "VAT"),
         "from_labels": ("Proveedor", "Emisor"),
@@ -264,9 +274,13 @@ def make_iban(rng: random.Random, lang: str) -> str:
 
 def make_contact(rng: random.Random, lang: str, company: str) -> tuple[str, str]:
     """Deterministic (phone, email) boilerplate from the company slug."""
-    slug = "".join(ch for ch in company.lower().replace(" ", "").replace(".", "") if ch.isalpha())
+    slug = "".join(
+        ch for ch in company.lower().replace(" ", "").replace(".", "") if ch.isalpha()
+    )
     if lang == "EN":
-        phone = POOLS["EN"]["phone"].format(d1=rng.randrange(1000, 9999), d2=rng.randrange(1000, 9999))
+        phone = POOLS["EN"]["phone"].format(
+            d1=rng.randrange(1000, 9999), d2=rng.randrange(1000, 9999)
+        )
     else:
         phone = POOLS["ES"]["phone"].format(
             d1=rng.randrange(100, 999), d2=rng.randrange(100, 999), d3=rng.randrange(100, 999)

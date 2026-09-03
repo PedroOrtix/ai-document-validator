@@ -1,5 +1,6 @@
-"""Contract tests driven by the frozen golden manifest (fixtures/golden)."""
+"""Contract tests for the consolidated golden v2 dataset."""
 
+import hashlib
 import json
 from datetime import date
 from pathlib import Path
@@ -10,89 +11,144 @@ from docvalidator.domain.models import ValidationConfig
 from docvalidator.extraction import DocumentInput, OfflineExtractor
 from docvalidator.rules_engine import RulesEngine
 
-GOLDEN = Path(__file__).parents[2] / "fixtures" / "golden"
+ROOT = Path(__file__).parents[2]
+GOLDEN = ROOT / "fixtures" / "golden"
 MANIFEST = json.loads((GOLDEN / "manifest.json").read_text(encoding="utf-8"))
+TXT_MANIFEST = json.loads((GOLDEN / "manifest_txt.json").read_text(encoding="utf-8"))
+PDF_MANIFEST = json.loads((GOLDEN / "manifest_pdf.json").read_text(encoding="utf-8"))
 AS_OF = date.fromisoformat(MANIFEST["as_of"])
 CONFIG = ValidationConfig(
     max_age_days=MANIFEST["max_age_days"],
     allowed_currencies=MANIFEST["allowed_currencies"],
 )
 
-# Fully-passing canonical cases per language: the offline extractor must keep
-# a perfect score on tier-0 documents (regression contract). FR/IT t0 have
-# known misses at this baseline; they live in the eval harness, not here.
-CONTRACT_CASES = (
-    "t0_en_0", "t0_en_1", "t0_en_2",
-    "t0_es_0", "t0_es_1", "t0_es_2",
-    "t0_de_0", "t0_de_1", "t0_de_2",
-)
-
-# Forced tier-3 scenarios with an unambiguous expected outcome by design.
-SCENARIO_EXPECTATIONS = {
-    "t3_stale_just_over": "FAIL",
-    "t3_stale_old": "FAIL",
-    "t3_future_date": "PASS",
-    "t3_zero_amount": "FAIL",
-    "t3_negative_amount": "FAIL",
-    "t3_missing_number": "REVIEW",
-    "t3_missing_date": "REVIEW",
-    "t3_missing_total": "REVIEW",
-    "t3_disallowed_currency": "FAIL",
-    "t3_all_present_pass": "PASS",
-    "t3_everything_ok_eur": "PASS",
+EXPECTED_COUNTS = {"txt": 40, "pdf": 20}
+EXPECTED_TIERS = {
+    "txt": {0: 12, 1: 16, 2: 12},
+    "pdf": {0: 6, 1: 8, 2: 6},
+}
+EXPECTED_VERDICTS = {
+    "txt": {"PASS": 26, "REVIEW": 4, "FAIL": 10},
+    "pdf": {"PASS": 14, "REVIEW": 2, "FAIL": 4},
 }
 
 
-def _load(case_id: str) -> tuple[str, dict]:
-    text = (GOLDEN / f"{case_id}.txt").read_text(encoding="utf-8")
-    expected = json.loads((GOLDEN / f"{case_id}.expected.json").read_text(encoding="utf-8"))
-    raw_fields = expected["expected_fields"]
-    if raw_fields.get("invoice_date") is not None:
-        raw_fields["invoice_date"] = date.fromisoformat(str(raw_fields["invoice_date"]))
-    return text, expected
+def _expected_file(case_id: str) -> dict:
+    return json.loads((GOLDEN / f"{case_id}.expected.json").read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("case_id", CONTRACT_CASES)
-def test_tier0_canonical_cases_extract_and_pass(case_id: str) -> None:
-    """Contract: canonical invoices in EN/ES/DE extract fully and validate PASS."""
-    text, expected = _load(case_id)
-    extraction = OfflineExtractor().extract(DocumentInput(text=text))
-    engine = RulesEngine()
-    verdict = engine.evaluate(extraction, CONFIG, today=AS_OF)
-    for field_name, expected_value in expected["expected_fields"].items():
-        assert extraction.fields[field_name].value == expected_value, (
-            f"{case_id}: field {field_name}"
-        )
-    assert verdict.status == "PASS"
+def _all_cases() -> list[dict]:
+    return MANIFEST["txt_cases"] + MANIFEST["pdf_cases"]
 
 
-@pytest.mark.parametrize("case_id", sorted(SCENARIO_EXPECTATIONS))
-def test_forced_scenarios_produce_expected_verdict(case_id: str) -> None:
-    """Contract: the engine's verdict semantics on isolated rule scenarios."""
-    text, expected = _load(case_id)
-    extraction = OfflineExtractor().extract(DocumentInput(text=text))
-    verdict = RulesEngine().evaluate(extraction, CONFIG, today=AS_OF)
-    assert verdict.status == SCENARIO_EXPECTATIONS[case_id], (
-        f"{case_id}: engine said {verdict.status}"
+def test_lane_fragments_match_merged_manifest() -> None:
+    assert TXT_MANIFEST["cases"] == MANIFEST["txt_cases"]
+    assert PDF_MANIFEST["cases"] == MANIFEST["pdf_cases"]
+
+
+def test_manifest_v2_header_and_counts() -> None:
+    assert MANIFEST["generator"] == "fixtures.generator v2"
+    assert MANIFEST["as_of"] == "2026-09-03"
+    assert MANIFEST["max_age_days"] == 90
+    assert MANIFEST["allowed_currencies"] == ["EUR", "GBP"]
+    assert MANIFEST["counts"] == EXPECTED_COUNTS
+    assert len(MANIFEST["txt_cases"]) == 40
+    assert len(MANIFEST["pdf_cases"]) == 20
+
+
+@pytest.mark.parametrize("lane", ["txt", "pdf"])
+def test_tier_distributions(lane: str) -> None:
+    cases = MANIFEST[f"{lane}_cases"]
+    counts = {tier: 0 for tier in (0, 1, 2)}
+    for case in cases:
+        counts[case["tier"]] += 1
+    assert counts == EXPECTED_TIERS[lane]
+
+    languages = {language: 0 for language in ("EN", "ES")}
+    for case in cases:
+        languages[case["language"]] += 1
+    assert languages == {"EN": EXPECTED_COUNTS[lane] // 2, "ES": EXPECTED_COUNTS[lane] // 2}
+
+
+@pytest.mark.parametrize("lane", ["txt", "pdf"])
+def test_verdict_distributions(lane: str) -> None:
+    verdicts = {verdict: 0 for verdict in ("PASS", "REVIEW", "FAIL")}
+    for case in MANIFEST[f"{lane}_cases"]:
+        verdicts[case["expected_verdict"]] += 1
+    assert verdicts == EXPECTED_VERDICTS[lane]
+
+
+@pytest.mark.parametrize("case", _all_cases(), ids=lambda case: case["case_id"])
+def test_expected_schema_and_independently_recomputed_verdict(case: dict) -> None:
+    expected = _expected_file(case["case_id"])
+    assert set(expected) == {"expected_fields", "expected_verdict_status", "slices"}
+    assert set(expected["expected_fields"]) == {
+        "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id",
+    }
+    slices = expected["slices"]
+    assert slices["language"] == case["language"]
+    assert slices["tier"] == case["tier"]
+    assert slices["scenario"] == case["scenario"]
+    assert slices["format"] == case["formats"][0]
+
+    fields = expected["expected_fields"]
+    missing_required = any(
+        fields[field_name] is None
+        for field_name in ("invoice_number", "invoice_date", "total_amount")
     )
+    if fields["invoice_date"] is not None:
+        invoice_date = date.fromisoformat(str(fields["invoice_date"]))
+        stale = (AS_OF - invoice_date).days > MANIFEST["max_age_days"]
+    else:
+        stale = False
+    if stale or (fields["total_amount"] is not None and fields["total_amount"] <= 0) or (
+        fields["currency"] is not None and fields["currency"] not in MANIFEST["allowed_currencies"]
+    ):
+        recomputed = "FAIL"
+    elif missing_required:
+        recomputed = "REVIEW"
+    else:
+        recomputed = "PASS"
+    assert expected["expected_verdict_status"] == recomputed
+    assert case["expected_verdict"] == recomputed
 
 
-def test_manifest_counts_are_stable() -> None:
-    """The frozen dataset shape must not drift silently."""
-    assert MANIFEST["counts"] == {"txt": 58, "pdf": 12}
-    assert len(MANIFEST["txt_cases"]) == 58
-    assert len(MANIFEST["pdf_cases"]) == 12
+@pytest.mark.parametrize("case", _all_cases(), ids=lambda case: case["case_id"])
+def test_manifest_hash_matches_disk(case: dict) -> None:
+    suffix = case["formats"][0]
+    artifact = GOLDEN / f"{case['case_id']}.{suffix}"
+    digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    assert digest == case[f"{suffix}_sha256"]
 
 
-def test_multipage_pdf_carries_all_fields_across_pages() -> None:
-    pdf_path = GOLDEN / "pdf_multipage_a.pdf"
+def test_no_orphan_golden_files() -> None:
+    expected_names = {"manifest.json", "manifest_txt.json", "manifest_pdf.json"}
+    for case in _all_cases():
+        suffix = case["formats"][0]
+        expected_names.update({f"{case['case_id']}.{suffix}", f"{case['case_id']}.expected.json"})
+    assert {path.name for path in GOLDEN.iterdir()} == expected_names
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    [
+        f"t0_{language}_{index}"
+        for language in ("en", "es")
+        for index in range(6)
+    ],
+)
+def test_v2_tier0_txt_extracts_and_passes(case_id: str) -> None:
+    expected = _expected_file(case_id)
+    expected_fields = dict(expected["expected_fields"])
+    expected_fields["invoice_date"] = (
+        date.fromisoformat(str(expected_fields["invoice_date"]))
+        if expected_fields["invoice_date"] is not None
+        else None
+    )
     extraction = OfflineExtractor().extract(
-        DocumentInput(pdf_bytes=pdf_path.read_bytes(), filename="pdf_multipage_a.pdf")
+        DocumentInput(text=(GOLDEN / f"{case_id}.txt").read_text(encoding="utf-8"))
     )
-    expected = json.loads(
-        (GOLDEN / "pdf_multipage_a.expected.json").read_text(encoding="utf-8")
-    )
-    for field_name, expected_value in expected["expected_fields"].items():
-        assert extraction.fields[field_name].value == expected_value, (
-            f"multipage field {field_name}"
-        )
+    for field_name, field_value in expected_fields.items():
+        assert extraction.fields[field_name].value == field_value, f"{case_id}: {field_name}"
+    verdict = RulesEngine().evaluate(extraction, CONFIG, today=AS_OF)
+    assert verdict.status == expected["expected_verdict_status"]
