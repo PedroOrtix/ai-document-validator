@@ -110,3 +110,19 @@ def test_llm_backend_without_api_key_returns_503() -> None:
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "llm_configuration_error"
+
+
+def test_openapi_schema_matches_reality() -> None:
+    """Verify that /openapi.json documents both JSON and multipart request bodies."""
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+
+    # Schemas must include JsonValidateRequest
+    assert "JsonValidateRequest" in schema["components"]["schemas"]
+
+    for path in ("/v1/validate", "/v1/extract"):
+        req_body = schema["paths"][path]["post"]["requestBody"]
+        assert "application/json" in req_body["content"]
+        assert "multipart/form-data" in req_body["content"]
+        assert req_body["required"] is True

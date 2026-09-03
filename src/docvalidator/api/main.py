@@ -124,6 +124,61 @@ def _validation_error(
 app = FastAPI(title="Document Validator API", version="0.1.0")
 
 
+def custom_openapi() -> dict[str, Any]:
+    """Provide realistic request body schemas for dual JSON / multipart endpoints."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description="Document extraction and compliance validation API for B2B supplier invoices.",
+        routes=app.routes,
+    )
+    schemas = schema.setdefault("components", {}).setdefault("schemas", {})
+    if "JsonValidateRequest" not in schemas:
+        schemas["JsonValidateRequest"] = JsonValidateRequest.model_json_schema()
+
+    req_body: dict[str, Any] = {
+        "description": (
+            "Document payload as JSON (text or base64 PDF) or multipart form-data (file upload)."
+        ),
+        "required": True,
+        "content": {
+            "application/json": {
+                "schema": {"$ref": "#/components/schemas/JsonValidateRequest"}
+            },
+            "multipart/form-data": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "file": {
+                            "type": "string",
+                            "format": "binary",
+                            "description": "PDF or .txt document file",
+                        },
+                        "config": {
+                            "type": "string",
+                            "description": "Optional JSON-encoded ValidationConfig string",
+                        },
+                    },
+                    "required": ["file"],
+                }
+            },
+        },
+    }
+    for path in ("/v1/validate", "/v1/extract"):
+        if path in schema.get("paths", {}):
+            schema["paths"][path]["post"]["requestBody"] = req_body
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]
+
+
 @app.middleware("http")
 async def request_logging_middleware(
     request: Request, call_next
