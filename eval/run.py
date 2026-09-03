@@ -339,6 +339,24 @@ def print_gates(report: dict[str, Any]) -> None:
             )
         )
 
+    # Multi-lane mode (--lane): engine lanes carry pre-aggregated metrics in
+    # ``aggregate``. Print an informative row per lane so the GATES section is
+    # never silently empty; hard tier gates stay a txt/pdf-only contract.
+    for lane_name, lane in report["lanes"].items():
+        if lane_name in {"txt", "pdf"}:
+            continue
+        rows.append(
+            _gate_row(
+                f"{lane_name} overall",
+                {
+                    "field_accuracy": lane["aggregate"]["field_accuracy"],
+                    "verdict_agreement": lane["verdict"]["agreement_rate"],
+                },
+                thresholds=None,
+                informative=True,
+            )
+        )
+
     for label, status, detail in rows:
         print(f"  [{status}] {label:<38} {detail}")
     if any(row[1] == "FAIL" for row in rows):
