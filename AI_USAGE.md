@@ -64,8 +64,9 @@ body parse in `/v1/extract`, and a duplicated Pydantic field declaration.
 - Unit tests per extraction field (labeled, fallback, format variants, missing) and per rule
   (pass / fail / skip, boundary at exactly `max_age_days`).
 - Aggregation tests: missing required field ⇒ `REVIEW`; violated rule ⇒ `FAIL`; both ⇒ `FAIL`.
-- Golden set of ≥6 invoice fixtures with expected field values and expected verdicts;
-  eval harness reports field-level exact-match rate and verdict agreement.
+- Golden set v2.2 (78 fixtures across txt / digital-pdf / scanned lanes) with expected field
+  values and expected verdicts; eval harness reports field-level exact-match rate and verdict
+  agreement per tier, with tiered gates that fail CI on regression.
 - Every merged phase re-run locally: `uv run ruff check .` and `uv run pytest` before commit.
 
 ## Main extraction prompts / instructions
@@ -89,10 +90,12 @@ that the structured-output mapping preserves field types, evidence, fixed confid
 model, token usage, and duration metadata. I also confirmed the tests, ruff, and eval gate in the
 final verification pass.
 
-Final state at submission: 101 tests green (`uv run pytest`), ruff clean, eval harness over a
-20-fixture golden set (offline 0.99 field accuracy / 1.00 verdict agreement; recorded-LLM
-1.00 / 1.00) wired into CI as a regression gate, Docker image built and smoke-tested
-end-to-end, and one live OpenRouter call verified the LLM path.
+Final state (2026-09-03, latest verification): 347 tests green (`uv run pytest`), ruff clean,
+eval harness over the v2.2 golden set (78 fixtures: 43 txt + 23 digital PDF + 12 scanned;
+offline tier-0 1.00 field accuracy / 1.00 verdict agreement in both txt and pdf lanes,
+scanned lane reported as informative-only) wired into CI as tiered regression gates,
+Docker image built and smoke-tested end-to-end, and one live OpenRouter call verified
+the LLM path.
 
 ## Backend flip: LLM-primary with offline runtime fallback
 
