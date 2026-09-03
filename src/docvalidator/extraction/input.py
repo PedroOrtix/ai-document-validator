@@ -2,8 +2,8 @@
 
 from io import BytesIO
 
+from markitdown import MarkItDown
 from pydantic import BaseModel, ConfigDict, model_validator
-from pypdf import PdfReader
 
 
 class ExtractionError(ValueError):
@@ -29,7 +29,7 @@ class DocumentInput(BaseModel):
         return self
 
     def to_text(self) -> str:
-        """Return the supplied text or extract text from all PDF pages.
+        """Return the supplied text or extract PDF text with markitdown.
 
         A PDF without a text layer is a hard extraction failure. This avoids
         silently returning a document whose fields all appear to be missing.
@@ -40,8 +40,11 @@ class DocumentInput(BaseModel):
             raise ExtractionError("document has no text or PDF bytes")
 
         try:
-            reader = PdfReader(BytesIO(self.pdf_bytes))
-            text = "\n".join((page.extract_text() or "") for page in reader.pages).strip()
+            result = MarkItDown(enable_plugins=False).convert_stream(
+                BytesIO(self.pdf_bytes),
+                file_extension="pdf",
+            )
+            text = (result.text_content or "").strip()
         except Exception as exc:
             raise ExtractionError("unable to read PDF") from exc
         if not text:

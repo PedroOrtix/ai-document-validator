@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from fpdf import FPDF
 
 from docvalidator.extraction import DocumentInput, ExtractionError, OfflineExtractor
 
@@ -33,6 +34,30 @@ def test_exact_document_source_is_required() -> None:
         DocumentInput()
     with pytest.raises(ValueError, match="provide only one"):
         DocumentInput(text="invoice", pdf_bytes=b"pdf")
+
+
+def test_markitdown_pdf_extracts_text() -> None:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.multi_cell(0, 6, "Invoice\nTotal 10.00")
+
+    document = DocumentInput(pdf_bytes=bytes(pdf.output()))
+
+    assert "Total 10.00" in document.to_text()
+
+
+def test_blank_markitdown_pdf_has_typed_empty_text_failure() -> None:
+    pdf = FPDF()
+    pdf.add_page()
+
+    with pytest.raises(ExtractionError, match="no extractable text layer"):
+        DocumentInput(pdf_bytes=bytes(pdf.output())).to_text()
+
+
+def test_unreadable_markitdown_pdf_has_typed_read_failure() -> None:
+    with pytest.raises(ExtractionError, match="unable to read PDF"):
+        DocumentInput(pdf_bytes=b"%PDF-1.4\n%%EOF").to_text()
 
 
 def test_to_text_returns_plain_text() -> None:

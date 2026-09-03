@@ -120,7 +120,7 @@ flowchart TD
     A["document (PDF bytes / text) + rule config"] --> B["POST /v1/validate · POST /v1/extract<br/>(FastAPI, structured JSON logs)"]
     B --> C{extraction backend}
     C -->|offline · default| D["OfflineExtractor<br/>regex + heuristics, deterministic"]
-    C -->|llm · optional| E["LLMExtractor<br/>OpenRouter, OpenAI-compatible"]
+    C -->|llm · optional| E["LLMExtractor<br/>LangChain ChatOpenAI + structured output<br/>via OpenRouter"]
     C -->|llm-recorded| F["RecordedLLMExtractor<br/>recorded responses for tests"]
     D --> G["DocumentExtraction<br/>value + confidence + evidence per field"]
     E --> G
@@ -145,16 +145,18 @@ The LLM backend's system prompt — the single source of truth lives in
 `src/docvalidator/extraction/llm.py` — is:
 
 ```text
-You extract supplier invoice fields. Return ONLY strict JSON with keys
-"supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", "tax_id".
-Use null for absent fields, ISO dates (YYYY-MM-DD), float amounts, and ISO-4217 currency codes.
-Example: {"supplier_name":"ACME Ltd","invoice_number":"INV-1","invoice_date":"2026-01-31",
-"total_amount":123.45,"currency":"EUR","tax_id":"DE123456789"}
+You extract supplier invoice fields into the requested structured schema. Return the six
+fields "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", and
+"tax_id". Use null for absent fields, ISO dates (YYYY-MM-DD), float amounts, and ISO-4217
+currency codes.
 ```
 
-The response is parsed into the canonical Pydantic model with typed coercion
-(`date.fromisoformat`, `float`); anything else raises a typed `LLMParsingError` instead of
-silently producing a wrong verdict.
+`LLMExtractor` builds a LangChain `ChatOpenAI` client against the configured OpenRouter base
+URL and binds a Pydantic `InvoiceExtraction` schema with `with_structured_output`. The adapter
+tries JSON-schema mode first, falls back to JSON mode if the provider rejects structured
+output, and finally uses defensive JSON parsing of the raw completion. Invalid or incomplete
+responses still raise `LLMParsingError`; timeouts, provider errors, and configuration failures
+retain the existing API mappings.
 
 ## Verdict contract
 
@@ -220,7 +222,7 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
    (labeled 0.95 / structural 0.7–0.9 / heuristic <0.5); the LLM path reports a fixed 0.75 because
    model-reported confidence is not calibrated. We prefer an honest constant to a fake decimal.
 4. **Fixtures instead of real OCR.** The scope note says OCR is out of scope; PDFs are supported through
-   the text layer (pypdf) and plain-text fixtures drive the golden set. Scanned-image PDFs fail loudly
+   the text layer (markitdown) and plain-text fixtures drive the golden set. Scanned-image PDFs fail loudly
    with a typed error instead of silently returning empty extractions.
 5. **One document type, extensible seams.** Only `SUPPLIER_INVOICE` is implemented, but the extractor
    interface, rule registry, and config schema are document-type aware; adding `CERTIFICATE` means a new
@@ -270,6 +272,12 @@ why it ships as an opt-in adapter with a recorded stub for offline testing.
 Done since the first submission: golden set grown 6 → 20 adversarial fixtures (subtotal traps,
 credit notes, US/JP formats, OCR noise, empty documents), offline-vs-recorded-LLM comparison lane,
 and the eval wired into CI as a regression gate with `--min-*` thresholds.
+
+PDF parsing now uses Microsoft `markitdown` instead of raw `pypdf`. Markitdown gives a
+higher-level, converter-based PDF-to-Markdown path and keeps PDF handling out of hand-written
+page-extraction code; the trade-off is a larger dependency footprint and less direct control over
+page-level parsing than pypdf. For this project, the typed empty-text and unreadable-PDF failures
+are unchanged, and the simpler adapter wins.
 
 1. Locale-metadata-aware date disambiguation (the known `us_date_ambiguous` miss) instead of
    always reading `03/07/2026` day-first.

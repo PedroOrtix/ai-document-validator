@@ -75,6 +75,20 @@ The exact briefs given to the coding executor are committed verbatim in
 `docs/prompts/2026-09-03_phase123_core.md`; the LLM extraction system prompt lives in
 `src/docvalidator/extraction/llm.py` (single source of truth, reproduced in the README).
 
+## LangChain and markitdown upgrade
+
+The follow-on LLM/PDF upgrade was delegated to Codex with a narrow two-surface brief: replace the
+hand-rolled OpenRouter HTTP client with LangChain structured output, and replace the pypdf parser
+with Microsoft markitdown. Codex implemented `src/docvalidator/extraction/llm.py`, the markitdown
+path in `src/docvalidator/extraction/input.py`, dependency updates, focused unit tests, mocked API
+integration tests, documentation, and the committed brief.
+
+I verified that the offline and recorded-LLM lanes remain credential-free, that the exception
+taxonomy and API status mappings did not change, that PDF integration behavior stayed intact, and
+that the structured-output mapping preserves field types, evidence, fixed confidence, provider,
+model, token usage, and duration metadata. I also confirmed the tests, ruff, and eval gate in the
+final verification pass.
+
 Final state at submission: 101 tests green (`uv run pytest`), ruff clean, eval harness over a
 20-fixture golden set (offline 0.99 field accuracy / 1.00 verdict agreement; recorded-LLM
 1.00 / 1.00) wired into CI as a regression gate, Docker image built and smoke-tested
