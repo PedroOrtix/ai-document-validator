@@ -1,0 +1,19 @@
+Northwind Supplies GmbH
+Handelstrasse 12
+10115 Berlin
+Germany
+
+Invoice No: INV-2026-0001
+Invoice Date: 2026-08-20
+Currency: EUR
+
+Supplier: Northwind Supplies GmbH
+VAT: DE123456789
+
+Item                          Qty    Price      Total
+Consulting services           4      200.00     800.00
+Support package               1      400.00     400.00
+
+Subtotal                                        1,200.00
+VAT 3%                                            36.00
+Total Amount                                  1,236.00

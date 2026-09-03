@@ -1,0 +1,11 @@
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+1200 corporate parkway suite 400 birmingham alabama 35242 united states of america north america western hemisphere
+
+Invoice Number: INV-2026-0081
+Invoice Date: 2026-08-25
+Currency: EUR
+
+VAT: GB123456789
+
+Office supplies                            400.00
+Total Amount                               452.00
