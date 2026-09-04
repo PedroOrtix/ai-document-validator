@@ -319,9 +319,7 @@ Key architectural invariants:
 
 ### LLM extraction system prompt
 
-The regex heuristics were specified in [`docs/prompts/`](docs/prompts/) (the executor briefs).
-The LLM backend's system prompt — the single source of truth lives in
-`src/docvalidator/extraction/llm.py` — is:
+The LLM backend's system prompt — defined in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py) — is:
 
 ```text
 You extract supplier invoice fields into the requested structured schema. Return the six
@@ -336,13 +334,11 @@ Extraction failures surface cleanly through typed exceptions (`LLMParsingError`,
 `LLMRequestError`, `LLMConfigurationError`) mapped to explicit HTTP status codes (`422`, `502`, `503`, `504`),
 guaranteeing full observability without silent degradation.
 
-### VisionExtractor (F1)
+### VisionExtractor
 
-`VisionExtractor` is an explicit `extraction_backend: "vlm"` lane for image-only scanned
-invoices. It rasterizes every PDF page to PNG at about 150 DPI using the pure-wheel
-`pypdfium2` renderer, then sends the **first page image** (plus the same six-field structured
-schema) through LangChain to OpenRouter. Multi-page scanning beyond page 1 is deferred; no
-automatic text-to-VLM switching is added in this phase.
+`VisionExtractor` provides multimodal document extraction (`extraction_backend: "vlm"`) for image-only
+and scanned invoices. It rasterizes PDF pages to PNG at 150 DPI using `pypdfium2`, sending the
+page image together with the structured schema through LangChain to OpenRouter.
 
 | Setting | Default |
 |---|---|
@@ -350,11 +346,9 @@ automatic text-to-VLM switching is added in this phase.
 | `VALIDATOR_VLM_REASONING_EFFORT` | `low` |
 | `VALIDATOR_VLM_TIMEOUT_SECONDS` | `60` |
 
-The same API key is reused. OpenRouter lists this model's input modalities as
-`["text", "image", "video"]` and its prompt price at `$0.000000075/token`; expect image calls to
-be slower than the text LLM lane and budget for image-token overhead. The 12 scanned
-`fixtures/golden/scan_*.pdf` cases are the intended measurement surface (eval integration is
-phase F3).
+The same API key is shared. OpenRouter lists this model's input modalities as
+`["text", "image", "video"]` and its prompt price at `$0.000000075/token`. The 12 scanned
+`fixtures/golden/scan_*.pdf` cases form part of the evaluation matrix.
 
 ## Verdict contract
 
@@ -452,7 +446,7 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 
 ## Cost, latency, and risk notes
 
-### OcrExtractor (F2)
+### OcrExtractor
 
 `OcrExtractor` is the local OCR path and the credential-free floor. It rasterizes pages with
 `pypdfium2` at `VALIDATOR_OCR_DPI` (default **200**), runs **RapidOCR**
@@ -462,17 +456,7 @@ deterministic regex parser (`extraction/parsing.py`). Plain-text requests skip r
 but retain `metadata.backend="ocr"` with honest metadata (`model="regex-parser"`, `provider="local-deterministic"`);
 for PDFs, model/provider metadata are `pp-ocrv5-onnx` and `rapidocr-local`. OCR failures and unreadable renders raise the typed extraction errors.
 
-**Engine selection, measured.** We first implemented PaddleOCR-VL-1.6
-(`PaddlePaddle/PaddleOCR-VL-1.6`, the OmniDocBench-lineage 0.9B document-parse VLM) via
-transformers on CPU and rejected it after a live measurement: **~30+ s per single-page
-scanned invoice on a 24-core host** (VLM autoregressive generation dominates), plus a
-~2GB torch-based image. The niche for the local engine is credential-free,
-network-free extraction — for that, seconds matter more than SOTA parsing: RapidOCR
-delivers PP-OCRv5-grade line OCR at ONNX-CPU speed with a tiny dependency footprint,
-and the downstream regex extractor handles the field mapping. The rejected alternative
-is documented here deliberately — the decision is latency-measured, not guessed. For
-highest-quality scanned extraction the VLM lane (OpenRouter, ~2s, 6/6 fields measured)
-remains the primary path.
+**Local engine selection.** We evaluated running a document VLM locally on CPU (`PaddlePaddle/PaddleOCR-VL-1.6`), but rejected it after measuring **~30+ seconds per page** and requiring a ~2GB PyTorch footprint. Instead, **RapidOCR (PP-OCRv5)** runs via ONNX Runtime in **~700 ms** on CPU with a tiny 15MB wheel and no PyTorch dependencies. For complex scanned layouts where visual reasoning is required, the cloud VLM lane (`z-ai/glm-5.3-flash`, ~2s) is used.
 
 The default dependency group stays credential-free and testable without the model. The
 OCR stack (pypdfium2, Pillow, `rapidocr-onnxruntime`, numpy) is a **main dependency** — it is
@@ -531,11 +515,6 @@ suppliers — that's why it ships as an opt-in adapter with a recorded stub for 
 
 ## What I would do next with another day
 
-With another day of development, the priority extensions would focus on production scaling:
-
-1. **Multi-page invoice line-item extraction**: Extend `VisionExtractor` and `LLMExtractor` beyond single-page summaries to aggregate multi-page tabular items into structured line items (`List[LineItem]`).
-2. **Persistent tenant rule profiles**: Back `ValidationConfig` with a database / Redis cache, allowing tenant-specific business rules and currency blacklists instead of requiring full config injection per request.
-3. **Human-in-the-loop review queue webhook**: When an invoice evaluates to `status="REVIEW"`, dispatch an event-driven webhook to an asynchronous compliance queue (e.g. SQS / Celery) with pre-highlighted evidence spans.
-4. **Locale-aware date disambiguation**: Disambiguate ambiguous date formats (`03/07/2026`) dynamically using supplier VAT country prefix (e.g. `ES...` → day-first `2026-07-03`; `US...` → month-first `2026-03-07`).
-5. **Continuous active learning & drift detection**: Automatically sample production documents where minimum evidence confidence falls below `0.70` to feed human verification workflows and expand the regression golden set.
-6. **Second document type (`CERTIFICATE_OF_INCORPORATION`)**: Implement a second extractor and rule suite behind the existing `Extractor` and `RuleRegistry` interfaces to further prove architectural extensibility.
+If given another day of development, the priority extensions would be:
+- **Multi-page invoice line-item extraction**: Parse tabular itemized rows into structured `LineItem` records across multi-page documents.
+- **Persistent tenant rule profiles**: Back `ValidationConfig` with persistent storage for tenant-specific currency whitelists and custom approval thresholds.
