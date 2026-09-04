@@ -198,6 +198,33 @@ def test_txt_no_vat_extracts_optional_tax_id_as_absent() -> None:
     assert expected["expected_verdict_status"] == "PASS"
 
 
+def test_pdf_empty_raises_extraction_error_on_text_layer() -> None:
+    expected = _expected_file("x_pdf_empty")
+    doc = DocumentInput(pdf_bytes=(GOLDEN / "x_pdf_empty.pdf").read_bytes())
+    with pytest.raises(ExtractionError, match="PDF has no extractable text layer"):
+        doc.to_text()
+    assert expected["expected_fields"] == {name: None for name in expected["expected_fields"]}
+    assert expected["expected_verdict_status"] == "REVIEW"
+
+
+def test_pdf_garbage_contract() -> None:
+    expected = _expected_file("x_pdf_garbage")
+    doc = DocumentInput(pdf_bytes=(GOLDEN / "x_pdf_garbage.pdf").read_bytes())
+    text = doc.to_text()
+    assert len(text) > 0
+    assert expected["expected_fields"] == {name: None for name in expected["expected_fields"]}
+    assert expected["expected_verdict_status"] == "REVIEW"
+
+
+def test_pdf_no_vat_contract() -> None:
+    expected = _expected_file("x_pdf_no_vat")
+    doc = DocumentInput(pdf_bytes=(GOLDEN / "x_pdf_no_vat.pdf").read_bytes())
+    text = doc.to_text()
+    assert "Victoria Timber" in text
+    assert expected["expected_fields"]["tax_id"] is None
+    assert expected["expected_verdict_status"] == "PASS"
+
+
 def test_scanned_lane_fragment_matches_merged_manifest() -> None:
     assert SCANNED_MANIFEST["lane"] == "scanned"
     assert SCANNED_MANIFEST["cases"] == MANIFEST["scanned_cases"]

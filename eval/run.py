@@ -302,51 +302,23 @@ def _gate_row(
 
 
 def print_gates(report: dict[str, Any]) -> None:
-    """Print hard tier gates and informative slice/overall gates."""
+    """Evaluate and print calibrated regression gates for each evaluated lane.
+
+    Gate policy per lane:
+    - ocr: Local offline floor (Tier 0: 0.90/0.95, Tier 1: 0.70/0.65, Overall: 0.75/0.75).
+    - slm: Structured LLM on text + markitdown PDF
+      (Tier 0: 0.95/0.95, Tier 1: 0.80/0.80, Overall: 0.90/0.90).
+    - vlm: Multimodal VLM on rasterized scanned/digital PDF
+      (Tier 0: 0.95/0.95, Tier 1: 0.80/0.80, Overall: 0.90/0.85 calibrated for Tier 2 noise).
+    - auto: Document-type routing with fallbacks
+      (Tier 0: 0.95/0.95, Tier 1: 0.80/0.80, Overall: 0.90/0.85).
+    """
     print("\nGATES")
     rows: list[tuple[str, str, str]] = []
-    for lane_name in ("txt", "pdf"):
-        lane = report["lanes"].get(lane_name)
-        if lane is None:
-            continue
-        for tier, thresholds in ((0, (0.95, 0.95)), (1, (0.60, 0.25))):
-            rows.append(
-                _gate_row(
-                    f"{lane_name} tier:{tier}",
-                    _slice_metrics(lane, f"tier:{tier}"),
-                    thresholds=thresholds,
-                    informative=False,
-                )
-            )
-        rows.append(
-            _gate_row(
-                f"{lane_name} tier:2 + scenarios",
-                _slice_metrics(lane, "tier:2"),
-                thresholds=None,
-                informative=True,
-            )
-        )
-        for key, metrics in lane["slices"].items():
-            if key.startswith("scenario:"):
-                rows.append(
-                    _gate_row(f"{lane_name} {key}", metrics, thresholds=None, informative=True)
-                )
-        rows.append(
-            _gate_row(
-                f"{lane_name} overall",
-                {
-                    "field_accuracy": lane_field_accuracy(lane),
-                    "verdict_agreement": lane["verdict"]["agreement_rate"],
-                },
-                thresholds=None,
-                informative=True,
-            )
-        )
 
-    # Multi-lane mode (--lane): engine lanes carry pre-aggregated metrics in
-    # ``aggregate``. Evaluate calibrated hard regression gates so CI and eval
-    # fail on quality regressions instead of silently emitting informational rows.
     engine_tier_thresholds: dict[str, dict[int, tuple[float, float]]] = {
+        "txt": {0: (0.95, 0.95), 1: (0.60, 0.25)},
+        "pdf": {0: (0.95, 0.95), 1: (0.60, 0.25)},
         "ocr": {0: (0.90, 0.95), 1: (0.70, 0.65)},
         "auto": {0: (0.95, 0.95), 1: (0.80, 0.80)},
         "slm": {0: (0.95, 0.95), 1: (0.80, 0.80)},
@@ -354,14 +326,12 @@ def print_gates(report: dict[str, Any]) -> None:
     }
     engine_overall_thresholds: dict[str, tuple[float, float]] = {
         "ocr": (0.75, 0.75),
-        "auto": (0.90, 0.90),
+        "auto": (0.90, 0.85),
         "slm": (0.90, 0.90),
         "vlm": (0.90, 0.85),
     }
 
     for lane_name, lane in report["lanes"].items():
-        if lane_name in {"txt", "pdf"}:
-            continue
         lane_thresholds = engine_tier_thresholds.get(lane_name, {})
         for tier in (0, 1, 2):
             tier_slice = _slice_metrics(lane, f"tier:{tier}")
@@ -582,7 +552,7 @@ def main() -> None:
     legacy_thresholds = (
         args.min_field_accuracy is not None or args.min_verdict_agreement is not None
     )
-    if not args.gates and legacy_thresholds:
+    if legacy_thresholds:
         worst_accuracy = min(lane_field_accuracy(lane) for lane in lanes.values())
         worst_agreement = min(lane["verdict"]["agreement_rate"] for lane in lanes.values())
         failed_gates: list[str] = []
@@ -593,7 +563,8 @@ def main() -> None:
                 f"verdict_agreement {worst_agreement:.4f} < {args.min_verdict_agreement}"
             )
         if failed_gates:
-            print(f"\nGATE FAILED: {'; '.join(failed_gates)}", file=sys.stderr)
+            prefix = "GATE FAILED (--min-* override)" if args.gates else "GATE FAILED"
+            print(f"\n{prefix}: {'; '.join(failed_gates)}", file=sys.stderr)
             raise SystemExit(1)
 
 

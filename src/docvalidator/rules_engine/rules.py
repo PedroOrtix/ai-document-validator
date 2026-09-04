@@ -35,6 +35,12 @@ class InvoiceDatePresentAndFresh:
         if not isinstance(invoice_date, date):
             return RuleResult(rule_id=self.rule_id, passed=False, message="invoice date is invalid")
         age_days = (today - invoice_date).days
+        if age_days < 0:
+            return RuleResult(
+                rule_id=self.rule_id,
+                passed=False,
+                message="invoice date is in the future",
+            )
         if age_days > config.max_age_days:
             return RuleResult(
                 rule_id=self.rule_id,

@@ -69,7 +69,12 @@ class VisionExtractor(LLMExtractor, Extractor):
                 {"type": "text", "text": VISION_INSTRUCTION},
             ]
         )
-        return self._invoke_messages([message])
+        extraction = self._invoke_messages([message])
+        fields = {
+            name: field.model_copy(update={"page_hint": 1}) if field.value is not None else field
+            for name, field in extraction.fields.items()
+        }
+        return extraction.model_copy(update={"fields": fields})
 
     # The shared chain performs one structured-output call; parse failures are
     # typed errors rather than retries through another response format.

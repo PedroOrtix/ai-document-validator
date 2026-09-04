@@ -301,7 +301,9 @@ async def _parse_request(request: Request) -> ParsedRequest:
             config = ValidationConfig.model_validate_json(config_value)
         else:
             raise APIError("invalid_request", "config must be a JSON string")
-        return ParsedRequest(document, config, None)
+        backend_value = form.get("extraction_backend")
+        backend_str = str(backend_value) if backend_value is not None else None
+        return ParsedRequest(document, config, backend_str)
 
     raise APIError("invalid_request", "unsupported content type")
 

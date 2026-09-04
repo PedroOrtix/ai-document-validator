@@ -161,7 +161,9 @@ def expected_verdict(
     required_missing: bool,
 ) -> str:
     """Derive the truth verdict from the documented rule semantics."""
-    if invoice_date is not None and (AS_OF - invoice_date).days > MAX_AGE_DAYS:
+    if invoice_date is not None and (
+        (AS_OF - invoice_date).days > MAX_AGE_DAYS or (AS_OF - invoice_date).days < 0
+    ):
         return "FAIL"
     if amount is not None and amount <= 0:
         return "FAIL"

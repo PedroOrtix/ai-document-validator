@@ -10,7 +10,7 @@ sync: ## Install and sync all project dependencies with uv
 setup: sync ## Alias for sync: create .venv and install all dependencies
 
 
-test: ## Run the full pytest test suite (395 tests)
+test: ## Run the full pytest test suite (403 tests)
 	uv run pytest
 
 lint: ## Check code style and formatting with ruff

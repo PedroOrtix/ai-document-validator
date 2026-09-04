@@ -51,6 +51,15 @@ def test_invoice_date_rule_age_boundary() -> None:
     assert not rule.evaluate(extraction, config, today=date(2026, 4, 2)).passed
 
 
+def test_invoice_date_rule_future_date() -> None:
+    extraction = make_extraction(invoice_date=make_field(date(2027, 1, 1)))
+    config = ValidationConfig(max_age_days=90)
+    rule = InvoiceDatePresentAndFresh()
+    result = rule.evaluate(extraction, config, today=date(2026, 9, 3))
+    assert result.passed is False
+    assert "future" in result.message
+
+
 def test_invoice_date_rule_missing() -> None:
     rule = InvoiceDatePresentAndFresh()
     result = rule.evaluate(make_extraction(), ValidationConfig(), today=date(2026, 1, 1))
@@ -126,6 +135,11 @@ def test_missing_currency_without_allowed_currencies_yields_pass() -> None:
     assert verdict.status == "PASS"
 
 
+def test_invalid_currency_code_in_config_raises() -> None:
+    with pytest.raises(ValueError, match="valid ISO 4217"):
+        ValidationConfig(allowed_currencies=["INVALID"])
+
+
 def test_engine_passes_valid_document() -> None:
     extraction = make_extraction(
         invoice_date=make_field(date(2026, 1, 1)),
@@ -135,7 +149,6 @@ def test_engine_passes_valid_document() -> None:
     )
     config = ValidationConfig()
     verdict = RulesEngine().evaluate(extraction, config, today=date(2026, 1, 15))
-    print(verdict.rule_results)
     assert verdict.status == "PASS"
 
 

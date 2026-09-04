@@ -172,6 +172,12 @@ class OcrExtractor(Extractor):
             if not ocr_text.strip():
                 raise ExtractionError("OCR produced no readable text")
             fields = self._parser.extract_fields(ocr_text)
+            fields = {
+                name: field.model_copy(update={"page_hint": 1})
+                if field.value is not None
+                else field
+                for name, field in fields.items()
+            }
             model_name = self.model_name
             provider_name = "rapidocr-local"
 

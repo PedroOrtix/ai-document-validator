@@ -3,7 +3,6 @@ from base64 import b64encode
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from docvalidator.api.main import app
@@ -110,7 +109,26 @@ def test_unsupported_backend_returns_501() -> None:
     assert response.json()["error"]["code"] == "unsupported_backend"
 
 
-@pytest.mark.skip(reason="LLM backend behavior is owned by another workstream")
+def test_multipart_unsupported_backend_returns_501() -> None:
+    response = client.post(
+        "/v1/validate",
+        files={"file": ("invoice.txt", invoice_text.encode("utf-8"), "text/plain")},
+        data={"extraction_backend": "quantum-extractor"},
+    )
+    assert response.status_code == 501
+    assert response.json()["error"]["code"] == "unsupported_backend"
+
+
+def test_multipart_with_explicit_backend_ocr() -> None:
+    response = client.post(
+        "/v1/validate",
+        files={"file": ("invoice.txt", invoice_text.encode("utf-8"), "text/plain")},
+        data={"extraction_backend": "ocr"},
+    )
+    assert response.status_code == 200
+    assert response.json()["extraction"]["metadata"]["backend"] == "ocr"
+
+
 def test_llm_backend_without_api_key_returns_503() -> None:
     with patch("docvalidator.api.main._llm_api_key", return_value=""):
         response = client.post(

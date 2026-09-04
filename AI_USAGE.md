@@ -63,7 +63,7 @@ To prevent code degradation, branch collision, or hallucinated tests across para
 
 1. **Sandboxed Worktrees & Isolated Branches**: Hermes orchestrated Codex instances in separate Git worktrees. Feature branches were self-contained, preventing code collisions.
 2. **Mandatory Human Diff Review**: Codex was never permitted to commit or merge directly to `main`. Hermes evaluated diffs and required explicit human confirmation before merging.
-3. **Continuous TDD via Aegis**: Every phase implemented or updated unit and integration tests before writing implementation code. The test suite expanded systematically to **395 passing tests** (`pytest`, running in <5 seconds).
+3. **Continuous TDD via Aegis**: Every phase implemented or updated unit and integration tests before writing implementation code. The test suite expanded systematically to **403 passing tests** (`pytest`, running in <5 seconds).
 4. **Quantitative Evaluation Harness**: Rather than qualitative spot-checks, every extraction change was measured against the 78 golden fixtures (`eval.run`), tracking exact match, precision, recall, slice breakdowns (Tiers 0–2, EN/ES), and regression gates.
 5. **Real Environment & Live API Testing**:
    - The offline OCR floor was verified with `RUN_REAL_OCR=1` and in containerized Docker builds.

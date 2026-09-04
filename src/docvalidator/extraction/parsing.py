@@ -10,7 +10,7 @@ import re
 from datetime import date, datetime
 from typing import ClassVar
 
-from docvalidator.domain.models import ExtractedField
+from docvalidator.domain.models import ISO_4217_CURRENCIES, ExtractedField
 
 _SPANISH_MONTHS: dict[str, int] = {
     "ene": 1,
@@ -261,7 +261,9 @@ class RegexFieldParser:
         labeled = re.compile(r"\bCurrency\s*[:#]?\s*([A-Za-z]{3})\b", re.IGNORECASE)
         match = labeled.search(text)
         if match:
-            return self._field(match.group(1).upper(), 0.95, match.group(0).strip())
+            code = match.group(1).upper()
+            if code in ISO_4217_CURRENCIES:
+                return self._field(code, 0.95, match.group(0).strip())
 
         symbol_patterns = [
             (re.compile(r"[$€£]\s*\d"), {"$": "USD", "€": "EUR", "£": "GBP"}),
