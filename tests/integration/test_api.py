@@ -101,6 +101,15 @@ def test_reject_json_with_both_content_sources() -> None:
     assert response.status_code == 422
 
 
+def test_unsupported_backend_returns_501() -> None:
+    response = client.post(
+        "/v1/extract",
+        json={"text": invoice_text, "extraction_backend": "quantum-extractor"},
+    )
+    assert response.status_code == 501
+    assert response.json()["error"]["code"] == "unsupported_backend"
+
+
 @pytest.mark.skip(reason="LLM backend behavior is owned by another workstream")
 def test_llm_backend_without_api_key_returns_503() -> None:
     with patch("docvalidator.api.main._llm_api_key", return_value=""):

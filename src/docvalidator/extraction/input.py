@@ -3,7 +3,7 @@
 from io import BytesIO
 
 from markitdown import MarkItDown
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
 
 
 class ExtractionError(ValueError):
@@ -18,6 +18,7 @@ class DocumentInput(BaseModel):
     text: str | None = None
     pdf_bytes: bytes | None = None
     filename: str | None = None
+    _cached_text: str | None = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def validate_exactly_one_source(self) -> "DocumentInput":
@@ -34,7 +35,11 @@ class DocumentInput(BaseModel):
         A PDF without a text layer is a hard extraction failure. This avoids
         silently returning a document whose fields all appear to be missing.
         """
+        if self._cached_text is not None:
+            return self._cached_text
+
         if self.text is not None:
+            object.__setattr__(self, "_cached_text", self.text)
             return self.text
         if self.pdf_bytes is None:  # pragma: no cover - guarded by validation
             raise ExtractionError("document has no text or PDF bytes")
@@ -49,4 +54,5 @@ class DocumentInput(BaseModel):
             raise ExtractionError("unable to read PDF") from exc
         if not text:
             raise ExtractionError("PDF has no extractable text layer")
+        object.__setattr__(self, "_cached_text", text)
         return text

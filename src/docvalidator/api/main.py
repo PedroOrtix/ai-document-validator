@@ -5,7 +5,7 @@ import binascii
 import os
 import time
 import uuid
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import FastAPI, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -44,7 +44,7 @@ class JsonValidateRequest(BaseModel):
     text: str | None = None
     filename: str | None = None
     config: ValidationConfig = ValidationConfig()
-    extraction_backend: Literal["auto", "ocr", "llm", "vlm"] | None = None
+    extraction_backend: str | None = None
 
     @model_validator(mode="after")
     def validate_exactly_one_content_source(self) -> "JsonValidateRequest":

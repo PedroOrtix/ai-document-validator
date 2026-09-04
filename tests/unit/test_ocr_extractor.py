@@ -65,4 +65,6 @@ def test_text_document_skips_ocr() -> None:
     extraction = OcrExtractor(ocr_fn=ocr_fn).extract(DocumentInput(text=INVOICE_TEXT))
     assert called is False
     assert extraction.metadata.backend == "ocr"
+    assert extraction.metadata.model == "regex-parser"
+    assert extraction.metadata.provider == "local-deterministic"
     assert extraction.fields["invoice_number"].value == "INV-2026-0451"

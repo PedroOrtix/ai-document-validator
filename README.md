@@ -1,7 +1,7 @@
 # docvalidator — AI Document Validator
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-381%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-395%20passed-brightgreen.svg)]()
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)]()
 [![Offline Mode](https://img.shields.io/badge/offline%20floor-$0%20no--keys-success.svg)]()
@@ -39,7 +39,7 @@ make docker-build && make docker-up
 
 ### 1. Run tests and linting (60 seconds)
 ```bash
-make test    # Runs 393 pytest tests in ~4s (100% pass)
+make test    # Runs 395 pytest tests in ~4s (100% pass)
 make lint    # Runs ruff code formatting and style checks (0 errors)
 ```
 
@@ -137,8 +137,8 @@ Measured 2026-09-03 with `uv run python -m eval.run --as-of 2026-09-03` over all
 | Tier 0 (canonical clean) | 97.33% | 100.00% |
 | Tier 1 (format/label variants) | 86.21% | 82.76% |
 | Tier 2 (adversarial/noisy) | 61.11% | 75.00% |
-| Spanish language (`language:ES`) | 84.65% | 89.47% |
-| English language (`language:EN`) | 79.58% | 82.50% |
+| Spanish language (`language:ES`) | 84.65% | 92.11% |
+| English language (`language:EN`) | 79.58% | 80.00% |
 
 Latency per document (measured on 8-core x86_64 host): text ~0.1 ms (direct regex parser), digital-born PDF
 **714–918 ms**, scanned PDF **642–982 ms** — **$0.000000/doc**, fully local on CPU with zero credentials.
@@ -217,20 +217,20 @@ slm      pdf         1  100.00%  100.00%     0.74     0.00    2822.6       543 $
 slm      pdf         2   94.17%   90.00%     0.73     0.75    2251.8       560 $0.00018191
 ocr      txt         0   97.33%  100.00%     0.84     0.00       0.2         - $0.00000000
 ocr      txt         1   86.21%   82.76%     0.89     0.11       0.1         - $0.00000000
-ocr      txt         2   61.11%   58.33%     0.78     0.63       0.1         - $0.00000000
+ocr      txt         2   61.11%   75.00%     0.78     0.63       0.1         - $0.00000000
 ocr      pdf         0   97.33%  100.00%     0.81     0.95     616.1         - $0.00000000
 ocr      pdf         1   86.21%   82.76%     0.87     0.56     772.8         - $0.00000000
-ocr      pdf         2   61.11%   58.33%     0.76     0.55     927.4         - $0.00000000
+ocr      pdf         2   61.11%   75.00%     0.76     0.55     927.4         - $0.00000000
 ocr      scanned     0   97.33%  100.00%     0.95     0.95     608.8         - $0.00000000
 ocr      scanned     1   86.21%   82.76%     0.84     0.64     772.7         - $0.00000000
-ocr      scanned     2   61.11%   58.33%     0.93     0.44     913.2         - $0.00000000
+ocr      scanned     2   61.11%   75.00%     0.93     0.44     913.2         - $0.00000000
 ```
 
 | Engine | Evaluated Cases | Field Accuracy | Verdict Agreement | Latency | Tokens / Doc | Cost / Doc |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **`vlm`** (Vision LLM) | 35 (PDF + Scanned) | **98.10%** | **100.00%** (35/35) | ~1.8–2.2 s | ~2,825 | $0.000918 |
-| **`slm`** (Text LLM)   | 66 (TXT + PDF)     | **98.23%** | **96.97%** (64/66)  | ~2.5–2.8 s | ~300–550 | $0.000100 |
-| **`ocr`** (Local ONNX) | 78 (Full matrix)   | **82.05%** | **80.77%** (63/78)  | 0.1–770 ms | 0 | $0.000000 |
+| **`vlm`** (Vision LLM) | 35 (PDF + Scanned) | **98.10%** | **88.57%** (31/35) | ~2.2–4.0 s | ~2,950 | $0.000966 |
+| **`slm`** (Text LLM)   | 66 (TXT + PDF)     | **98.48%** | **92.42%** (61/66) | ~2.0–3.5 s | ~350–550 | $0.000128 |
+| **`ocr`** (Local ONNX) | 78 (Full matrix)   | **82.05%** | **85.90%** (67/78) | 0.1–1000 ms | 0 | $0.000000 |
 
 ## API
 
@@ -291,7 +291,7 @@ flowchart TD
 1. **Plain text (`.txt` or JSON `text`)**:
    - **Route**: `DocumentRoute.LLM`
    - **Pipeline**: Ingested directly into `LLMExtractor` via LangChain `ChatOpenAI` bound to `z-ai/glm-5.3-flash` using strict Pydantic structured output (`InvoiceExtraction`).
-   - **Guarantees**: 100% field accuracy on clean formats; zero OCR noise.
+   - **Key characteristics**: High field accuracy on clean formats; zero OCR noise.
 
 2. **Digital PDF with selectable text layer (`.pdf` $\ge 150$ characters)**:
    - **Route**: `DocumentRoute.MARKITDOWN`
@@ -302,7 +302,7 @@ flowchart TD
 3. **Scanned / image-only PDF (`.pdf` $< 150$ characters)**:
    - **Route**: `DocumentRoute.VISION`
    - **Pipeline**: `pypdfium2` rasterizes the first page to PNG at 150 DPI, then `VisionExtractor` sends the base64 image directly to the multimodal VLM (`z-ai/glm-5.3-flash`).
-   - **Guarantees**: Visual understanding of multi-column tables, stamps, and skewed layouts; achieves **100.00% verdict agreement** across all scanned fixtures.
+   - **Measured capability**: Visual understanding of multi-column tables, stamps, and skewed layouts; achieves robust verdict agreement across scanned fixtures.
    - **Resilience**: Upstream VLM errors cascade to `OcrExtractor` local fallback.
 
 4. **Credential-Free Local Floor (`OcrExtractor` / no-key default)**:
@@ -406,7 +406,7 @@ curl -s -X POST localhost:8000/v1/validate \
       "currency":       {"value": "EUR",              "confidence": 0.95, "evidence": "Currency: EUR",    "page_hint": null},
       "tax_id":         {"value": "DE123456789",      "confidence": 0.95, "evidence": "VAT: DE123456789", "page_hint": null}
     },
-    "metadata": {"backend": "ocr", "duration_ms": 1.711, "model": "pp-ocrv5-onnx", "provider": "rapidocr-local", "total_tokens": null}
+    "metadata": {"backend": "ocr", "duration_ms": 1.711, "model": "regex-parser", "provider": "local-deterministic", "total_tokens": null}
   },
   "request_id": "a5cb8bb2-8f10-4b02-aa77-be3b8e07d49e"
 }
@@ -456,8 +456,8 @@ Errors are structured too: `{"error": {"code": "...", "message": "...", "details
 (PP-OCRv5 detection + recognition models, ONNX Runtime, ~15MB wheel, no torch) locally
 on CPU, joins page text in reading order, and parses the resulting plain text with the
 deterministic regex parser (`extraction/parsing.py`). Plain-text requests skip rasterization/OCR
-but retain `metadata.backend="ocr"`. Model/provider metadata are `pp-ocrv5-onnx` and
-`rapidocr-local`; OCR failures and unreadable renders raise the typed extraction errors.
+but retain `metadata.backend="ocr"` with honest metadata (`model="regex-parser"`, `provider="local-deterministic"`);
+for PDFs, model/provider metadata are `pp-ocrv5-onnx` and `rapidocr-local`. OCR failures and unreadable renders raise the typed extraction errors.
 
 **Engine selection, measured.** We first implemented PaddleOCR-VL-1.6
 (`PaddlePaddle/PaddleOCR-VL-1.6`, the OmniDocBench-lineage 0.9B document-parse VLM) via
@@ -497,15 +497,15 @@ suppliers — that's why it ships as an opt-in adapter with a recorded stub for 
 **What did we measure?**
 
 - **OCR floor path (`ocr`)**: Measured across all 78 golden fixtures (`txt` + `pdf` + `scanned`):
-  **82.05% field accuracy**, **80.77% verdict agreement** (and **100.00% verdict agreement on Tier 0**).
+  **82.05% field accuracy**, **85.90% verdict agreement** (67/78) (and **100.00% verdict agreement on Tier 0**).
   Latency: **~0.1 ms** per text document, **~600–900 ms** per PDF (render + RapidOCR + 2D spatial clustering).
   Zero marginal cost (**$0.000000/doc**), zero external credentials, runs fully local on CPU.
 - **Structured LLM path (`slm`)**: Measured live on OpenRouter with `z-ai/glm-5.3-flash` across 66 cases (`txt` + `pdf`):
-  **98.23% field accuracy**, **96.97% verdict agreement** (100% on Tier 0 and Tier 1; 100% on `supplier_name`, `invoice_number`, `invoice_date`, `tax_id`).
-  Latency: **~2.5–2.8 s**, consuming **~300–550 tokens** per document (**~$0.000100/doc**).
+  **98.48% field accuracy**, **92.42% verdict agreement** (61/66) (100% on Tier 0 and Tier 1; 100% on `supplier_name`, `invoice_number`, `invoice_date`, `tax_id`).
+  Latency: **~2.0–3.5 s**, consuming **~350–550 tokens** per document (**~$0.000128/doc**).
 - **Vision VLM path (`vlm`)**: Measured live on OpenRouter with `z-ai/glm-5.3-flash` across 35 PDF cases (scanned + digital):
-  **98.10% field accuracy**, **100.00% verdict agreement** (35/35 correct compliance decisions).
-  Latency: **~1.8–2.2 s**, consuming **~2,825 tokens** per document (**~$0.000918/doc**).
+  **98.10% field accuracy**, **88.57% verdict agreement** (31/35 correct compliance decisions).
+  Latency: **~2.2–4.0 s**, consuming **~2,950 tokens** per document (**~$0.000966/doc**).
   Per-document latency and token usage are returned in `extraction.metadata` (`duration_ms`, `model`, `provider`, `total_tokens`) and recorded in structured request logs.
 
 **What would we monitor in production?**

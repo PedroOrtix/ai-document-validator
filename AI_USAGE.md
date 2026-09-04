@@ -63,7 +63,7 @@ To prevent code degradation, branch collision, or hallucinated tests across para
 
 1. **Sandboxed Worktrees & Isolated Branches**: Hermes orchestrated Codex instances in separate Git worktrees. Feature branches were self-contained, preventing code collisions.
 2. **Mandatory Human Diff Review**: Codex was never permitted to commit or merge directly to `main`. Hermes evaluated diffs and required explicit human confirmation before merging.
-3. **Continuous TDD via Aegis**: Every phase implemented or updated unit and integration tests before writing implementation code. The test suite expanded systematically to **381 passing tests** (`pytest`, running in <5 seconds).
+3. **Continuous TDD via Aegis**: Every phase implemented or updated unit and integration tests before writing implementation code. The test suite expanded systematically to **395 passing tests** (`pytest`, running in <5 seconds).
 4. **Quantitative Evaluation Harness**: Rather than qualitative spot-checks, every extraction change was measured against the 78 golden fixtures (`eval.run`), tracking exact match, precision, recall, slice breakdowns (Tiers 0–2, EN/ES), and regression gates.
 5. **Real Environment & Live API Testing**:
    - The offline OCR floor was verified with `RUN_REAL_OCR=1` and in containerized Docker builds.
@@ -77,7 +77,7 @@ To prevent code degradation, branch collision, or hallucinated tests across para
 All briefs dispatched to coding workers were recorded and committed to [`docs/prompts/`](docs/prompts/) to preserve complete provenance.
 
 ### Core LLM Structured Extraction Prompt
-The canonical system prompt governing `LLMExtractor` and `VisionExtractor` lives in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py):
+The canonical system prompt governing `LLMExtractor` lives in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py):
 
 ```text
 You extract supplier invoice fields into the requested structured schema. Return the six
@@ -87,3 +87,22 @@ currency codes.
 ```
 
 The extraction binds directly to the Pydantic `InvoiceExtraction` schema using LangChain's `with_structured_output`, enforcing strict types without relying on free-form conversational text.
+
+### Multimodal VLM Scanned Document Extraction Prompt (`VISION_INSTRUCTION`)
+The specialized multimodal instruction governing `VisionExtractor` when interpreting rasterized PDF pages and noisy scanned images lives in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py):
+
+```text
+Read the scanned invoice image and extract exactly these six fields: "supplier_name",
+"invoice_number", "invoice_date", "total_amount", "currency", "tax_id". Use null for
+fields that are not visible. invoice_date must be ISO YYYY-MM-DD. total_amount must be the
+grand total (never subtotal or tax), as a plain number without currency symbols or thousand
+separators. currency must be the ISO 4217 code (EUR, GBP...), null if only symbols are
+visible and ambiguous. tax_id is the VAT/registration identifier, null if absent.
+```
+
+This instruction explicitly addresses visual distractor disambiguation (distinguishing grand total from tax/subtotal, mapping ambiguous currency symbols to ISO 4217 or null) while binding to the exact same canonical schema.
+
+### E. Ground Truth Oracle Consistency on Compliance Rules
+- **The Finding**: When evaluating rule outcomes against synthetic documents where currency was absent under a configured currency whitelist (`allowed_currencies=["EUR", "GBP"]`), initial fixtures marked the expected verdict as `PASS`.
+- **Why Corrected**: Under compliance specifications, missing required data needed to evaluate a configured rule cannot pass; it is inconclusive and must route to `REVIEW` (`RuleResult.severity="review"`).
+- **Human Decision**: The ground truth generation script (`fixtures.generator.spec_v2`) and dataset manifests were deterministically regenerated to reflect this mathematical rule invariant across both truth files and test assertions, ensuring 100% formal consistency between documented rule semantics and expected outcomes.

@@ -164,20 +164,24 @@ class OcrExtractor(Extractor):
         started_at = time.perf_counter()
         if document.text is not None:
             fields = self._parser.extract_fields(document.to_text())
+            model_name = "regex-parser"
+            provider_name = "local-deterministic"
         else:
             pages = _render_page_bitmaps(document, self.settings.validator_ocr_dpi)
             ocr_text = self.ocr_fn(pages)
             if not ocr_text.strip():
                 raise ExtractionError("OCR produced no readable text")
             fields = self._parser.extract_fields(ocr_text)
+            model_name = self.model_name
+            provider_name = "rapidocr-local"
 
         duration_ms = (time.perf_counter() - started_at) * 1000
         return DocumentExtraction(
             fields=fields,
             metadata=ExtractionMetadata(
                 backend=self.backend,
-                model=self.model_name,
-                provider="rapidocr-local",
+                model=model_name,
+                provider=provider_name,
                 duration_ms=round(duration_ms, 3),
             ),
         )

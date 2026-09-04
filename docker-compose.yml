@@ -16,3 +16,9 @@ services:
       # - VALIDATOR_VLM_REASONING_EFFORT=low
       # - VALIDATOR_VLM_TIMEOUT_SECONDS=60
     restart: "no"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

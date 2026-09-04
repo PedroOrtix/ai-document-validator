@@ -3,6 +3,7 @@
 import json
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fpdf import FPDF
@@ -47,6 +48,20 @@ def test_markitdown_pdf_extracts_text() -> None:
     document = DocumentInput(pdf_bytes=bytes(pdf.output()))
 
     assert "Total 10.00" in document.to_text()
+
+
+def test_to_text_caches_result() -> None:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.multi_cell(0, 6, "Invoice\nTotal 10.00")
+    document = DocumentInput(pdf_bytes=bytes(pdf.output()))
+
+    text1 = document.to_text()
+    with patch("docvalidator.extraction.input.MarkItDown") as mock_cls:
+        text2 = document.to_text()
+        assert text1 == text2
+        mock_cls.assert_not_called()
 
 
 def test_blank_markitdown_pdf_has_typed_empty_text_failure() -> None:

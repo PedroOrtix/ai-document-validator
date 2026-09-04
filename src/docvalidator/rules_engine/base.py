@@ -1,6 +1,5 @@
 """Rules engine interfaces."""
 
-from collections.abc import Callable
 from datetime import date
 from typing import Protocol, runtime_checkable
 
@@ -38,13 +37,3 @@ class RuleRegistry:
     def register(self, rule: Rule) -> None:
         """Register one rule."""
         self._rules[rule.rule_id] = rule
-
-    def register_decorator(self, rule_factory: Callable[..., Rule]) -> Callable[..., Rule]:
-        """Return a decorator that registers the rule produced by a factory."""
-
-        def decorator(*args: object, **kwargs: object) -> Rule:
-            rule = rule_factory(*args, **kwargs)
-            self.register(rule)
-            return rule
-
-        return decorator
