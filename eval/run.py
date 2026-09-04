@@ -1,13 +1,14 @@
-"""Golden-set evaluation: extraction over the fixed txt + pdf datasets.
+"""Golden-set evaluation harness: extraction and validation over the 78 golden fixtures.
 
-Reads fixtures/golden/manifest.json (the frozen evaluation contract), runs the
-credential-free OCR extractor + rules engine over both lanes, reports field-level metrics
-per slice (language, tier, scenario, verdict) plus the aggregate, and enforces
-the CI quality gates. This is the measurement that tells us whether the
-heuristic solution still earns its keep or it is time to escalate (LLM, OCR).
+Reads fixtures/golden/manifest.json (43 txt, 23 pdf, 12 scanned), runs the
+extraction backends (ocr, slm, vlm, auto) + rules engine across formats and tiers,
+reports field-level metrics per slice (language, tier, scenario, format) plus aggregate
+decision tables (field accuracy, verdict agreement, latency, tokens, cost), and
+enforces calibrated CI quality gates.
 
-    uv run python -m eval.run                       # full report
-    uv run python -m eval.run --min-field-accuracy 0.9 --min-verdict-agreement 0.95
+    uv run python -m eval.run --as-of 2026-09-03
+    uv run python -m eval.run --lane ocr,slm,vlm --live
+    uv run python -m eval.run --gates --min-field-accuracy 0.80
 """
 
 from __future__ import annotations
@@ -467,7 +468,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--json-out",
+        "--output",
+        "-o",
         type=Path,
+        dest="json_out",
         help="write the full report and decision table here",
     )
     return parser.parse_args()

@@ -110,8 +110,8 @@ uv run python -m fixtures.generator.build
 uv run python -m fixtures.generator.build --verify
 ```
 
-The build writes `manifest_txt.json` and `manifest_pdf.json` fragments plus the
-merged `manifest.json`; `--verify` re-derives both lanes and checks hashes and
+The build writes `manifest_txt.json`, `manifest_pdf.json`, and `manifest_scanned.json` fragments plus the
+merged `manifest.json`; `--verify` re-derives all three formats and checks hashes and
 orphan files. There is no tier 3 lane: rule scenarios are distributed in tiers
 0–2 and remain represented by their expected verdicts.
 
@@ -147,7 +147,7 @@ scanned PDF **~600–1000 ms** (RapidOCR PP-OCRv5 ONNX CPU + 2D spatial sorting)
 
 ```bash
 uv run python -m eval.run --as-of 2026-09-03   # credential-free lanes + GATES section
-# hard gates by tier: tier0 >= 0.95/0.95, tier1 >= 0.60/0.25; tier2 and scenario slices informative
+# hard gates for ocr: tier0 >= 0.90/0.95, tier1 >= 0.70/0.65, overall >= 0.75/0.75; tier2 and scenario slices informative
 uv run python -m eval.run --no-gates           # report only
 uv run python -m eval.run --lane ocr --as-of 2026-09-03
 uv run python -m eval.run --lane all --live --as-of 2026-09-03
@@ -167,10 +167,10 @@ above): spelled-out dates, GB-format VAT ids, and rare label variants — the
 dataset isolates them; closing the gap is the LLM backend's job.
 
 The v2.2 dataset also contains 12 deterministic image-only scanned PDFs
-(4 per tier, 2 per language) with the same truth as their PDF twins. The regex-only
-floor deliberately cannot read them; `--include-scanned` (default on) reports
-them as a separate `scanned` lane for VLM/OCR measurements and does not
-contribute to the txt/pdf gates. Use `--no-include-scanned` to omit the section.
+(4 per tier, 2 per language) with the same truth as their PDF twins. The local ONNX
+OCR floor (RapidOCR) processes them offline alongside digital PDFs, contributing
+to the full 78-fixture evaluation matrix. Use `--no-include-scanned` if you wish to
+evaluate only text-layer documents.
 
 ### Multi-lane decision table
 
@@ -497,11 +497,16 @@ RUN_REAL_OCR=1 uv run pytest -m slow -q
 The LLM earns its keep on messy scanned documents, highly varied layouts, and multi-language
 suppliers — that's why it ships as an opt-in adapter with a recorded stub for offline testing.
 
+**Local OCR floor boundary conditions:**
+- *Complex / unbordered tables*: 2D spatial clustering groups by vertical coordinate; closely placed columns without explicit margins can interleave text.
+- *Severe non-orthogonal distortions*: RapidOCR handles standard 90° rotations cleanly, but affine shear or extreme skew increases character error rate.
+- *Lack of visual key information extraction (KIE)*: Isolated values (e.g. total amounts floating in bottom-right without nearby label) require multimodal visual reasoning — precisely why `VisionExtractor` (VLM) is integrated.
+
 **What did we measure?**
 
 - **OCR floor path (`ocr`)**: Measured across all 78 golden fixtures (`txt` + `pdf` + `scanned`):
   **82.05% field accuracy**, **85.90% verdict agreement** (67/78) (and **100.00% verdict agreement on Tier 0**).
-  Latency: **~0.1 ms** per text document, **~600–900 ms** per PDF (render + RapidOCR + 2D spatial clustering).
+  Latency: **~0.1 ms** per text document, **~600–1000 ms** per PDF (render + RapidOCR + 2D spatial clustering).
   Zero marginal cost (**$0.000000/doc**), zero external credentials, runs fully local on CPU.
 - **Structured LLM path (`slm`)**: Measured live on OpenRouter with `z-ai/glm-5.3-flash` across 66 cases (`txt` + `pdf`):
   **98.48% field accuracy**, **92.42% verdict agreement** (61/66) (100% on Tier 0 and Tier 1; 100% on `supplier_name`, `invoice_number`, `invoice_date`, `tax_id`).

@@ -55,6 +55,11 @@ A core tenet of this project was challenging LLM biases and avoiding common pitf
   2. Multi-line vertical key-value pairing across consecutive lines.
   3. Locale-independent Spanish written month mappings (`14 ago 2026` $\to$ `2026-08-14`).
 
+### E. Ground Truth Oracle Consistency on Compliance Rules
+- **The Finding**: When evaluating rule outcomes against synthetic documents where currency was absent under a configured currency whitelist (`allowed_currencies=["EUR", "GBP"]`), initial fixtures marked the expected verdict as `PASS`.
+- **Why Corrected**: Under compliance specifications, missing required data needed to evaluate a configured rule cannot pass; it is inconclusive and must route to `REVIEW` (`RuleResult.severity="review"`).
+- **Human Decision**: The ground truth generation script (`fixtures.generator.spec_v2`) and dataset manifests were deterministically regenerated to reflect this mathematical rule invariant across both truth files and test assertions, ensuring 100% formal consistency between documented rule semantics and expected outcomes.
+
 ---
 
 ## 3. Verification & Governance Protocol
@@ -101,8 +106,3 @@ visible and ambiguous. tax_id is the VAT/registration identifier, null if absent
 ```
 
 This instruction explicitly addresses visual distractor disambiguation (distinguishing grand total from tax/subtotal, mapping ambiguous currency symbols to ISO 4217 or null) while binding to the exact same canonical schema.
-
-### E. Ground Truth Oracle Consistency on Compliance Rules
-- **The Finding**: When evaluating rule outcomes against synthetic documents where currency was absent under a configured currency whitelist (`allowed_currencies=["EUR", "GBP"]`), initial fixtures marked the expected verdict as `PASS`.
-- **Why Corrected**: Under compliance specifications, missing required data needed to evaluate a configured rule cannot pass; it is inconclusive and must route to `REVIEW` (`RuleResult.severity="review"`).
-- **Human Decision**: The ground truth generation script (`fixtures.generator.spec_v2`) and dataset manifests were deterministically regenerated to reflect this mathematical rule invariant across both truth files and test assertions, ensuring 100% formal consistency between documented rule semantics and expected outcomes.

@@ -37,7 +37,7 @@ def _page_scale(dpi: int) -> float:
 
 
 def _render_page_bitmaps(document: DocumentInput, dpi: int) -> list[RenderedPage]:
-    """Rasterize a PDF in isolation; F3/F4 will consolidate rendering helpers."""
+    """Rasterize a PDF into page bitmaps."""
     import pypdfium2 as pdfium
 
     try:

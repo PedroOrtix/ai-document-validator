@@ -20,10 +20,10 @@ lint-fix: ## Auto-fix lint and import sorting issues
 	uv run ruff check --fix .
 
 eval: ## Run the evaluation harness on the credential-free OCR floor (78 fixtures, $0)
-	uv run python -m eval.run --as-of 2026-09-03
+	PYTHONUNBUFFERED=1 uv run python -m eval.run --as-of 2026-09-03
 
 eval-live: ## Run live multi-engine comparison (OCR vs SLM vs VLM, requires OPENROUTER_API_KEY)
-	uv run python -m eval.run --lane ocr,slm,vlm --live --as-of 2026-09-03
+	PYTHONUNBUFFERED=1 uv run python -m eval.run --lane ocr,slm,vlm --live --as-of 2026-09-03
 
 run: ## Start the FastAPI service locally on port 8000 with auto-reload
 	uv run uvicorn docvalidator.api.main:app --reload --port 8000

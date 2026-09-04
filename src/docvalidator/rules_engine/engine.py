@@ -1,6 +1,7 @@
 """Validation engine and verdict aggregation."""
 
 from datetime import date
+from typing import Literal
 
 from docvalidator.domain.models import (
     DocumentExtraction,
@@ -60,6 +61,7 @@ class RulesEngine:
             rule_results.append(rule.evaluate(extraction, config, today=today))
 
         all_results = synthetic_results + rule_results
+        status: Literal["PASS", "FAIL", "REVIEW"]
         if any(result.rejects_verdict for result in rule_results):
             status = "FAIL"
         elif missing_required or any(result.requests_review for result in rule_results):

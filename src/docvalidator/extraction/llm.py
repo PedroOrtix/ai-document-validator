@@ -262,24 +262,20 @@ class LLMExtractor(Extractor):
         ):
             return exc
         if isinstance(exc, AuthenticationError | PermissionDeniedError):
-            error = LLMConfigurationError("LLM provider rejected the configured API key")
-            raise error from exc
+            return LLMConfigurationError("LLM provider rejected the configured API key")
         if isinstance(exc, APIStatusError):
             if exc.status_code in {401, 403}:
-                error = LLMConfigurationError("LLM provider rejected the configured API key")
-                raise error from exc
-            error = LLMRequestError(f"LLM provider returned HTTP {exc.status_code}")
-            raise error from exc
+                return LLMConfigurationError("LLM provider rejected the configured API key")
+            return LLMRequestError(f"LLM provider returned HTTP {exc.status_code}")
         if isinstance(exc, openai.APITimeoutError | TimeoutError):
-            error = LLMTimeoutError("LLM extraction timed out")
-            raise error from exc
+            return LLMTimeoutError("LLM extraction timed out")
         if isinstance(exc, OutputParserException | ValidationError):
-            raise LLMParsingError("LLM response has invalid field values") from exc
+            return LLMParsingError("LLM response has invalid field values")
         if isinstance(exc, openai.APIConnectionError | ConnectionError):
-            raise LLMRequestError("unable to reach the LLM provider") from exc
+            return LLMRequestError("unable to reach the LLM provider")
         if isinstance(exc, ValueError | TypeError | KeyError | IndexError):
-            raise LLMParsingError("LLM provider returned an invalid completion response") from exc
-        raise LLMRequestError("LLM extraction failed") from exc
+            return LLMParsingError("LLM provider returned an invalid completion response")
+        return LLMRequestError("LLM extraction failed")
 
 
 def _build_chat_model(
@@ -298,8 +294,8 @@ def _build_chat_model(
         api_key=api_key,
         base_url=base_url,
         model=model,
-        temperature=0,
+        temperature=temperature,
         timeout=timeout,
-        max_retries=0,
+        max_retries=max_retries,
         **({"extra_body": {"reasoning": {"effort": reasoning_effort}}} if reasoning_effort else {}),
     )

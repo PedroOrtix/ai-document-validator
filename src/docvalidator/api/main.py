@@ -156,6 +156,11 @@ def custom_openapi() -> dict[str, Any]:
                             "type": "string",
                             "description": "Optional JSON-encoded ValidationConfig string",
                         },
+                        "extraction_backend": {
+                            "type": "string",
+                            "enum": ["auto", "llm", "vlm", "ocr"],
+                            "description": "Optional extraction backend override",
+                        },
                     },
                     "required": ["file"],
                 }
