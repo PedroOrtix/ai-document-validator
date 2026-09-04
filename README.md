@@ -521,3 +521,10 @@ With another day of development, the logical next steps would focus on pipeline 
 - **Serverless / Cloud deployment**: Package the containerized API for serverless deployment (e.g., AWS Lambda with container image, Cloud Run, or a dedicated VPS) to achieve cost-effective scale-to-zero operation suited for bursty B2B ingestion.
 - **Interactive Streamlit MVP**: Build a simple, clean Streamlit frontend allowing non-technical compliance reviewers to drag-and-drop invoices, inspect extracted fields side-by-side with document previews, and manually resolve `REVIEW` verdicts.
 - **Dataset & multi-page expansion**: Scale the golden set to include multi-page invoices with tabular line items and international tax regimes.
+
+---
+
+## AI Usage & Engineering Governance
+
+For complete documentation on AI-assisted engineering, tooling governance, concrete rejected proposals, and defensive prompt engineering as required by the technical assessment, see **[AI_USAGE.md](AI_USAGE.md)**.
+

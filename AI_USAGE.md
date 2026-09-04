@@ -1,32 +1,49 @@
 # AI Usage & Engineering Governance
 
-This project was developed with the assistance of AI coding tools, adhering strictly to the guidelines in `ai-engineer-technical-assessment.pdf`: maintaining clear technical ownership, reviewing all diffs, and critically challenging generated suggestions.
+This project was developed with the active assistance of AI engineering tools, adhering strictly to the guidelines in `ai-engineer-technical-assessment.pdf` (pages 1, 6, and 7): maintaining clear human technical ownership, critically evaluating suggestions, and remaining fully accountable for every architectural decision and line of code merged.
 
 ---
 
-## 1. Tools and Roles
+## 1. Tools, Architecture & Engineering Division of Labor
 
-AI assistants were utilized across the development lifecycle for specific, bounded engineering tasks:
+Rather than using an AI assistant simply for inline code autocomplete, development followed a disciplined, multi-agent workflow with clear role separation:
 
-- **AI Assistants (Claude / Codex / Antigravity)**: Used for scaffolding boilerplate (FastAPI endpoints, Pydantic models), drafting test fixtures, generating synthetic document variants, and iterating on regular expressions.
-- **Human Engineer**: Defined system requirements and domain models, established the offline $0 floor constraint, designed the rules engine architecture, conducted line-by-line diff reviews, verified test coverage, and directed the evaluation methodology.
+| Role / Tool | Environment | Key Responsibilities |
+|---|---|---|
+| **Pedro (Human Lead)** | **System Architect & Director** | Defined domain boundaries, compliance invariants, the non-negotiable $0 offline floor, the three-pipeline vision, inconclusive/review logic, and conducted line-by-line diff reviews before any merge. |
+| **Hermes Desktop** | **Meta-Orchestrator** | Managed high-level task planning, decomposed technical phases, handled task queues, and orchestrated isolated Git worktree lifecycles. |
+| **Codex CLI** | **Autonomous TDD Worker** | Executed implementation within sandboxed Git worktrees. Operated strictly under Test-Driven Development (TDD): drafting unit/integration tests before writing implementation code. |
+| **Antigravity 2.0** | **Pair Assistant & Fast Auditor** | Powered by Gemini. Leveraged for high token-throughput tasks: technical auditing against assessment requirements, fast sanity checks, dual OpenAPI schema alignment, and documentation generation and refinement. |
 
-### Model Usage
-- **Development & Coding Assistance**: Models via OpenRouter and Gemini were used for code drafting, refactoring, and benchmark analysis.
-- **Production Runtime Ingestion**: `z-ai/glm-5.3-flash` powers `LLMExtractor` and `VisionExtractor`, selected for its balance of ~2s latency and ~$0.0001/doc cost.
+### Model Selection Strategy
+- **Development & Auditing**: High-throughput reasoning models via Antigravity 2.0 and OpenRouter were used for rapid verification, test scaffolding, and documentation.
+- **Production Runtime Ingestion**: `z-ai/glm-5.3-flash` powers the runtime `LLMExtractor` and `VisionExtractor`, selected for its optimal balance of ~2s latency and ~$0.0001/doc cost.
 
 ---
 
 ## 2. Concrete Examples of Rejected AI Suggestions
 
-A core tenet of this project was challenging LLM biases and avoiding common pitfalls. Five concrete examples demonstrate how AI proposals were critically evaluated and rejected:
+A core principle of this implementation was critically challenging AI defaults, pre-training biases, and naive patterns. Five concrete examples illustrate where AI proposals were evaluated and rejected:
 
-### A. Rejecting Pre-training OCR Biases (Tesseract / EasyOCR vs PP-OCRv5 ONNX)
-- **The AI Suggestion**: When asked for local OCR options, coding assistants repeatedly suggested legacy libraries (`pytesseract`, `easyocr`) due to training data frequency, or conversely, reached for heavy 1B-parameter autoregressive document VLMs (e.g., `PaddlePaddle/PaddleOCR-VL-1.6` via Hugging Face Transformers).
-- **Why Rejected**: The author consulted current document parsing benchmarks and evaluated runtime constraints. A live CPU test of `PaddleOCR-VL-1.6` took **~30+ seconds per page** and required a multi-gigabyte PyTorch image. Tesseract/EasyOCR, on the other hand, produce unacceptable line scrambling on textured B2B invoices.
-- **Human Decision**: Selected **RapidOCR (PP-OCRv5)** packaged via ONNX Runtime: a lightweight (~15MB) pure wheel running on CPU in **~700 ms** with zero PyTorch dependencies and pre-cached weights in Docker, fulfilling the $0 offline requirement with SOTA line recognition.
+### A. Rejecting a Naive Regex Monolith in Favor of Three Swappable Pipelines
+- **The AI Suggestion**: Early proposals suggested relying solely on regex heuristics for the entire document extraction pipeline, or building a monolithic extractor.
+- **Why Rejected**: Firsthand production experience demonstrates that real-world B2B documents break naive heuristic parsing immediately. Variable table layouts, multi-column arrangements, and visual noise cannot be reliably handled by regexes alone. Conversely, relying exclusively on an LLM violates the $0 offline requirement.
+- **Human Decision**: Architected **three swappable extraction pipelines** coordinated by an `AutoRouter`:
+  1. *Lane 1 (Heuristic / OCR Floor)*: 100% offline, $0 cost, running local ONNX OCR.
+  2. *Lane 2 (Structured SLM)*: Fast, low-cost text extraction via LangChain structured output.
+  3. *Lane 3 (Multimodal VLM)*: Direct visual reasoning for degraded, scanned, or complex rasterized invoices.
 
-### B. Rejecting Endogenous LLM Confidence ("Fighting Fire with Fire")
+### B. Pivoting from Legacy OCR & Heavy VLMs to PP-OCRv5 ONNX with Spatial Clustering
+- **The AI Suggestion**: Assistants initially defaulted to legacy OCR engines (`pytesseract`, `easyocr`), or alternatively recommended heavy 1B-parameter document VLMs (`PaddlePaddle/PaddleOCR-VL-1.6` via Hugging Face Transformers).
+- **Why Rejected**:
+  - Legacy engines (`pytesseract`, `easyocr`) are notoriously mediocre on textured B2B invoices and struggle with non-English date structures.
+  - Heavy autoregressive VLMs (`PaddleOCR-VL-1.6`) were benchmarked on a CPU host: processing took **~30+ seconds per page** and required a multi-gigabyte PyTorch Docker image, rendering it unviable for local or production use.
+  - Additionally, naive box joining (`"\n".join(...)`) returned text scrambled out of reading order.
+- **Human Decision**:
+  - Selected **RapidOCR (PP-OCRv5)** packaged via ONNX Runtime: a lightweight (~15MB) wheel running on CPU in **~700 ms** with zero PyTorch dependencies and pre-cached weights in Docker ($0 offline floor).
+  - Designed a custom **2D vertical-tolerance line clustering algorithm** (`_sort_boxes_reading_order` in `src/docvalidator/extraction/ocr.py`) that calculates bounding-box centers, clusters horizontal text lines within vertical thresholds, and sorts tokens left-to-right to guarantee natural reading order.
+
+### C. Rejecting Endogenous LLM Confidence ("Fighting Fire with Fire")
 - **The AI Suggestion**: Assistants suggested prompting the LLM to return its own self-reported confidence score (e.g., `"confidence": 0.98`) per extracted field.
 - **Why Rejected**: *A model grading its own certainty is fighting fire with fire.* LLM-reported probabilities are poorly calibrated, prone to overconfidence on hallucinations, and cannot be trusted in audit-grade compliance.
 - **Human Decision**: Enforced an **exogenous confidence model** based on observable evidence tiers:
@@ -36,47 +53,48 @@ A core tenet of this project was challenging LLM biases and avoiding common pitf
   - Missing required field: `0.00`
   This was validated empirically in the evaluation harness via the `conf-ok` vs `conf-bad` separation metric.
 
-### C. Rejecting Silent `FAIL` on Missing Data in Compliance Rules
-- **The AI Suggestion**: Early rule implementations marked a document as `FAIL` whenever a required field (e.g., `invoice_date` or `total_amount`) was absent from the document.
-- **Why Rejected**: In B2B compliance workflows, conflating *"the document broke a rule"* with *"the document is missing data"* is dangerous. A `FAIL` blocks a supplier automatically, whereas missing data requires human escalation (`REVIEW`).
-- **Human Decision**: Introduced the `inconclusive=True` rule state. If input data is missing, the rule is marked inconclusive and the overall verdict defaults to `REVIEW`. A `FAIL` is strictly reserved for documents where extracted data actively violates a threshold (e.g., date older than 90 days or negative amount).
+### D. Rejecting Silent `FAIL` on Missing Data in Compliance Rules
+- **The AI Suggestion**: Early rule implementations marked a document as `FAIL` whenever a required field (e.g., `invoice_date` or `total_amount`) was absent.
+- **Why Rejected**: In B2B compliance workflows, conflating *"the document broke a business rule"* with *"the extractor failed to locate a field"* is dangerous. A `FAIL` automatically blocks a supplier or halts payment, whereas missing data requires human escalation (`REVIEW`).
+- **Human Decision**: Introduced the `inconclusive=True` rule state and `requests_review`. If data needed to judge a rule is missing, the rule is marked inconclusive and the overall verdict defaults to `REVIEW`. A `FAIL` is strictly reserved for documents where extracted data actively violates a threshold (e.g., date older than 90 days or negative amount).
 
-### D. Enforcing Anti-Overfitting Discipline on the Evaluation Dataset
-- **The AI Suggestion**: Assistants proposed adding specific regex overrides targeting exact strings found in failing golden fixtures.
+### E. Enforcing Anti-Overfitting Discipline on Evaluation Fixtures
+- **The AI Suggestion**: Assistants proposed adding specific regex overrides targeting exact string patterns found in failing golden fixtures.
 - **Why Rejected**: Patching regexes to pass known synthetic fixtures leads directly to benchmark overfitting and brittle real-world performance.
-- **Human Decision**: Built the golden dataset (78 fixtures) **before** refining the extraction floor, and insisted on generalizable structural improvements:
-  1. 2D vertical center line-clustering (`_sort_boxes_reading_order`) to handle arbitrary OCR bounding-box order.
-  2. Multi-line vertical key-value pairing across consecutive lines.
-  3. Locale-independent Spanish written month mappings (`14 ago 2026` $\to$ `2026-08-14`).
-
-### E. Ground Truth Oracle Consistency on Compliance Rules
-- **The Finding**: When evaluating rule outcomes against synthetic documents where currency was absent under a configured currency whitelist (`allowed_currencies=["EUR", "GBP"]`), initial fixtures marked the expected verdict as `PASS`.
-- **Why Corrected**: Under compliance specifications, missing required data needed to evaluate a configured rule cannot pass; it is inconclusive and must route to `REVIEW` (`RuleResult.severity="review"`).
-- **Human Decision**: The ground truth generation script (`fixtures.generator.spec_v2`) and dataset manifests were deterministically regenerated to reflect this mathematical rule invariant across both truth files and test assertions, ensuring 100% formal consistency between documented rule semantics and expected outcomes.
+- **Human Decision**: Built generalizable structural improvements rather than dataset-specific patches:
+  1. Multi-line vertical key-value pairing across consecutive lines.
+  2. Locale-independent Spanish written month mappings (`14 ago 2026` $\to$ `2026-08-14`).
+  3. Strict isolation between test fixture generation and extraction logic.
 
 ---
 
-## 3. Verification & Quality Control
+## 3. Evaluation Dataset Curation & Verification Protocol
 
-To ensure code correctness and maintain strict discipline across all changes:
+### Bilingual & Multi-Tier Golden Set (78 Fixtures)
+The evaluation dataset was deliberately designed across two languages—**Spanish and English**—to reflect European B2B compliance reality, structured across three difficulty tiers:
+- **Tier 0**: Clean digital documents with standard layout.
+- **Tier 1**: Complex real-world layout variations, multi-column tables, and varied date notations.
+- **Tier 2**: Degraded, scanned raster images with noise and rotation artifacts.
+- **Adversarial Edge Cases**: Future invoice dates, non-whitelisted currencies, missing totals, and ambiguous currency symbols.
 
-1. **Mandatory Diff Review**: Every code change was reviewed line-by-line before merging.
-2. **Continuous TDD**: Unit and integration tests were maintained alongside code, resulting in **403 passing tests** (`pytest`, running in <5 seconds).
-3. **Quantitative Evaluation Harness**: Rather than qualitative spot-checks, changes were measured against the 78 golden fixtures (`eval.run`), tracking exact match, precision, recall, and regression gates.
-4. **Hermetic & Live Verification**:
+### Subagent Validation Discipline
+To prevent synthetic data hallucinations (such as line items not summing to the total, impossible calendar dates like February 30, or syntactically invalid tax IDs), specialized **validator subagents** were deployed during fixture generation. These subagents audited the synthetic documents against strict mathematical and domain rules before freezing the golden ground truth oracle.
+
+### Verification Quality Gates
+1. **Continuous TDD**: 403 unit and integration tests (`pytest`, running in <5 seconds) maintained across all modules.
+2. **Quantitative Evaluation Harness**: Every extraction change was benchmarked across the 78 golden fixtures (`eval.run`), tracking exact match, precision, recall, and regression gates.
+3. **Hermetic & Live Verification**:
    - The offline OCR floor was verified locally with `RUN_REAL_OCR=1` and in containerized Docker builds.
-   - The LLM and VLM pathways were verified against live OpenRouter endpoints.
+   - The SLM and VLM pathways were verified against live OpenRouter endpoints.
    - Real PDF fixtures (`fixtures/golden/pdf_en_t0_0.pdf`) were tested end-to-end via `curl` against the running FastAPI service.
 
 ---
 
-## 4. Extraction Prompts & System Instructions
+## 4. Extraction Prompts & Defensive Prompt Engineering
 
-The system instructions used for document extraction are embedded directly in the codebase and bound to strict Pydantic schemas:
+The system instructions used for document extraction are embedded directly in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py) and bound to strict Pydantic schemas via LangChain's `with_structured_output`:
 
 ### Core LLM Structured Extraction Prompt
-The canonical system prompt governing `LLMExtractor` lives in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py):
-
 ```text
 You extract supplier invoice fields into the requested structured schema. Return the six
 fields "supplier_name", "invoice_number", "invoice_date", "total_amount", "currency", and
@@ -84,11 +102,7 @@ fields "supplier_name", "invoice_number", "invoice_date", "total_amount", "curre
 currency codes.
 ```
 
-The extraction binds directly to the Pydantic `InvoiceExtraction` schema using LangChain's `with_structured_output`, enforcing strict types without relying on free-form conversational text.
-
 ### Multimodal VLM Scanned Document Extraction Prompt (`VISION_INSTRUCTION`)
-The specialized multimodal instruction governing `VisionExtractor` when interpreting rasterized PDF pages and noisy scanned images lives in [`src/docvalidator/extraction/llm.py`](src/docvalidator/extraction/llm.py):
-
 ```text
 Read the scanned invoice image and extract exactly these six fields: "supplier_name",
 "invoice_number", "invoice_date", "total_amount", "currency", "tax_id". Use null for
@@ -98,4 +112,14 @@ separators. currency must be the ISO 4217 code (EUR, GBP...), null if only symbo
 visible and ambiguous. tax_id is the VAT/registration identifier, null if absent.
 ```
 
-This instruction explicitly addresses visual distractor disambiguation (distinguishing grand total from tax/subtotal, mapping ambiguous currency symbols to ISO 4217 or null) while binding to the exact same canonical schema.
+### Prompt Design Decisions & Failure Modes Prevented
+Each clause in these prompts addresses a specific, observed failure mode of generative models:
+
+1. **`"total_amount must be the grand total (never subtotal or tax)"`**:
+   - *Failure Mode Prevented*: Without this explicit guardrail, models routinely selected the net taxable base (subtotal) or the tax line item instead of the final invoice total.
+2. **`"as a plain number without currency symbols or thousand separators"`**:
+   - *Failure Mode Prevented*: Models frequently return formatted strings (e.g., `"$1,250.00"` or `"1.250,00 €"`). Pydantic's strict `float` validator rejects strings containing commas or symbols with a `ValidationError`. Enforcing plain numeric output guarantees clean type coercion.
+3. **`"currency must be the ISO 4217 code (EUR, GBP...), null if only symbols are visible and ambiguous"`**:
+   - *Failure Mode Prevented*: The symbol `$` is shared by USD, CAD, AUD, and others. Unconstrained models systematically guess `USD` even on Canadian or Australian invoices. Requiring an explicit ISO code or null prevents false currency validation against whitelists.
+4. **`"tax_id is the VAT/registration identifier, null if absent"`**:
+   - *Failure Mode Prevented*: Prevents the model from populating `tax_id` with unrelated numbers found in invoice headers, such as postal codes, commercial register numbers, or bank account IBANs.
