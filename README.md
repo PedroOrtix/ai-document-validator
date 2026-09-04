@@ -515,6 +515,9 @@ suppliers — that's why it ships as an opt-in adapter with a recorded stub for 
 
 ## What I would do next with another day
 
-If given another day of development, the priority extensions would be:
-- **Multi-page invoice line-item extraction**: Parse tabular itemized rows into structured `LineItem` records across multi-page documents.
-- **Persistent tenant rule profiles**: Back `ValidationConfig` with persistent storage for tenant-specific currency whitelists and custom approval thresholds.
+With another day of development, the logical next steps would focus on pipeline benchmarking, cloud economics, and user verification:
+
+- **Pipeline benchmarking with SOTA parsers ([LlamaParse](https://www.llamaindex.ai/llamaparse))**: Benchmark specialized out-of-the-box document engines like LlamaParse as an optional extraction adapter, measuring whether its advanced table and layout parsing yields a quality win that justifies its API latency and cost against our $0 local OCR floor.
+- **Serverless / Cloud deployment**: Package the containerized API for serverless deployment (e.g., AWS Lambda with container image, Cloud Run, or a dedicated VPS) to achieve cost-effective scale-to-zero operation suited for bursty B2B ingestion.
+- **Interactive Streamlit MVP**: Build a simple, clean Streamlit frontend allowing non-technical compliance reviewers to drag-and-drop invoices, inspect extracted fields side-by-side with document previews, and manually resolve `REVIEW` verdicts.
+- **Dataset & multi-page expansion**: Scale the golden set to include multi-page invoices with tabular line items and international tax regimes.
