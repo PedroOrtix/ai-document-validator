@@ -3,18 +3,22 @@ services:
     build: .
     ports:
       - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      # Backend selection is key-presence-driven: without OPENROUTER_API_KEY the
-      # credential-free OCR floor serves every request (RapidOCR weights ship in
-      # the image, no network at runtime); with a key the auto router
-      # (txt->LLM, selectable-text PDF->LLM, scanned->VLM, OCR as second
-      # echelon) is the default. This var is not read by the code and only
-      # documents the no-key posture of this compose file.
-      - VALIDATOR_EXTRACTION_BACKEND=ocr
-      # - OPENROUTER_API_KEY=...   # only needed for the optional LLM backend
-      # - VALIDATOR_VLM_MODEL=z-ai/glm-5.3-flash
-      # - VALIDATOR_VLM_REASONING_EFFORT=low
-      # - VALIDATOR_VLM_TIMEOUT_SECONDS=60
+      # OpenRouter credentials: To use the full multi-lane AutoRouter (SLM + VLM) in Docker,
+      # provide OPENROUTER_API_KEY in .env (or export it in your shell).
+      # Without a key, the container safely defaults to the $0 offline RapidOCR floor.
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - VALIDATOR_LLM_MODEL=${VALIDATOR_LLM_MODEL:-z-ai/glm-5.3-flash}
+      - VALIDATOR_LLM_REASONING_EFFORT=${VALIDATOR_LLM_REASONING_EFFORT:-low}
+      - VALIDATOR_VLM_MODEL=${VALIDATOR_VLM_MODEL:-z-ai/glm-5.3-flash}
+      - VALIDATOR_VLM_REASONING_EFFORT=${VALIDATOR_VLM_REASONING_EFFORT:-low}
+      - VALIDATOR_VLM_TIMEOUT_SECONDS=${VALIDATOR_VLM_TIMEOUT_SECONDS:-60}
+      - VALIDATOR_LLM_TIMEOUT_SECONDS=${VALIDATOR_LLM_TIMEOUT_SECONDS:-30}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: "no"
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
@@ -22,3 +26,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+

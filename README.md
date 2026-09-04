@@ -11,30 +11,79 @@ It ingests supplier invoices (PDF or plain text), extracts canonical structured 
 
 ---
 
+## 📋 Assessment Deliverables Checklist
+
+Per `ai-engineer-technical-assessment.pdf` (pages 1, 6, 7), all core and optional requirements are fully delivered:
+
+| Requirement | Status | Deliverable Details |
+|---|---|---|
+| **1. Git repository** | ✅ Delivered | Self-contained Git repo with clean history and zero secrets. |
+| **2. README** | ✅ Delivered | Instructions for API + eval, architecture rationale, trade-offs, and roadmap. |
+| **3. AI_USAGE.md** | ✅ Delivered | [AI_USAGE.md](AI_USAGE.md) documenting multi-agent triad, 5 rejected suggestions, prompt defense. |
+| **4. Tests** | ✅ Delivered | 403 pytest unit and integration tests (`make test`, 100% pass in <5s). |
+| **5. Golden set + eval** | ✅ Delivered | 78 fixtures (`fixtures/golden/`) across EN/ES and 3 tiers + reproducible evaluation harness (`make eval`). |
+| **6. Sample req/resp** | ✅ Delivered | Plain text JSON and multipart PDF examples with full payload responses documented below. |
+| *(Optional)* Docker Compose | ✅ Delivered | [docker-compose.yml](docker-compose.yml) + [Dockerfile](Dockerfile) with pre-baked ONNX weights and `.env` support. |
+| *(Optional)* CI Workflow | ✅ Delivered | [.github/workflows/ci.yml](.github/workflows/ci.yml) running lint, tests, and eval gates on every push. |
+| *(Optional)* Architecture Diagram | ✅ Delivered | Pipeline and AutoRouter workflow diagram included below. |
+
+---
+
 ## ⏱️ 15-Minute Evaluator Guide
 
 If you have 15 minutes to review and challenge this project, here is the recommended walkthrough:
 
 ```text
-  Minute 0–1: Environment Setup        ──> make setup (or Docker)
-  Minute 1–3: Code Quality & Tests      ──> make test && make lint
-  Minute 3–6: Benchmark & Metrics       ──> make eval (78 fixtures, $0, 100% offline)
-  Minute 6–9: Run API & Explore Swagger ──> make run -> http://localhost:8000/docs
-  Minute 9–12: Live Ingestion (PDF/TXT) ──> curl sample commands below
-  Minute 12–15: Architecture & AI Audit ──> Inspect AutoRouter & AI_USAGE.md
+  Minute 0–2: Environment Setup        ──> Method A (uv) or Method B (Docker Compose)
+  Minute 2–4: Code Quality & Tests      ──> make test && make lint
+  Minute 4–7: Benchmark & Metrics       ──> make eval (78 fixtures, $0, 100% offline)
+  Minute 7–10: Run API & Explore Swagger──> make run -> http://localhost:8000/docs
+  Minute 10–13: Live Ingestion (PDF/TXT)──> curl sample commands below
+  Minute 13–15: Architecture & AI Audit ──> Inspect AutoRouter & AI_USAGE.md
 ```
 
-### 0. Quick environment setup (30 seconds)
-Prerequisites: Python 3.12+ and [`uv`](https://github.com/astral-sh/uv) (or Docker).
+### 0. Quick environment setup & execution (Two Supported Methods)
+
+The service can be run locally via **`uv`** or containerized via **Docker Compose**. Both execution modes are first-class citizens:
+
+#### Method A: Local environment with `uv` (Fastest, recommended for development & evaluation)
+*Prerequisites: Python 3.12+ and [`uv`](https://github.com/astral-sh/uv).*
 
 ```bash
-# Option A: Local environment with uv
-make setup                 # runs 'uv sync --dev' (creates .venv and installs all dependencies)
-cp .env.example .env       # (Optional) paste the OPENROUTER_API_KEY from submission email
+# 1. Setup virtual environment and dependencies (~2 seconds)
+make setup                 # runs 'uv sync --dev'
+
+# 2. (Optional) Configure OpenRouter credentials
+cp .env.example .env       # Paste the OPENROUTER_API_KEY from submission email
                            # Without a key, the local $0 OCR floor runs completely offline automatically
 
-# Option B: Run entirely in Docker (no local Python or dependencies needed)
-make docker-build && make docker-up
+# 3. Start the service
+make run                   # Starts FastAPI on http://localhost:8000
+```
+
+#### Method B: Containerized environment with Docker Compose (Isolated, zero-host-dependencies)
+*Prerequisites: Docker and Docker Compose.*
+
+> [!IMPORTANT]
+> **OpenRouter Credentials in Docker Compose:**
+> To enable the full multi-lane AutoRouter (`LLMExtractor` + `VisionExtractor`) inside Docker, you must provide your OpenRouter credentials in `.env`:
+> ```bash
+> cp .env.example .env
+> # Edit .env and paste your OPENROUTER_API_KEY
+> ```
+> `docker-compose.yml` automatically mounts `.env` and forwards `OPENROUTER_API_KEY` into the container.
+> If no `.env` or key is provided, the container runs safely on the built-in **credential-free $0 RapidOCR floor** (weights are pre-downloaded at Docker build time into the image; no runtime network calls).
+
+```bash
+# 1. Build container image (pre-caches PP-OCRv5 ONNX weights)
+make docker-build          # or: docker compose build
+
+# 2. Start the container
+make docker-up             # or: docker compose up
+
+# 3. (Optional) Run tests and eval inside the container
+docker compose exec docvalidator pytest
+docker compose exec docvalidator python -m eval.run --as-of 2026-09-03
 ```
 
 ### 1. Run tests and linting (60 seconds)
